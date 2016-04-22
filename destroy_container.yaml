@@ -1,0 +1,25 @@
+---
+- hosts: lilikhost
+  vars_prompt:
+      - name: container_name
+        prompt: 'what container should be destroyed?'
+        private: no
+      - name: confirm1
+        prompt: 'are you sure you want to delete the container?'
+        private: no
+      - name: confirm2
+        prompt: 'if you really are sure, enter "cthulhu" backwards'
+        private: no
+  tasks:
+      - block:
+          - name: shutdown lxc container
+            lxc_container:
+                name: "{{ container_name }}"
+                state: stopped
+          - name: clean LVM volume
+            command: "dd if=/dev/zero of=/dev/sysvg/vm_{{ container_name }} bs=1M count=128"
+          - name: delete lxc container
+            lxc_container:
+                name: "{{ container_name }}"
+                state: absent
+        when: "confirm1 == 'yes' and confirm2 == 'uhluhtc'"

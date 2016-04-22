@@ -1,0 +1,41 @@
+- name: check for lxc container existance
+  shell: "[ -d /var/lib/lxc/{{ vm_name }} ] && echo true || echo false"
+  register: lxc_existance
+  ignore_errors: true
+  changed_when: false
+- block:
+    - name: create the lxc container
+      lxc_container:
+          name: "{{ vm_name }}"
+          backing_store: lvm
+          vg_name: sysvg
+          lv_name: "vm_{{ vm_name }}"
+          fs_type: xfs
+          container_log: true
+          template: debian
+          template_options: --release stretch --packages "ssh python"
+          container_command: |
+              echo "ssh-rsa {{ user_ca_key }}" > /etc/ssh/user_ca.pub
+              echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
+              sed -i 's/eth0 inet dhcp/eth0 inet manual/' /etc/network/interfaces
+          state: stopped
+    - name: deploy container config
+      template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
+    - name: start container
+      lxc_container:
+          name: "{{ vm_name }}"
+          state: started
+      when: auto_start|bool
+  when: "lxc_existance.stdout == 'false'"
+- block:
+    - name: update container config
+      template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
+      notify:
+          - restart container
+    - name: set container running state
+      lxc_container:
+          name: "{{ vm_name }}"
+          state: "{{ container_state }}"
+  when: "lxc_existance.stdout == 'true'"
+- name: "waiting for ssh on {{ vm_name }} vm to start"
+  wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=20

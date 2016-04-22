@@ -1,0 +1,15 @@
+---
+- hosts: vm_hosts
+  tasks:
+    - name: install lxc related packages
+      apt: name={{ item }} state=latest
+      with_items:
+          - lxc
+          - lxc-dev
+          - python
+          - python-dev
+          - python-pip
+    - name: install lxc python support
+      pip: name=lxc-python2 state=latest
+    - name: install utilities
+      apt: name=vim state=latest

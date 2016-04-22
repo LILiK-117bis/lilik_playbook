@@ -1,0 +1,8 @@
+---
+- name: install nginx
+  apt: pkg=nginx state=latest
+- name: start nginx at boot
+  service: name=nginx state=started enabled=yes
+# - name: copy nginx configuration
+#   template: src={{ configuration_file }} dest=/etc/nginx/sites-available/{{ dest }}
+#   notify: restart nginx

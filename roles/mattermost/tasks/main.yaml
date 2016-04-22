@@ -1,0 +1,52 @@
+- name: install postgresql
+  apt: name={{ item }} state=latest
+  with_items:
+      - postgresql
+      - postgresql-contrib
+      - python-psycopg2
+      - ca-certificates
+- block:
+    - postgresql_db: name=mattermost
+    - postgresql_user:
+        name: mmuser
+        password: mmuser_password # FIXME
+        db: mattermost
+        priv: ALL
+  become: true
+  become_method: su
+  become_user: postgres
+- name: download latest mattermost
+  get_url: url=https://github.com/mattermost/platform/releases/download/v2.1.0/mattermost.tar.gz dest=/opt/mattermost.tar.gz
+  register: new_download
+- name: unpack mattermost
+  unarchive: src=/opt/mattermost.tar.gz dest=/opt copy=no
+  when: new_download.changed
+- name: create mattermost data directory
+  file: path=/opt/mattermost/data state=directory
+- name: create mattermost group
+  group: name=mattermost system=true
+- name: create mattermost user and group
+  user: name=mattermost group=mattermost system=true
+- name: set mattermost directory permissions
+  file:
+      path: /opt/mattermost
+      owner: mattermost
+      group: mattermost
+      mode: g+w
+      recurse: true
+- name: configure mattermost (driver name)
+  json_file:
+      path: /opt/mattermost/config/config.json
+      key: "SqlSettings.DriverName"
+      value: "postgres"
+- name: configure mattermost (data source)
+  json_file:
+      path: /opt/mattermost/config/config.json
+      key: "SqlSettings.DataSource"
+      value: "postgres://mmuser:mmuser_password@127.0.0.1:5432/mattermost?sslmode=disable&connect_timeout=10"
+- name: install mattermost systemd unit
+  template:
+      src: mattermost.service.j2
+      dest: /etc/systemd/system/mattermost.service
+- name: enable mattermost service
+  service: name=mattermost enabled=yes state=started

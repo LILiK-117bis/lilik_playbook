@@ -1,0 +1,20 @@
+- name: configure OpenLDAP (domain)
+  debconf:
+      name: 'slapd'
+      question: 'slapd/domain'
+      vtype: 'string'
+      value: '{{ ldap_domain }}'
+- name: configure OpenLDAP (organization)
+  debconf:
+      name: 'slapd'
+      question: 'shared/organization'
+      vtype: 'string'
+      value: '{{ ldap_organization }}'
+- name: install ldap packages
+  apt:
+      name: '{{ item }}'
+      state: latest
+      install_recommends: false
+  with_items:
+      - slapd
+      - ldap-utils

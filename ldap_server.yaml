@@ -1,0 +1,10 @@
+---
+- hosts: lilikhost
+  roles:
+      - role: lxc_host
+        vm_name: ldap
+- hosts: ldap
+  roles:
+      - role: ldap
+        ldap_domain: 'lilik.it'
+        ldap_organization: 'LILiK'
