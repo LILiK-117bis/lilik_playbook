@@ -6,3 +6,6 @@
       - php5-fpm
       - php5-gd
       - dokuwiki
+- name: copy Dokuwiki main configuration
+  copy: >
+    src=local.php dest=/etc/dokuwiki/local.php
