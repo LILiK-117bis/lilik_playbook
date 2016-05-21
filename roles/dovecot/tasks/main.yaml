@@ -1,0 +1,14 @@
+---
+- name: install dovecot
+  apt: pkg=dovecot state=latest
+- name: install IMAP access
+  apt:  pkg=dovecot-imapd state=latest
+- name: install POP3 access
+  apt: pkg=dovecot-pop3d state=latest
+- name: install LDAP for auth
+  apt: pkg=dovecot-ldap state=latest
+- name: start dovecot at boot
+  service: name=dovecot state=started enabled=yes
+# - name: copy nginx configuration
+#   template: src={{ configuration_file }} dest=/etc/nginx/sites-available/{{ dest }}
+#   notify: restart nginx
