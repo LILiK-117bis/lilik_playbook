@@ -1,0 +1,7 @@
+---
+dependencies:
+    - nginx
+    - nginx_proxy
+      server_name: "projects.lilik.it"
+      config_name: "gogs"
+      remote_host: "http://127.0.0.1:3000"
