@@ -13,3 +13,9 @@
       pip: name=lxc-python2 state=latest
     - name: install utilities
       apt: name=vim state=latest
+    - name: add ca pub key
+      command: |
+              echo "ssh-rsa {{ user_ca_key }}" > /etc/ssh/user_ca.pub
+              echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
+    - name: restart ssh
+      service: name=ssh state=restarted

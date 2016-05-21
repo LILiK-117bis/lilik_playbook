@@ -1,7 +1,7 @@
 ---
 - hosts: lilikhost
   roles:
-      - role: lxc_host
+      - role: lxc_guest
         vm_name: ldap
 - hosts: ldap
   roles:
