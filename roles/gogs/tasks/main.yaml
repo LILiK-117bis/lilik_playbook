@@ -11,5 +11,9 @@
   apt_repository: repo='deb https://deb.packager.io/gh/pkgr/gogs jessie pkgr' state=present
 - name: Install Gogs
   apt: name=gogs update_cache=yes
+- name: Custom Gogs configuration directory
+  file: path=/etc/gogs/custom/conf state=directory 
+- name: Copy Gogs configuration
+  copy: dest=/etc/gogs/custom/conf/app.ini src=files/app.ini owner=gogs group=gogs
 - name: Start at boot
   service: name=gogs state=started enabled=yes
