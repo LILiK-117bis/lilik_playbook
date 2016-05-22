@@ -1,6 +1,9 @@
 - name: Generate database password
   gen_passwd: length=20
   register: db_password
+- name: Generate random gogs password
+  gen_passwd: length=20
+  register: gogs_password
 - block:
     - postgresql_db:
         # database name
@@ -12,8 +15,6 @@
         password: "{{ db_password.passwd }}"
         # which db owns
         db: gogs
-        # set login password
-        login_password: "{{ db_password.passwd }}"
         # privileges on gogs db
         priv: ALL
   become: true
