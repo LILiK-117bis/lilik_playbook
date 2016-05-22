@@ -1,5 +1,0 @@
----
-- hosts: projects
-  remote_user: root
-  roles:
-      - role: gogs

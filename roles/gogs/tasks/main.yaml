@@ -7,7 +7,7 @@
         name: gogs
         password: "{{ db_password.passwd }}"
         db: gogs
-        priva: ALL
+        priv: ALL
   become: true
   become_method: su
   become_user: postgres
@@ -26,6 +26,6 @@
 - name: Custom Gogs configuration directory
   file: path=/etc/gogs/custom/conf state=directory 
 - name: Copy Gogs configuration
-  template: dest=/etc/gogs/custom/conf/app.ini src=templates/app.ini owner=gogs group=gogs
+  template: dest=/etc/gogs/custom/conf/app.ini src=app.ini owner=gogs group=gogs
 - name: Start at boot
   service: name=gogs state=started enabled=yes

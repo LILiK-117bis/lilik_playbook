@@ -1,0 +1,8 @@
+---
+- hosts: biff
+  roles:
+      - role: lxc_guest
+        vm_name: projects
+- hosts: projects
+  roles:
+      - role: gogs
