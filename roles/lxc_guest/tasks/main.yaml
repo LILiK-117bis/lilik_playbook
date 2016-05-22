@@ -13,7 +13,7 @@
           fs_type: xfs
           container_log: true
           template: debian
-          template_options: --release stretch --packages "ssh python"
+          template_options: --release {{ distro }} --packages "ssh python"
           container_command: |
               echo "ssh-rsa {{ user_ca_key }}" > /etc/ssh/user_ca.pub
               echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
@@ -37,5 +37,5 @@
           name: "{{ vm_name }}"
           state: "{{ container_state }}"
   when: "lxc_existance.stdout == 'true'"
-- name: "waiting for ssh on {{ vm_name }} vm to start"
-  wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=20
+#- name: "waiting for ssh on {{ vm_name }} vm to start"
+#  wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=20

@@ -4,6 +4,12 @@
       question: 'slapd/domain'
       vtype: 'string'
       value: '{{ ldap_domain }}'
+- name: configure OpenLDAP (configure)
+  debconf:
+      name: 'slapd'
+      question: 'slapd/dump_database'
+      vtype: 'string'
+      value: 'when needed'
 - name: configure OpenLDAP (organization)
   debconf:
       name: 'slapd'
@@ -13,10 +19,16 @@
 - name: generate admin password
   gen_passwd: length=20
   register: new_passwd
-- name: configure OpenLDAP (password)
+- name: configure OpenLDAP (password1)
   debconf:
       name: 'slapd'
       question: 'slapd/password1'
+      vtype: 'string'
+      value: '{{ new_passwd.passwd }}'
+- name: configure OpenLDAP (password2)
+  debconf:
+      name: 'slapd'
+      question: 'slapd/password2'
       vtype: 'string'
       value: '{{ new_passwd.passwd }}'
 - name: configure phamm-ldap

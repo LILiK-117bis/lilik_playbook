@@ -1,5 +1,5 @@
 ---
-- hosts: lilikhost
+- hosts: vm_hosts
   vars_prompt:
       - name: container_name
         prompt: 'what container should be destroyed?'
@@ -17,7 +17,7 @@
                 name: "{{ container_name }}"
                 state: stopped
           - name: clean LVM volume
-            command: "dd if=/dev/zero of=/dev/sysvg/vm_{{ container_name }} bs=1M count=128"
+            command: "dd if=/dev/zero of=/dev/{{ inventory_hostname }}vg/vm_{{ container_name }} bs=1M count=128"
           - name: delete lxc container
             lxc_container:
                 name: "{{ container_name }}"
