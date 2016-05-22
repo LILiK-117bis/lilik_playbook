@@ -5,17 +5,36 @@
       apt: name={{ item }} state=latest
       with_items:
           - lxc
-          - lxc-dev
           - python
-          - python-dev
-          - python-pip
-    - name: install lxc python support
-      pip: name=lxc-python2 state=latest
+          - python-lxc
+    - name: install bridge utilities
+      apt: name=bridge-utils state=latest
+      notify: restart networking
+    # We should fix this bug. We really should. It's a bug.
+    # Bridge-utils requires a complete system reboot to enable the new bridge.
+    - name: configure bridge
+      template:
+          src: templates/interfaces.j2
+          dest: /etc/network/interfaces
+      notify: restart networking
     - name: install utilities
-      apt: name=vim state=latest
+      apt: name={{ item }} state=latest
+      with_items:
+          - vim
+          - htop
     - name: add ca pub key
-      command: |
-              echo "ssh-rsa {{ user_ca_key }}" > /etc/ssh/user_ca.pub
-              echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
-    - name: restart ssh
-      service: name=ssh state=restarted
+      copy:
+        content: "ssh-rsa {{ user_ca_key }}"
+        dest: /etc/ssh/user_ca.pub
+    - name: trust ca pub key
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        state: present
+        line: "TrustedUserCAKeys /etc/ssh/user_ca.pub"
+      notify: restart sshd
+  handlers:
+      - name: restart networking
+        service: name=networking state=reloaded
+      - name: restart sshd
+        service: name=networking state=reloaded
+

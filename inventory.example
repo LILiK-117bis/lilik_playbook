@@ -1,0 +1,2 @@
+[GROUP]
+HOSTNAME   ansible_host=IP  ansible_user=root

@@ -8,7 +8,7 @@
       lxc_container:
           name: "{{ vm_name }}"
           backing_store: lvm
-          vg_name: sysvg
+          vg_name: "{{ inventory_hostname }}vg"
           lv_name: "vm_{{ vm_name }}"
           fs_type: xfs
           container_log: true
