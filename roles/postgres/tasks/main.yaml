@@ -1,0 +1,16 @@
+- name: install postgresql
+  apt: name={{ item }} state=latest
+  with_items:
+      - postgresql
+      - postgresql-contrib
+      - python-psycopg2
+- block:
+    - postgresql_db: name={{ db_name }}
+    - postgresql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_user_password }}"
+        db: "{{ db_name }}"
+        priv: ALL
+  become: true
+  become_method: su
+  become_user: postgres

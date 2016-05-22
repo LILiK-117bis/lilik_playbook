@@ -1,0 +1,19 @@
+
+- name: Install dependencies
+  apt: name={{ item }} state=latest
+  with_items:
+          - git
+- name: Install Https for APT
+  apt: name=apt-transport-https update_cache=yes
+- name: Add the repository key to system
+  apt_key: url=https://deb.packager.io/key state=present
+- name: Add the package.io repository to the list
+  apt_repository: repo='deb https://deb.packager.io/gh/pkgr/gogs jessie pkgr' state=present
+- name: Install Gogs
+  apt: name=gogs update_cache=yes
+- name: Custom Gogs configuration directory
+  file: path=/etc/gogs/custom/conf state=directory 
+- name: Copy Gogs configuration
+  copy: dest=/etc/gogs/custom/conf/app.ini src=files/app.ini owner=gogs group=gogs
+- name: Start at boot
+  service: name=gogs state=started enabled=yes
