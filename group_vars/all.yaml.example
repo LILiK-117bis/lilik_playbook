@@ -1,2 +1,5 @@
+---
+# The name (as defined in the inventory) of the external gateway.
+ext_gateway: ""
+# Put here the public key of the users CA.
 user_ca_key: ""
-ext_gateway: 

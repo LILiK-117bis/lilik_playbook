@@ -37,5 +37,5 @@
           name: "{{ vm_name }}"
           state: "{{ container_state }}"
   when: "lxc_existance.stdout == 'true'"
-#- name: "waiting for ssh on {{ vm_name }} vm to start"
-#  wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=20
+- name: "waiting for ssh on {{ vm_name }} vm to start"
+  wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=20

@@ -12,6 +12,6 @@ auto br0
 iface br0 inet static
         address {{ ansible_default_ipv4.address }}
         netmask 255.255.255.0
-        gateway {{ ext_gateway }}
+        gateway {{ hostvars[ext_gateway]['ansible_host'] }}
         bridge_ports eth0
         bridge_fd 1
