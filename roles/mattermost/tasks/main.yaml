@@ -5,18 +5,25 @@
       - postgresql-contrib
       - python-psycopg2
       - ca-certificates
+- name: generate mattermost DB password
+  gen_passwd: length=20
+  register: new_password
 - block:
-    - postgresql_db: name=mattermost
-    - postgresql_user:
+    - name: create mattermost DB
+      postgresql_db: name=mattermost
+    - name: create mattermost DB user
+      postgresql_user:
         name: mmuser
-        password: mmuser_password # FIXME
+        password: "{{ new_password.passwd }}"
         db: mattermost
         priv: ALL
   become: true
   become_method: su
   become_user: postgres
 - name: download latest mattermost
-  get_url: url=https://github.com/mattermost/platform/releases/download/v2.1.0/mattermost.tar.gz dest=/opt/mattermost.tar.gz
+  get_url:
+      url: "https://releases.mattermost.com/{{ mattermost_version }}/mattermost-team-{{ mattermost_version }}-linux-amd64.tar.gz"
+      dest: "/opt/mattermost.tar.gz"
   register: new_download
 - name: unpack mattermost
   unarchive: src=/opt/mattermost.tar.gz dest=/opt copy=no
@@ -43,7 +50,7 @@
   json_file:
       path: /opt/mattermost/config/config.json
       key: "SqlSettings.DataSource"
-      value: "postgres://mmuser:mmuser_password@127.0.0.1:5432/mattermost?sslmode=disable&connect_timeout=10"
+      value: "postgres://mmuser:{{ new_password.passwd }}@127.0.0.1:5432/mattermost?sslmode=disable&connect_timeout=10"
 - name: install mattermost systemd unit
   template:
       src: mattermost.service.j2
