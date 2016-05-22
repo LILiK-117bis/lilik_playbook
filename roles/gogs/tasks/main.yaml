@@ -2,11 +2,19 @@
   gen_passwd: length=20
   register: db_password
 - block:
-    - postgresql_db: name=gogs
+    - postgresql_db:
+        # database name
+        name=gogs
+        state=present
     - postgresql_user:
+        # the user
         name: gogs
         password: "{{ db_password.passwd }}"
+        # which db owns
         db: gogs
+        # set login password
+        login_password: "{{ db_password.passwd }}"
+        # privileges on gogs db
         priv: ALL
   become: true
   become_method: su
@@ -23,11 +31,9 @@
   apt_repository: repo='deb https://deb.packager.io/gh/pkgr/gogs jessie pkgr' state=present
 - name: Install Gogs
   apt: name=gogs update_cache=yes
-- name: Custom Gogs configuration directory
-  file: path=/etc/gogs/custom/conf state=directory 
 - name: Copy Gogs configuration
   template:
-    dest=/etc/gogs/custom/conf/app.ini
+    dest=/etc/gogs/conf/app.ini
     src=templates/app.ini
     owner=gogs
     group=gogs
