@@ -2,3 +2,5 @@
 dependencies:
     - nginx
     - { role: nginx_proxy, server_name: "gogs", config_name: "gogs", remote_host: "http://127.0.0.1:3000" }
+    # fix password
+    - { role: postgres, db_name: gogs, db_user: gogs, db_user_password: pippo }
