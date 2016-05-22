@@ -2,7 +2,6 @@
 - name: Install dependencies
   apt: name={{ item }} state=latest
   with_items:
-          - sqlite3
           - git
 - name: Install Https for APT
   apt: name=apt-transport-https update_cache=yes
