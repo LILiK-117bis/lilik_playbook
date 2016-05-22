@@ -1,4 +1,16 @@
-
+- name: Generate database password
+  gen_passwd: length=20
+  register: db_password
+- block:
+    - postgresql_db: name=gogs
+    - postgresql_user:
+        name: gogs
+        password: "{{ db_password.passwd }}"
+        db: gogs
+        priva: ALL
+  become: true
+  become_method: su
+  become_user: postgres
 - name: Install dependencies
   apt: name={{ item }} state=latest
   with_items:
@@ -14,6 +26,6 @@
 - name: Custom Gogs configuration directory
   file: path=/etc/gogs/custom/conf state=directory 
 - name: Copy Gogs configuration
-  copy: dest=/etc/gogs/custom/conf/app.ini src=files/app.ini owner=gogs group=gogs
+  template: dest=/etc/gogs/custom/conf/app.ini src=templates/app.ini owner=gogs group=gogs
 - name: Start at boot
   service: name=gogs state=started enabled=yes
