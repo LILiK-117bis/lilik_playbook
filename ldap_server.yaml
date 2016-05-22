@@ -1,5 +1,5 @@
 ---
-- hosts: lilikhost
+- hosts: biff
   roles:
       - role: lxc_guest
         vm_name: ldap

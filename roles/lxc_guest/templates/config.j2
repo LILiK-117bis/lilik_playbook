@@ -1,7 +1,7 @@
 lxc.include = /usr/share/lxc/config/debian.common.conf
 
 lxc.utsname = {{ vm_name }}
-lxc.rootfs = /dev/sysvg/vm_{{ vm_name }}
+lxc.rootfs = /dev/{{ inventory_hostname }}vg/vm_{{ vm_name }}
 
 lxc.tty = 4
 lxc.arch = amd64

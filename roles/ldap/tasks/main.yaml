@@ -10,6 +10,21 @@
       question: 'shared/organization'
       vtype: 'string'
       value: '{{ ldap_organization }}'
+- name: generate admin password
+  gen_passwd: length=20
+  register: new_passwd
+- name: configure OpenLDAP (password)
+  debconf:
+      name: 'slapd'
+      question: 'slapd/password1'
+      vtype: 'string'
+      value: '{{ new_passwd.passwd }}'
+- name: configure phamm-ldap
+  debconf:
+      name: 'phamm-ldap'
+      question: 'phamm-ldap/init_base_ldap'
+      vtype: 'boolean'
+      value: false
 - name: install ldap packages
   apt:
       name: '{{ item }}'
@@ -18,3 +33,21 @@
   with_items:
       - slapd
       - ldap-utils
+      - phamm-ldap
+      - sudo
+- name: upload slapd config
+  template:
+      src: slapd.conf.j2
+      dest: "/etc/ldap/slapd.conf"
+- name: update slapd config
+  shell: slaptest -f /etc/ldap/slapd.conf -F /etc/ldap/slapd.d
+  args:
+      creates: "/etc/ldap/slapd.d/cn=config/cn=schema/cn={4}phamm.ldif"
+  become: true
+  become_method: sudo
+  become_user: openldap
+- name: enable OpenLDAP server
+  service:
+      name: 'slapd'
+      enabled: true
+      state: started
