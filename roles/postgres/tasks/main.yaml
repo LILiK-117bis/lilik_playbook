@@ -4,3 +4,5 @@
       - postgresql
       - postgresql-contrib
       - python-psycopg2
+- name: start postgresql at boot
+  service: name=postgresql state=started enabled=yes
