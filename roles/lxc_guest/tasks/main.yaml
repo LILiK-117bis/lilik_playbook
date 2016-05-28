@@ -30,8 +30,12 @@
 - block:
     - name: update container config
       template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
-      notify:
-          - restart container
+      register: container_config_update
+    - name: restart container
+      lxc_container:
+          name: "{{ vm_name }}"
+          state: restarted
+      when: container_config_update.changed
     - name: set container running state
       lxc_container:
           name: "{{ vm_name }}"

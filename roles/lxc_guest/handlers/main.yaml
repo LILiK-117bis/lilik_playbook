@@ -1,5 +1,0 @@
-- name: restart container
-  lxc_container:
-      name: "{{ vm_name }}"
-      state: restarted
-  when: "auto_start == true"
