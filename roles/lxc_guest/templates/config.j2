@@ -6,10 +6,12 @@ lxc.rootfs = /dev/{{ inventory_hostname }}vg/vm_{{ vm_name }}
 lxc.tty = 4
 lxc.arch = amd64
 
+lxc.mount.entry = /var/lib/lxc/{{ vm_name }}/resolv.conf etc/resolv.conf none ro,bind,create=file
+
 lxc.network.type = veth
 lxc.network.flags = up
 lxc.network.link = br0
 lxc.network.name = eth0
-lxc.network.ipv4 = {{ hostvars[vm_name]['ansible_host'] }}/24
+lxc.network.ipv4 = {{ hostvars[vm_name]['ansible_host'] }}/16
 lxc.network.ipv4.gateway = {{ hostvars[ext_gateway]['ansible_host'] }}
 lxc.start.auto = {% if auto_start %}1{% else %}0{% endif %}

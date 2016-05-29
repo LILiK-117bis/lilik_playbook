@@ -21,6 +21,9 @@
           state: stopped
     - name: deploy container config
       template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
+    - name: update container DNS configuration
+      template: src=resolv.conf.j2 dest="/var/lib/lxc/{{ vm_name }}/resolv.conf"
+      register: container_config_update
     - name: start container
       lxc_container:
           name: "{{ vm_name }}"
@@ -30,6 +33,9 @@
 - block:
     - name: update container config
       template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
+      register: container_config_update
+    - name: update container DNS configuration
+      template: src=resolv.conf.j2 dest="/var/lib/lxc/{{ vm_name }}/resolv.conf"
       register: container_config_update
     - name: restart container
       lxc_container:
