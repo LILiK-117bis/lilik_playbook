@@ -13,7 +13,7 @@
           fs_type: xfs
           container_log: true
           template: debian
-          template_options: --release {{ distro }} --packages "ssh python"
+          template_options: --release {{ distro }} --packages=ssh,python
           container_command: |
               echo "ssh-rsa {{ user_ca_key }}" > /etc/ssh/user_ca.pub
               echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
