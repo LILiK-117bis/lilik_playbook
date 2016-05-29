@@ -39,6 +39,22 @@
       when: auto_start|bool
   when: "lxc_existance.stdout == 'false'"
 - block:
+    - name: check if cert key exist
+      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "ls /etc/ssh/ssh_host_ed25519_key-cert.pub"
+      register: cert_key
+      ignore_errors: true
+    - block:
+        - name: get pub key
+          shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "cat /etc/ssh/ssh_host_ed25519_key.pub"
+          register: pub_key
+        - debug: var=pub_key
+        - name
+          local_action: 
+      when: "cert_key.rc != 0"
+    - name: install packages
+      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "apt-get install python ssh -y"
+      register: shell_result
+      changed_when: "shell_result.stdout.find('0 newly installed') == -1"
     - name: update container user ca key
       shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'ssh-rsa {{ user_ca_key }}' /etc/ssh/user_ca.pub || echo 'ssh-rsa {{ user_ca_key }}' > /etc/ssh/user_ca.pub"
       register: shell_result
