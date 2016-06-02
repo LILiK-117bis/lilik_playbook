@@ -131,9 +131,11 @@
       state: restarted
   register: container_restart
   when: set_pub_key.changed or install_packages.changed or update_user_ca_key.changed or trust_ca_key.changed or container_network.changed or container_config.changed or container_dns_configuration.changed
+
 - name: "waiting for ssh on {{ vm_name }} vm to start"
   wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=30
   delegate_to: "{{ inventory_hostname }}"
   delegate_facts: True
+
 - pause: seconds=10
-  when: container_restart.changed or container_runiing_state.changed
+  when: container_restart.changed or container_running_state.changed
