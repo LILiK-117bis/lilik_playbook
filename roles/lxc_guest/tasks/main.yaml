@@ -22,10 +22,10 @@
           container_log: true
           template: debian
           template_options: --release {{ distro }} --packages=ssh,python
-          container_command: |
-              echo "ssh-rsa {{ user_ca_key }}" > /etc/ssh/user_ca.pub
-              echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
-              sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces
+#          container_command: |
+#              echo "ssh-rsa {{ user_ca_key }}" > /etc/ssh/user_ca.pub
+#              echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
+#              sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces
           state: stopped
     - name: deploy container config
       template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
@@ -38,50 +38,102 @@
           state: started
       when: auto_start|bool
   when: "lxc_existance.stdout == 'false'"
+
+- name: update container config
+  template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
+  register: container_config
+
+- name: update container DNS configuration
+  template: src=resolv.conf.j2 dest="/var/lib/lxc/{{ vm_name }}/resolv.conf"
+  register: container_dns_configuration
+
+- name: set container running state
+  lxc_container:
+      name: "{{ vm_name }}"
+      state: "{{ container_state }}"
+  register: container_runiing_state
+
+- name: check if cert key exist
+  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "ls /etc/ssh/ssh_host_ed25519_key-cert.pub"
+  register: cert_key_existance
+  ignore_errors: true
+  changed_when: "cert_key_existance.rc != 0"
 - block:
-    - name: check if cert key exist
-      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "ls /etc/ssh/ssh_host_ed25519_key-cert.pub"
-      register: cert_key
-      ignore_errors: true
-    - block:
-        - name: get pub key
-          shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "cat /etc/ssh/ssh_host_ed25519_key.pub"
-          register: pub_key
-        - debug: var=pub_key
-        - name
-          local_action: 
-      when: "cert_key.rc != 0"
-    - name: install packages
-      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "apt-get install python ssh -y"
-      register: shell_result
-      changed_when: "shell_result.stdout.find('0 newly installed') == -1"
-    - name: update container user ca key
-      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'ssh-rsa {{ user_ca_key }}' /etc/ssh/user_ca.pub || echo 'ssh-rsa {{ user_ca_key }}' > /etc/ssh/user_ca.pub"
-      register: shell_result
-      changed_when: "shell_result.stdout != 'ssh-rsa {{ user_ca_key }}'"
-    - name: trust user ca key
-      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'TrustedUserCAKeys /etc/ssh/user_ca.pub' /etc/ssh/sshd_config || echo 'TrustedUserCAKeys /etc/ssh/user_ca.pub' >> /etc/ssh/sshd_config"
-      register: shell_result
-      changed_when: "shell_result.stdout != 'TrustedUserCAKeys /etc/ssh/user_ca.pub'"
-    - name: update container network configuration
-      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'iface eth0 inet manual' /etc/network/interfaces || sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces"
-      register: shell_result
-      changed_when: "shell_result.stdout != 'iface eth0 inet manual'"
-    - name: update container config
-      template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
-      register: container_config_update
-    - name: update container DNS configuration
-      template: src=resolv.conf.j2 dest="/var/lib/lxc/{{ vm_name }}/resolv.conf"
-      register: container_config_update
-    - name: restart container
-      lxc_container:
-          name: "{{ vm_name }}"
-          state: restarted
-      when: container_config_update.changed
-    - name: set container running state
-      lxc_container:
-          name: "{{ vm_name }}"
-          state: "{{ container_state }}"
-  when: "lxc_existance.stdout == 'true'"
+    - name: get pub key
+      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "cat /etc/ssh/ssh_host_ed25519_key.pub"
+      register: pub_key
+    - debug: var=pub_key
+    - name: generate host request
+      local_action: command ../ca_manager/make_ssh_host_request.py {{ pub_key.stdout|quote }} {{ vm_name|quote }}
+      register: cert_request
+    - debug: var=cert_request
+    - name: start sign request
+      raw: "{{ cert_request.stdout|string }}"
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      with_items: "{{groups['cas']}}"
+      register: request_result
+    - debug: var=request_result
+
+    - set_fact:
+          request_output: "{{ request_result.results[0].stdout|string|from_json }}"
+    - debug: var=request_output
+
+
+    - name: generate get request
+      local_action: command ../ca_manager/make_get_request.py {{ request_output.requestID }}
+      register: get_request
+    - debug: var=get_request
+
+    - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
+
+    - name: wait for cert
+      raw: "{{ get_request.stdout|string }}"
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      with_items: "{{groups['cas']}}"
+      register: cert_result
+    - debug: var=cert_result
+
+    - set_fact:
+          cert_key: "{{ cert_result.results[0].stdout|string|from_json }}"
+    - debug: var=request_output
+
+    - name: set pub key
+      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "echo '{{ cert_key.result }}' > /etc/ssh/ssh_host_ed25519_key-cert.pub"
+      register: set_pub_key
+      notify: restart-container
+  when: "cert_key_existance.rc != 0"
+
+- name: update container network configuration
+  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'iface eth0 inet manual' /etc/network/interfaces || sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces"
+  register: container_network
+  changed_when: "container_network.stdout != 'iface eth0 inet manual'"
+
+- name: install packages
+  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "apt-get install python ssh -y"
+  register: install_packages
+  changed_when: "install_packages.stdout.find('0 newly installed') == -1"
+
+- name: update container user ca key
+  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'ssh-rsa {{ user_ca_key }}' /etc/ssh/user_ca.pub || echo 'ssh-rsa {{ user_ca_key }}' > /etc/ssh/user_ca.pub"
+  register: update_user_ca_key
+  changed_when: "update_user_ca_key.stdout != 'ssh-rsa {{ user_ca_key }}'"
+
+- name: trust user ca key
+  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'TrustedUserCAKeys /etc/ssh/user_ca.pub' /etc/ssh/sshd_config || echo 'TrustedUserCAKeys /etc/ssh/user_ca.pub' >> /etc/ssh/sshd_config"
+  register: trust_ca_key
+  changed_when: "trust_ca_key.stdout != 'TrustedUserCAKeys /etc/ssh/user_ca.pub'"
+
+- name: restart-container
+  lxc_container:
+      name: "{{ vm_name }}"
+      state: restarted
+  register: container_restart
+  when: set_pub_key.changed or install_packages.changed or update_user_ca_key.changed or trust_ca_key.changed or container_network.changed or container_config.changed or container_dns_configuration.changed
 - name: "waiting for ssh on {{ vm_name }} vm to start"
-  wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=20
+  wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=30
+  delegate_to: "{{ inventory_hostname }}"
+  delegate_facts: True
+- pause: seconds=10
+  when: container_restart.changed or container_runiing_state.changed
