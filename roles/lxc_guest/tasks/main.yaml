@@ -22,13 +22,18 @@
           container_log: true
           template: debian
           template_options: --release {{ distro }} --packages=ssh,python
+          container_config:
+            - "lxc.utsname = {{ vm_name }}"
+            - "lxc.rootfs = /dev/{{ inventory_hostname }}vg/vm_{{ vm_name }}"
+            - "lxc.mount.entry = /var/lib/lxc/{{ vm_name }}/resolv.conf etc/resolv.conf none ro,bind,create=file"
+            - "lxc.network.ipv4 = {{ hostvars[vm_name]['ansible_hosts'] }}/16"
+            - "lxc.network.ipv4.gateway = {{ hostvars[ext_gateway]['ansible_hosts'] }}"
+            - "lxc.start.auto = {% if auto_start %}1{% else %}0{% endif %}"
 #          container_command: |
 #              echo "ssh-rsa {{ user_ca_key }}" > /etc/ssh/user_ca.pub
 #              echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
 #              sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces
           state: stopped
-    - name: deploy container config
-      template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
     - name: update container DNS configuration
       template: src=resolv.conf.j2 dest="/var/lib/lxc/{{ vm_name }}/resolv.conf"
       register: container_config_update
