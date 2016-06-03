@@ -6,8 +6,6 @@ lxc.rootfs = /dev/{{ inventory_hostname }}vg/vm_{{ vm_name }}
 lxc.tty = 4
 lxc.arch = amd64
 
-lxc.mount.entry = /var/lib/lxc/{{ vm_name }}/resolv.conf etc/resolv.conf none ro,bind,create=file
-
 lxc.network.type = veth
 lxc.network.flags = up
 lxc.network.link = br0

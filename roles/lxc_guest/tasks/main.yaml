@@ -4,14 +4,6 @@
   ignore_errors: true
   changed_when: false
 - block:
-    - name: check if lxc cache exists
-      stat: path=/var/cache/lxc/debian/rootfs-{{ distro }}-amd64/
-      register: lxc_cache_dir
-    - name: fix cached resolv.conf
-      template:
-          src: resolv.conf.j2
-          dest: /var/cache/lxc/debian/rootfs-{{ distro }}-amd64/etc/resolv.conf
-      when: lxc_cache_dir.stat.exists
     - name: create the lxc container
       lxc_container:
           name: "{{ vm_name }}"
@@ -43,15 +35,16 @@
   template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
   register: container_config
 
-- name: update container DNS configuration
-  template: src=resolv.conf.j2 dest="/var/lib/lxc/{{ vm_name }}/resolv.conf"
-  register: container_dns_configuration
-
 - name: set container running state
   lxc_container:
       name: "{{ vm_name }}"
       state: "{{ container_state }}"
-  register: container_runiing_state
+  register: container_running_state
+
+- name: update container DNS configuration
+  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep '^nameserver {{ hostvars[ext_gateway].ansible_host }}$' /etc/resolv.conf || echo 'nameserver {{ hostvars[ext_gateway].ansible_host }}' > /etc/resolv.conf"
+  register: container_dns_configuration
+  changed_when: "container_dns_configuration.stdout != 'nameserver {{ hostvars[ext_gateway].ansible_host }}'"
 
 - name: check if cert key exist
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "ls /etc/ssh/ssh_host_ed25519_key-cert.pub"
@@ -62,28 +55,27 @@
     - name: get pub key
       shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "cat /etc/ssh/ssh_host_ed25519_key.pub"
       register: pub_key
-    - debug: var=pub_key
+#    - debug: var=pub_key
     - name: generate host request
       local_action: command ../ca_manager/make_ssh_host_request.py {{ pub_key.stdout|quote }} {{ vm_name|quote }}
       register: cert_request
-    - debug: var=cert_request
+#    - debug: var=cert_request
     - name: start sign request
       raw: "{{ cert_request.stdout|string }}"
       delegate_to: "{{item}}"
       delegate_facts: True
       with_items: "{{groups['cas']}}"
       register: request_result
-    - debug: var=request_result
+#    - debug: var=request_result
 
     - set_fact:
           request_output: "{{ request_result.results[0].stdout|string|from_json }}"
     - debug: var=request_output
 
-
     - name: generate get request
       local_action: command ../ca_manager/make_get_request.py {{ request_output.requestID }}
       register: get_request
-    - debug: var=get_request
+#    - debug: var=get_request
 
     - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
 
@@ -93,11 +85,11 @@
       delegate_facts: True
       with_items: "{{groups['cas']}}"
       register: cert_result
-    - debug: var=cert_result
+#    - debug: var=cert_result
 
     - set_fact:
           cert_key: "{{ cert_result.results[0].stdout|string|from_json }}"
-    - debug: var=request_output
+#    - debug: var=request_output
 
     - name: set pub key
       shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "echo '{{ cert_key.result }}' > /etc/ssh/ssh_host_ed25519_key-cert.pub"
@@ -137,5 +129,5 @@
   delegate_to: "{{ inventory_hostname }}"
   delegate_facts: True
 
-- pause: seconds=10
+- pause: seconds=20
   when: container_restart.changed or container_running_state.changed
