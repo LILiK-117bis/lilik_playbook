@@ -1,0 +1,133 @@
+# Entry 4: o=Group,dc=lilik,dc=it
+dn: o=Group,dc=lilik,dc=it
+hassubordinates: TRUE
+o: Group
+objectclass: organization
+objectclass: top
+structuralobjectclass: organization
+subschemasubentry: cn=Subschema
+
+# Entry 10: cn=stdusers,o=Group,dc=lilik,dc=it
+dn: cn=stdusers,o=Group,dc=lilik,dc=it
+cn: stdusers
+gidnumber: 9000
+hassubordinates: FALSE
+objectclass: posixGroup
+objectclass: top
+structuralobjectclass: posixGroup
+subschemasubentry: cn=Subschema
+
+# Entry 12: cn=users_sites,o=Group,dc=lilik,dc=it
+dn: cn=users_sites,o=Group,dc=lilik,dc=it
+cn: users_sites
+gidnumber: 500
+hassubordinates: FALSE
+memberuid: test_user
+objectclass: posixGroup
+objectclass: top
+structuralobjectclass: posixGroup
+subschemasubentry: cn=Subschema
+
+
+# Entry 14: o=hosting,dc=lilik,dc=it
+dn: o=hosting,dc=lilik,dc=it
+description: mail.lilik.it hosting root
+hassubordinates: TRUE
+o: hosting
+objectclass: top
+objectclass: organization
+structuralobjectclass: organization
+subschemasubentry: cn=Subschema
+
+# Entry 22: vd=lilik.it,o=hosting,dc=lilik,dc=it
+dn: vd=lilik.it,o=hosting,dc=lilik,dc=it
+accountactive: TRUE
+delete: FALSE
+editav: FALSE
+hassubordinates: TRUE
+maxalias: 20
+maxmail: 11
+maxquota: 250
+objectclass: top
+objectclass: VirtualDomain
+postfixtransport: maildrop:
+structuralobjectclass: VirtualDomain
+subschemasubentry: cn=Subschema
+vd: lilik.it
+lastChange: 1228821387
+
+# Entry 23: cn=postmaster,vd=lilik.it,o=hosting,dc=lilik,dc=it
+dn: cn=postmaster,vd=lilik.it,o=hosting,dc=lilik,dc=it
+accountactive: TRUE
+cn: postmaster
+editaccounts: TRUE
+hassubordinates: FALSE
+mail: postmaster
+maildrop: postmaster
+objectclass: top
+objectclass: VirtualMailAlias
+sn: postmaster
+structuralobjectclass: VirtualMailAlias
+subschemasubentry: cn=Subschema
+userpassword: {SSHA}4IuBxQNWgMNPX/lCtP2GgbJeiYX+u4ud
+lastChange: 1228821387
+
+# Entry 24: mail=abuse,vd=lilik.it,o=hosting,dc=lilik,dc=it
+dn: mail=abuse,vd=lilik.it,o=hosting,dc=lilik,dc=it
+accountactive: TRUE
+cn: NONAME
+givenname: NONAME
+hassubordinates: FALSE
+mail: abuse
+maildrop: root
+objectclass: top
+objectclass: VirtualMailAlias
+smtpauth: FALSE
+sn: NONAME
+structuralobjectclass: VirtualMailAlias
+subschemasubentry: cn=Subschema
+userpassword: {CRYPT}!
+lastChange: 1228821387
+
+dn: mail=test_user,vd=lilik.it,o=hosting,dc=lilik,dc=it
+objectclass: alias
+#objectclass: extensibleObject
+#uid: alias
+aliasedobjectname: uid=test_user,o=People,dc=lilik,dc=it
+
+
+# Entry 319: o=People,dc=lilik,dc=it
+dn: o=People,dc=lilik,dc=it
+hassubordinates: TRUE
+o: People
+objectclass: organization
+objectclass: top
+structuralobjectclass: organization
+subschemasubentry: cn=Subschema
+
+dn: uid=test_user,o=People,dc=lilik,dc=it
+accountactive: TRUE
+cn: Test User
+delete: FALSE
+gidnumber: 100
+givenname: Test
+hassubordinates: FALSE
+homedirectory: /home/test_user
+loginshell: /bin/sh
+mail: test_user
+objectclass: top
+objectclass: inetOrgPerson
+objectclass: VirtualMailAccount
+objectclass: posixAccount
+objectclass: shadowAccount
+othertransport: phamm:
+quota: 1024000
+shadowlastchange: 14281
+smtpauth: FALSE
+sn: Visconti
+structuralobjectclass: VirtualMailAccount
+subschemasubentry: cn=Subschema
+uid: test_user
+uidnumber: 10001
+userpassword: {SSHA}2SWroMDSWoIWlYEvzpHvSRK4PMsjGW/u
+lastChange: 1228821387

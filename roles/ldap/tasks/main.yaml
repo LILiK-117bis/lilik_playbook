@@ -58,6 +58,19 @@
   become: true
   become_method: sudo
   become_user: openldap
+  notify: restart_slapd
+- name: upload default tree
+  template:
+    dest=/etc/ldap/default_tree.ldif
+    src=default_tree.ldif.j2
+    owner=root
+    group=root
+    mode=0400
+  register: upload_default_tree
+- name: create default tree
+  shell: slapadd -l /etc/ldap/default_tree.ldif
+  when: upload_default_tree.changed
+  notify: restart_slapd
 - name: enable OpenLDAP server
   service:
       name: 'slapd'
