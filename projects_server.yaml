@@ -3,6 +3,8 @@
   roles:
       - role: lxc_guest
         vm_name: projects
+        distro: sid
 - hosts: projects
   roles:
-      - role: gogs
+      - role: gitlab
+        gitlab_fqdn: "{{ inventory_hostname }}.lilik.it"
