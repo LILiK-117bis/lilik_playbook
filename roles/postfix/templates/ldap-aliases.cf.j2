@@ -1,0 +1,9 @@
+server_host = {{ ldap_server }}
+search_base = vd=%D,o=hosting,dc=lilik,dc=it
+#query_filter = (&(objectClass=simpleSecurityObject)(mail=%s))
+query_filter = (&(objectClass=VirtualMailAlias)(mail=%u)(accountActive=TRUE))
+result_attribute = maildrop
+#result_attribute = uid
+#result_format  =  %D/%s/
+dereference = 3
+version = 3

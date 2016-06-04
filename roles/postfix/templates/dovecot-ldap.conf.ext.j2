@@ -1,0 +1,41 @@
+uris = ldap://{{ ldap_server }}
+
+# choose bind method instead of simple authentication
+auth_bind = yes
+
+# pass_attrs
+# specifies a comma-separated list of attributes that are returned from the LDAP.
+# If you set it to empty, all the attributes are returned.
+# http://wiki2.dovecot.org/AuthDatabase/LDAP/PasswordLookups
+# pass_attrs = user=mail,
+
+# http://wiki.dovecot.org/PasswordDatabase
+# Returning a user field can be used to change the username. Typically used only for case changes (e.g. "UseR" -> "user").
+# username: Like user, but doesn't drop existing domain name (e.g. "username=foo" for "user@domain" gives "foo@domain").
+# domain: Updates the domain part of the username; domain=%{ldap:vd}
+pass_attrs = disableUser=user
+
+# pass_filter
+# specifies the LDAP filter how user is found from the LDAP.
+# You can use all the normal variables like %u in the filter.
+pass_filter = (&(objectClass=VirtualMailAccount)(mail=%n)(accountActive=TRUE)(delete=FALSE))
+
+ldap_version = 3
+
+# search in vd=domain,o=hosting,dc=lilik,dc=it
+base = vd=%d,o=hosting,dc=lilik,dc=it
+
+deref = always
+
+scope = subtree
+
+# ldap filter, return an entity that is a virtual mail account
+user_filter = (&(objectClass=VirtualMailAccount)(mail=%n)(accountActive=TRUE)(delete=FALSE))
+
+# to prevent the uid and gid mappings from the ldap object to
+# dovecot mailbox, we map them to unused ldap fields
+# the sytnax is: "ldap_attribute = dovecot_attribute"
+# this is done because otherwise dovecot will deliver
+# emails to the user directory instead of the maildir directory
+# handled by the user postman
+user_attrs = disablehomeDirectory=home,disableuidNumber=uid,disablegidNumber=gid
