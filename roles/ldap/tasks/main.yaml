@@ -58,6 +58,29 @@
   become: true
   become_method: sudo
   become_user: openldap
+  notify: restart_slapd
+#- name: save OpenLDAP password
+#  template:
+#    dest=/etc/ldap/openldap.password
+#    src=openldap.password.j2
+#    owner=root
+#    group=root
+#    mode=0600
+
+- name: upload lilik tree
+  template:
+    dest=/etc/ldap/liliktree.ldif
+    src=liliktree.ldif.j2
+    owner=root
+    group=root
+    mode=0400
+  register: upload_lilik_tree
+
+- name: create default tree
+  shell: slapadd -l /etc/ldap/liliktree.ldif
+  when: upload_lilik_tree.changed
+  notify: restart_slapd
+
 - name: enable OpenLDAP server
   service:
       name: 'slapd'

@@ -1,0 +1,8 @@
+server_host = {{ ldap_server }}
+search_base = o=hosting,dc=lilik,dc=it
+query_filter = (&(vd=%s)(objectClass=VirtualDomain))
+result_attribute = vd
+#scope = one
+#cache = yes
+dereference = 3
+version = 3

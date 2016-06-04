@@ -1,0 +1,2 @@
+- name: restart_slapd
+  service: name=slapd state=restarted
