@@ -17,41 +17,61 @@
       install_recommends: false
   with_items:
       - postfix
-#      - postfix-ldap
+      - postfix-ldap
       - dovecot-ldap
       - dovecot-imapd
       - rsyslog
-      - dovecot-lmtpd
+#      - dovecot-lmtpd
 #      - amavisd-new
 #      - postgrey #TODO
 #      - spamassassin
 #      - clamav-daemon
 
-#- name: upload ldap-aliases.cf
-#  template:
-#      src: ldap-aliases.cf.j2
-#      dest: "/etc/postfix/ldap-aliases.cf"
-#  notify: restart_postfix
-#- lineinfile: dest=/etc/postfix/main.cf line="virtual_alias_maps = proxy:ldap:/etc/postfix/ldap-aliases.cf"
-#  notify: restart_postfix
+- name: upload ldap-aliases.cf
+  template:
+     src: ldap-aliases.cf.j2
+     dest: "/etc/postfix/ldap-aliases.cf"
+  notify: restart_postfix
+- lineinfile: dest=/etc/postfix/main.cf line="virtual_alias_maps = proxy:ldap:/etc/postfix/ldap-aliases.cf"
+  notify: restart_postfix
 
-#- name: upload ldap-domains.cf
-#  template:
-#      src: ldap-domains.cf.j2
-#      dest: "/etc/postfix/ldap-domains.cf"
-#  notify: restart_postfix
-#- lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_domains = proxy:ldap:/etc/postfix/ldap-domains.cf"
-#  notify: restart_postfix
+- name: upload ldap-domains.cf
+  template:
+     src: ldap-domains.cf.j2
+     dest: "/etc/postfix/ldap-domains.cf"
+  notify: restart_postfix
+- lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_domains = proxy:ldap:/etc/postfix/ldap-domains.cf"
+  notify: restart_postfix
 
-#- name: upload ldap-accounts.cf
-#  template:
-#      src: ldap-accounts.cf.j2
-#      dest: "/etc/postfix/ldap-accounts.cf"
-#  notify: restart_postfix
-#- lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_maps = proxy:ldap:/etc/postfix/ldap-accounts.cf"
-#  notify: restart_postfix
+- name: upload ldap-accounts.cf
+  template:
+     src: ldap-accounts.cf.j2
+     dest: "/etc/postfix/ldap-accounts.cf"
+  notify: restart_postfix
+- lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_maps = proxy:ldap:/etc/postfix/ldap-accounts.cf"
+  notify: restart_postfix
 
-- lineinfile: dest=/etc/postfix/main.cf line="virtual_transport = lmtp:unix:private/dovecot-lmtp" state=present
+#TODO remove previous mydestination definition
+- lineinfile: dest=/etc/postfix/main.cf line="mydestination = mail.lilik.it, lists.lilik.it, localhost" state=present
+  notify: restart_postfix
+
+- blockinfile:
+    dest: "/etc/dovecot/conf.d/10-master.conf"
+    insertafter: "unix_listener auth-userdb {"
+    content: |
+        group = postman
+        mode = 0664
+        user = postman
+  notify: restart_postfix
+
+- lineinfile: dest=/etc/postfix/main.cf line="virtual_transport = dovecot" state=present
+  notify: restart_postfix
+
+- blockinfile:
+    dest: /etc/postfix/master.cf
+    block: |
+      dovecot   unix  -       n       n       -       -       pipe
+        flags=DRhu user=postman:postman argv=/usr/lib/dovecot/deliver -d ${recipient} -f ${sender}
   notify: restart_postfix
 
 - name: create postman group
