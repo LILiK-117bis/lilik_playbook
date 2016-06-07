@@ -1,0 +1,47 @@
+- name: Configure Dokku (web configuration)
+  debconf: 
+    name: 'dokku'
+    question: dokku/web_config
+    vtype: 'boolean'
+    value: false
+- name: Configure Dokku (Use vhost deployment)
+  debconf:
+    name: 'dokku'
+    question: dokku/vhost_enable
+    vtype: 'boolean'
+    value: false
+- name: Configure Dokku (domain)
+  debconf: 
+    name: 'dokku'
+    question: dokku/hostname
+    value: dokku.lilik.it
+- name: Configure Dokku (skip key file)
+  debconf: 
+    name: 'dokku'
+    question: dokku/skip_key_file
+    vtype: 'boolean'
+    value: false
+- name: Configure Dokku (Set key file)
+  debconf: 
+    name: 'dokku'
+    question: dokku/key_file
+    vtype: 'string'
+    value: path/to/the/key
+- name: Install dependencies
+  apt: name={{ item }} state=latest
+  with_items:
+          - git
+- name: Install Https for APT
+  apt: name=apt-transport-https update_cache=yes
+- name: Add the repository key to system
+  apt_key: url=https://packagedcloud.io/gpg.key state=present
+- name: Add the package.io repository to the list
+  apt_repository: repo='deb https://packagecloud.io/dokku/dokku/ubuntu/ ubuntu trusty' state=present
+- name: Install Gogs
+  apt: name=dokku update_cache=yes
+- name: Run dokku installation
+  shell: dokku plugin:install-dependencies --core
+  become: yes
+  become_method: su
+- name: Start at boot
+  service: name=dokku state=started enabled=yes
