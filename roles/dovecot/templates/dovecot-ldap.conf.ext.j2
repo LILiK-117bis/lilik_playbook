@@ -31,3 +31,6 @@ scope = subtree
 
 # ldap filter, return an entity that is a virtual mail account
 user_filter = (&(objectClass=VirtualMailAccount)(mail=%n)(accountActive=TRUE)(delete=FALSE))
+
+# when using global uid/gid use this
+users_attrs = homeDirectory=vdhome
