@@ -48,7 +48,48 @@
   template:
      src: ldap-accounts.cf.j2
      dest: "/etc/postfix/ldap-accounts.cf"
-  notify: restart postfix
+  notify: restart_postfix
+- lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_maps = proxy:ldap:/etc/postfix/ldap-accounts.cf"
+  notify: restart_postfix
+
+#TODO remove previous mydestination definition
+- lineinfile: dest=/etc/postfix/main.cf line="mydestination = mail.lilik.it, lists.lilik.it, localhost" state=present
+  notify: restart_postfix
+
+- name: Configure Postfix (limit to one recipient for every delivery)
+  lineinfile:
+    dest: /etc/postfix/main.cf
+    line: "dovecot_destination_recipient_limit = 1"
+    state: present
+  notify: restart_postfix
+
+- blockinfile:
+    dest: "/etc/dovecot/conf.d/10-master.conf"
+    insertafter: "unix_listener auth-userdb {"
+    content: |
+        group = postman
+        mode = 0664
+        user = postman
+  notify: restart_postfix
+
+- lineinfile: dest=/etc/postfix/main.cf line="virtual_transport = dovecot" state=present
+  notify: restart_postfix
+
+- blockinfile:
+    dest: /etc/postfix/master.cf
+    block: |
+      dovecot   unix  -       n       n       -       -       pipe
+        flags=DRhu user=postman:postman argv=/usr/lib/dovecot/deliver -d ${recipient} -f ${sender}
+  notify: restart_postfix
+
+- name: create postman group
+  group: name=postman state=present gid=800
+
+- name: create postman user
+  user: name=postman state=present uid=800 shell=/dev/null
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf regexp='^mail_location' state=absent
+  notify: restart_dovecot
 
 - name: configure ldap-accounts for postfix
   lineinfile:
