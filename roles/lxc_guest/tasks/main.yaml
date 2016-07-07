@@ -4,6 +4,10 @@
   ignore_errors: true
   changed_when: false
 - block:
+    - name: Add the unsecure host to runtime inventory
+      add_host:
+       - hostname: "{{ vm_name }}"
+       - ansible_ssh_params: '-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=notify'
     - name: create the lxc container
       lxc_container:
           name: "{{ vm_name }}"
