@@ -98,7 +98,11 @@
 - lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-ldap.conf.ext" state=present
   notify: restart_dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_default_realm = {{ fqdn_domain }}"
+- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_default_realm = {{ fqdn_domain }}\n"
+  notify: restart_dovecot
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_mechanisms = login plain"
+  notify: restart_dovecot
 
 - template: src=dovecot-ldap.conf.ext.j2 dest=/etc/dovecot/dovecot-ldap.conf.ext
   notify: restart_dovecot
