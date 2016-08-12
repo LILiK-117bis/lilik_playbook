@@ -1,8 +1,8 @@
 ---
-# - hosts: biff
-#   roles:
-#       - role: lxc_guest
-#         vm_name: wiki
+- hosts: biff
+  roles:
+      - role: lxc_guest
+        vm_name: wiki
 - hosts: wiki
   roles:
       - role: dokuwiki
