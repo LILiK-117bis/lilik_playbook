@@ -1,5 +1,5 @@
 - name: add jessie-backports repository
-- apt_repository: repo='deb http://ftp.debian.org/debian jessie-backports main' state=present
+  apt_repository: repo='deb http://ftp.debian.org/debian jessie-backports main' state=present
 
 - name: install roundcube packages
   apt:

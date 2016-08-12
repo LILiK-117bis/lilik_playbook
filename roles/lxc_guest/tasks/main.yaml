@@ -91,7 +91,6 @@
     - name: set pub key
       shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "echo '{{ cert_key.result }}' > /etc/ssh/ssh_host_ed25519_key-cert.pub"
       register: set_pub_key
-      notify: restart-container
   when: "cert_key_existance.rc != 0"
 
 - name: update container network configuration

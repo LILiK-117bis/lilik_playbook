@@ -5,7 +5,7 @@
       - dokuwiki
 - name: add nginx config for docukiwi
   template:
-      src: docukiwi_nginx.j2
+      src: docuwiki_nginx.j2
       dest: "/etc/nginx/sites-available/{{ config_name }}"
   notify:
       - enable nginx configuration

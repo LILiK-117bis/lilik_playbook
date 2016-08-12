@@ -1,6 +1,6 @@
 ---
-- name: install "{{ service_name }}"
+- name: install {{ service_name }}
   apt: name="{{ item }}" state=present
   with_items: "{{ service_packages }}"
-- name: start "{{ service_name }}" at boot
-  service: name="{{ service_name }}" state=started enabled=yes
+- name: start {{ service_name }} at boot
+  service: name="{{ service_name }}" enabled=yes

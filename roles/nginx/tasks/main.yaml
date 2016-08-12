@@ -1,12 +1,23 @@
 ---
 - include: service.yaml
+  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
   vars:
     service_name: nginx
     service_packages:
         - nginx
+
 - name: disable nginx default configuration
   file: path=/etc/nginx/sites-enabled/default state=absent
   notify: restart nginx
+
+- name: install php5-fpm
+  apt: name={{ item }} state=latest
+  with_items:
+      - php5-fpm
+  when: php | bool
+  notify:
+      - restart nginx
+
 - name: upload nginx proxy configuration
   template:
       src: proxy_nginx.j2

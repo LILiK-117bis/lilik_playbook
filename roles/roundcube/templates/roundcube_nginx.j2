@@ -1,7 +1,6 @@
 server {
-    listen              80 default_server;
-    server_name         localhost:80;
-
+    listen              80;
+    
     # support roundcubemail secure urls
     rewrite "^/[a-zA-Z0-9]{16}/(.*)" /$1;
 
