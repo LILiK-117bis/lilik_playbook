@@ -1,4 +1,3 @@
 ---
 dependencies:
   - role: nginx
-    config_name: docuwiki.conf
