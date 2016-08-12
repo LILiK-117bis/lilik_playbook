@@ -1,9 +1,4 @@
 ---
-- include: service.yaml
-  vars:
-    service_name: nginx
-    service_packages:
-      - nginx
 - name: install sympa and associated packages
   apt: name={{ item }} state=latest
   with_items:

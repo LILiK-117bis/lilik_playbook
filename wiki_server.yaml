@@ -1,8 +1,0 @@
----
-- hosts: lilikhost
-  roles:
-      - role: lxc_guest
-        vm_name: wiki
-- hosts: wiki
-  roles:
-      - role: dokuwiki
