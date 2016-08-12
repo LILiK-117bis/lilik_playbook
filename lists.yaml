@@ -1,0 +1,8 @@
+---
+- hosts: biff
+  roles:
+      - role: lxc_guest
+        vm_name: lists
+- hosts: lists
+  roles:
+      - role: sympa

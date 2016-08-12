@@ -1,0 +1,10 @@
+---
+- hosts: biff
+  roles:
+      - role: lxc_guest
+        vm_name: webmail
+- hosts: webmail
+  roles:
+      - role: roundcube
+        imap_server: "{{ hostvars['mail'].ansible_host }}"
+        fqdn_domain: "lilik.it"

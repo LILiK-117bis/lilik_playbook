@@ -37,16 +37,14 @@
       question: 'phamm-ldap/init_base_ldap'
       vtype: 'boolean'
       value: false
-- name: install ldap packages
-  apt:
-      name: '{{ item }}'
-      state: latest
-      install_recommends: false
-  with_items:
-      - slapd
-      - ldap-utils
-      - phamm-ldap
-      - sudo
+- include: service.yaml
+  vars:
+    service_name: slapd
+    service_packages:
+        - slapd
+        - ldap-utils
+        - phamm-ldap
+        - sudo
 - name: upload slapd config
   template:
       src: slapd.conf.j2

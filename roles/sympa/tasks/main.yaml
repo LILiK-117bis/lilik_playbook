@@ -1,0 +1,22 @@
+---
+- include: service.yaml
+  vars:
+    service_name: nginx
+    service_packages:
+        - nginx
+- name: install sympa and associated packages
+  apt: name={{ item }} state=latest
+  with_items:
+      - sympa
+      - wwsympa
+      - fcgiwrap
+- name: add nginx config for sympa
+  template:
+      src: sympa_nginx.j2
+      dest: "/etc/nginx/sites-available/{{ config_name }}"
+  notify:
+      - enable nginx configuration
+      - restart nginx
+  notify:
+      - enable nginx configuration
+      - restart nginx

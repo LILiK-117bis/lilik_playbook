@@ -1,8 +1,17 @@
-- name: install postgresql
-  apt: name={{ item }} state=latest
-  with_items:
-      - postgresql
-      - postgresql-contrib
-      - python-psycopg2
-- name: start postgresql at boot
-  service: name=postgresql state=started enabled=yes
+---
+- include: service.yaml
+  vars:
+    service_name: nginx
+    service_packages:
+        - nginx
+- name: disable nginx default configuration
+  file: path=/etc/nginx/sites-enabled/default state=absent
+  notify: restart nginx
+- name: upload nginx proxy configuration
+  template:
+      src: proxy_config.j2
+      dest: "/etc/nginx/sites-available/{{ config_name }}"
+  when: is_proxy | bool
+  notify:
+      - enable nginx configuration
+      - restart nginx

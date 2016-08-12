@@ -1,0 +1,25 @@
+server {
+    listen              80 default_server;
+    server_name         localhost:80;
+
+    # support roundcubemail secure urls
+    rewrite "^/[a-zA-Z0-9]{16}/(.*)" /$1;
+
+    # roundcube
+    root /var/lib/roundcube;
+
+    index index.php;
+
+    location ~ \.php$ {
+            include snippets/fastcgi-php.conf;
+
+            # With php5-fpm:
+            fastcgi_pass unix:/var/run/php5-fpm.sock;
+    }
+
+    #deny access to .htaccess files, if Apache's document root
+    #concurs with nginx's one
+    location ~ /\.ht {
+            deny all;
+    }
+}
