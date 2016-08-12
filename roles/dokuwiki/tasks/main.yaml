@@ -2,7 +2,11 @@
 - name: install dokuwiki and associated packages
   apt: name={{ item }} state=latest
   with_items:
-      - php5-cgi
-      - php5-fpm
-      - php5-gd
       - dokuwiki
+- name: add nginx config for docukiwi
+  template:
+      src: docukiwi_nginx.j2
+      dest: "/etc/nginx/sites-available/{{ config_name }}"
+  notify:
+      - enable nginx configuration
+      - restart nginx

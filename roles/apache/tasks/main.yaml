@@ -1,8 +1,0 @@
----
-- name: install apache
-  apt: name={{ item }} state=latest
-  with_items:
-      - apache2
-- name: start apache at boot
-  service: name=apache2 state=started enabled=yes
-

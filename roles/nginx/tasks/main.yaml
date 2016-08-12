@@ -9,7 +9,7 @@
   notify: restart nginx
 - name: upload nginx proxy configuration
   template:
-      src: proxy_config.j2
+      src: proxy_nginx.j2
       dest: "/etc/nginx/sites-available/{{ config_name }}"
   when: is_proxy | bool
   notify:

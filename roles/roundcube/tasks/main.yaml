@@ -1,0 +1,23 @@
+- name: add jessie-backports repository
+- apt_repository: repo='deb http://ftp.debian.org/debian jessie-backports main' state=present
+
+- name: install roundcube packages
+  apt:
+      name: '{{ item }}'
+      state: latest
+      update_cache: yes
+  with_items:
+      - roundcube-sqlite3
+      - roundcube
+      - roundcube-plugins
+
+- name: add nginx config for roundcube
+  template:
+    dest=/etc/nginx/sites-available/roundcube.conf
+    src=roundcube_config.j2
+    owner=root
+    group=root
+    mode=0700
+  notify:
+      - enable nginx configuration
+      - restart nginx

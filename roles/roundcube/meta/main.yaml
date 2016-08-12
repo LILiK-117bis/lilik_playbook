@@ -1,4 +1,4 @@
 ---
 dependencies:
   - role: nginx
-    config_name: docuwiki.conf
+    config_name: roundcube.conf
