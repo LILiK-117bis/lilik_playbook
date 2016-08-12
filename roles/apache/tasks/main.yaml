@@ -1,0 +1,16 @@
+---
+- include: service.yaml
+  vars:
+    service_name: apache2
+    service_packages:
+        - apache2
+- name: validate apache2 configuration
+  command: nginx -t -c /etc/nginx/nginx.conf
+  changed_when: False
+
+- name: enable apache configuration
+  file:
+      src: "/etc/apache2/sites-available/{{ config_name }}"
+      dest: "/etc/apache2/sites-enabled/{{ config_name }}"
+      state: link
+  notify: restart apache2
