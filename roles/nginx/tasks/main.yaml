@@ -1,8 +1,9 @@
 ---
 - include: service.yaml
-  service_name: nginx
-  service_packages:
-      - nginx
+  vars:
+    service_name: nginx
+    service_packages:
+        - nginx
 - name: disable nginx default configuration
   file: path=/etc/nginx/sites-enabled/default state=absent
   notify: restart nginx
@@ -10,8 +11,7 @@
   template:
       src: proxy_config.j2
       dest: "/etc/nginx/sites-available/{{ config_name }}"
-  tags:
-      - proxy
+  when: is_proxy | bool
   notify:
       - enable nginx configuration
       - restart nginx
