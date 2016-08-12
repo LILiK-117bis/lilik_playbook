@@ -1,10 +1,14 @@
 ---
-- name: restart nginx
-  service: name=nginx state=restarted
+- include: service.yaml
+  service_name: nginx
 
 - name: validate nginx configuration
   command: nginx -t -c /etc/nginx/nginx.conf
   changed_when: False
 
-- name: reload nginx
-  service: name=nginx state=reloaded
+- name: enable nginx configuration
+  file:
+      src: "/etc/nginx/sites-available/{{ config_name }}"
+      dest: "/etc/nginx/sites-enabled/{{ config_name }}"
+      state: link
+  notify: restart nginx

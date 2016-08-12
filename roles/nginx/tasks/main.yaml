@@ -1,8 +1,17 @@
 ---
-- name: install nginx
-  apt: pkg=nginx state=latest
-- name: start nginx at boot
-  service: name=nginx state=started enabled=yes
-# - name: copy nginx configuration
-#   template: src={{ configuration_file }} dest=/etc/nginx/sites-available/{{ dest }}
-#   notify: restart nginx
+- include: service.yaml
+  service_name: nginx
+  service_packages:
+      - nginx
+- name: disable nginx default configuration
+  file: path=/etc/nginx/sites-enabled/default state=absent
+  notify: restart nginx
+- name: upload nginx proxy configuration
+  template:
+      src: proxy_config.j2
+      dest: "/etc/nginx/sites-available/{{ config_name }}"
+  tags:
+      - proxy
+  notify:
+      - enable nginx configuration
+      - restart nginx

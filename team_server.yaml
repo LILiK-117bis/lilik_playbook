@@ -6,7 +6,7 @@
 - hosts: team
   roles:
       - role: mattermost
-      - role: nginx_proxy
+      - role: nginx
         server_name: "team.lilik.it"
         config_name: "mattermost"
         remote_host: "http://127.0.0.1:8065"

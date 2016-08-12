@@ -1,0 +1,5 @@
+---
+- name: install wordpress
+  apt: name={{ item }} state=latest
+  with_items:
+      - wordpress
