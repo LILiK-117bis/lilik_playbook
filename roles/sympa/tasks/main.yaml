@@ -1,14 +1,13 @@
 ---
 - name: install sympa and associated packages
-  apt: name={{ item }} state=latest
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
   with_items:
     - sympa
     - wwsympa
     - fcgiwrap
-- name: add nginx config for sympa
-  template:
-      src: sympa_nginx.j2
-      dest: "/etc/nginx/sites-available/{{ config_name }}"
   notify:
-      - enable nginx configuration
       - restart nginx

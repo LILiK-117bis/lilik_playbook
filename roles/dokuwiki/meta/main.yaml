@@ -2,3 +2,4 @@
 dependencies:
   - role: nginx
     php: true
+    parent_role_path: "dokuwiki"

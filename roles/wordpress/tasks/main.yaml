@@ -1,5 +1,74 @@
 ---
 - name: install wordpress
-  apt: name={{ item }} state=latest
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
   with_items:
       - wordpress
+  notify: restart apache2
+
+- name: install inetutils-ping
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+      - inetutils-ping
+
+- name: unarchive setup-mysql.gz
+# unarchive dosn't support .gz file
+#   unarchive: src=/usr/share/doc/wordpress/examples/setup-mysql.gz dest=/usr/share/doc/wordpress/examples/ remote_src=yes copy=no
+# use shell command instead
+  shell: gunzip -d -k setup-mysql.gz
+  args:
+    chdir: /usr/share/doc/wordpress/examples/
+    creates: setup-mysql
+
+- name: make setup-mysql executable
+  file:
+    path: /usr/share/doc/wordpress/examples/setup-mysql
+    mode: u=rwx,g=rx,o=rx
+
+- name: add apache2 configurations for wordpress
+  template:
+      src: "wordpress.apache2.j2"
+      dest: "/etc/apache2/sites-available/{{ item }}.conf"
+  when: site_names is defined
+  with_items: "{{ site_names }}"
+
+- name: enable apache2 configuration
+  file:
+      src: "/etc/apache2/sites-available/{{ item }}.conf"
+      dest: "/etc/apache2/sites-enabled/{{ item }}.conf"
+      state: link
+  with_items: "{{ site_names }}"
+  when: site_names is defined
+  notify: restart apache2
+
+- name: add sites to hosts
+  lineinfile:
+    dest: /etc/hosts
+    line: "127.0.0.1  {{ item }}"
+  when: site_names is defined
+  with_items: "{{ site_names }}"
+
+- name: create wordpress databases
+  shell: "/usr/share/doc/wordpress/examples/setup-mysql -n {{ item }} {{ item }}.lilik.it"
+  args:
+    creates: /etc/wordpress/config-{{ item }}.lilik.it.php
+  when: site_names is defined
+  with_items: "{{ site_names }}"
+
+- name: edit wordpress configurations
+  blockinfile:
+    dest: /etc/wordpress/config-{{ item }}.lilik.it.php
+    block: |
+      define('DB_CHARSET', 'utf8');
+      define( 'FS_METHOD', 'direct');
+      define ('WPLANG','it_IT');
+    insertbefore: '\?>'
+  when: site_names is defined
+  with_items: "{{ site_names }}"

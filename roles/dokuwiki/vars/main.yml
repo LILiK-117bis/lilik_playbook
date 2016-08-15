@@ -1,1 +1,2 @@
-config_name: docuwiki.conf
+config_names:
+  - dokuwiki

@@ -5,10 +5,10 @@
         prompt: 'what container should be destroyed?'
         private: no
       - name: confirm1
-        prompt: 'are you sure you want to delete the container?'
+        prompt: 'are you sure you want to delete the container (NO/yes)?'
         private: no
       - name: confirm2
-        prompt: 'if you really are sure, enter "cthulhu" backwards'
+        prompt: 'if you really are sure, enter the container name again'
         private: no
   tasks:
       - block:
@@ -22,4 +22,4 @@
             lxc_container:
                 name: "{{ container_name }}"
                 state: absent
-        when: "confirm1 == 'yes' and confirm2 == 'uhluhtc'"
+        when: "confirm1 == 'yes' and confirm2 == '{{ container_name }}'"

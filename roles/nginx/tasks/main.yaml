@@ -11,7 +11,11 @@
   notify: restart nginx
 
 - name: install php5-fpm
-  apt: name={{ item }} state=latest
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
   with_items:
       - php5-fpm
   when: php | bool
@@ -26,3 +30,19 @@
   notify:
       - enable nginx configuration
       - restart nginx
+
+- name: add nginx configurations
+  template:
+      src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
+      dest: /etc/nginx/sites-available/{{ item }}.conf
+  with_items: "{{ config_names }}"
+  when: config_names is defined
+
+- name: enable nginx configurations
+  file:
+      src: "/etc/nginx/sites-available/{{ item }}.conf"
+      dest: "/etc/nginx/sites-enabled/{{ item }}.conf"
+      state: link
+  with_items: "{{ config_names }}"
+  when: config_names is defined
+  notify: restart nginx
