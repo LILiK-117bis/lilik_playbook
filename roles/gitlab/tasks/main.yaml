@@ -1,0 +1,62 @@
+- name: install apt-transport-https package
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+      - apt-transport-https
+
+- name: add gitlab omnibus apt key
+  apt_key:
+    url: https://packages.gitlab.com/gitlab/gitlab-ce/gpgkey
+    state: present
+
+- name: add gitlab omnibus repository
+  apt_repository: repo='deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ jessie main' state=present
+
+- name: install gitlab package
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+      - gitlab-ce
+
+- block:
+    - name: create gitlab DB
+      postgresql_db: name=gitlabhq_production
+    - name: create gitlab DB user
+      postgresql_user:
+        name: gitlab-psql
+        # password: "{{ password }}"
+        db: gitlabhq_production
+        priv: ALL
+        role_attr_flags: SUPERUSER
+  become: true
+  become_method: su
+  become_user: postgres
+
+# - name: copy lilik-150x54.png
+#   copy:
+#     src: lilik-150x54.png
+#     dest: /usr/share/roundcube/skins/classic/images/
+
+- name: copy my-gitlab.rb
+  template:
+      src: "my-gitlab.rb.j2"
+      dest: "/etc/gitlab/my-gitlab.rb"
+      mode: 0600
+  notify: restart gitlab-ce
+
+- name: include my-gitlab.rb
+  lineinfile:
+    dest: /etc/gitlab/gitlab.rb
+    insertafter: EOF
+    line: eval File.open('/etc/gitlab/my-gitlab.rb').read
+  notify: restart gitlab-ce
+
+- name: reconfigure gitlab-ce
+  shell: gitlab-ctl reconfigure
+  notify: restart gitlab-ce

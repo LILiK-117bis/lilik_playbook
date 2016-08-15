@@ -1,0 +1,40 @@
+external_url  'http://projects.lilik.it'
+gitlab_rails['gitlab_default_projects_features_issues'] = true
+gitlab_rails['gitlab_default_projects_features_wiki'] = true
+gitlab_rails['gitlab_default_projects_features_snippets'] = true
+gitlab_rails['ldap_enabled'] = true
+gitlab_rails['ldap_servers'] = YAML.load <<-EOS
+  main:
+    label: 'LDAP'
+    host: 'ldap2.lilik.it'
+    port: 389
+    uid: 'mail'
+    method: 'plain'
+    base: 'vd=lilik.it,o=hosting,dc=lilik,dc=it'
+    user_filter: '(memberOf=cn=projects,o=Group,dc=lilik,dc=it)'
+    attributes:
+      username: ['uid', 'userid', 'sAMAccountName']
+      email:    ['mail', 'email', 'userPrincipalName']
+      name:       'cn'
+      first_name: 'givenName'
+      last_name:  'sn'
+EOS
+gitlab_rails['gitlab_shell_ssh_port'] = 8082
+gitlab_rails['smtp_enable'] = true
+gitlab_rails['smtp_address'] = "mail.lilik.it"
+gitlab_rails['smtp_port'] = 25
+
+unicorn['worker_processes'] = 1 # default is 2
+
+gitlab_workhorse['listen_network'] = "tcp"
+gitlab_workhorse['listen_addr'] = "localhost:8181"
+
+gitlab_rails['db_adapter'] = "postgresql"
+gitlab_rails['db_encoding'] = 'utf8'
+gitlab_rails['db_username'] = "gitlab-psql"
+gitlab_rails['db_host'] = nil
+gitlab_rails['db_socket'] = "/var/run/postgresql/"
+gitlab_rails['db_port'] = nil
+
+postgresql['enable'] = false
+nginx['enable'] = false
