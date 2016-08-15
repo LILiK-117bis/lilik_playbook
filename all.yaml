@@ -1,0 +1,6 @@
+- include: ldap.yaml
+- include: blogs.yaml
+- include: lists.yaml
+- include: projects.yaml
+- include: webmail.yaml
+- include: wiki.yaml
