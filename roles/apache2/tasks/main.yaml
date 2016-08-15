@@ -11,9 +11,29 @@
   notify: restart apache2
 
 - name: install apache2 libapache2-mod-php5
-  apt: name="{{ item }}" state=present
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
   with_items:
     - libapache2-mod-php5
   when: php | bool
   notify:
       - restart apache2
+
+- name: add apache2 configurations
+  template:
+      src: ../../{{ parent_role_path }}/templates/{{ item }}.apache2.j2
+      dest: /etc/apache2/sites-available/{{ item }}
+  when: config_names is defined
+  with_items: "{{ config_names }}"
+
+- name: enable apache2 configurations
+  file:
+      src: "/etc/apache2/sites-available/{{ item }}"
+      dest: "/etc/apache2/sites-enabled/{{ item }}"
+      state: link
+  with_items: "{{ config_names }}"
+  when: config_names is defined
+  notify: restart apache2

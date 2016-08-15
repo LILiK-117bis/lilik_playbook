@@ -1,0 +1,11 @@
+<VirtualHost *:80>
+  ServerName {{ item }}.lilik.it
+  DocumentRoot /usr/share/wordpress
+  DirectoryIndex index.php
+  Alias /wp-content/ "/srv/www/wp-content/{{ item }}.lilik.it/"
+  <Directory /usr/share/wordpress>
+    AllowOverride All
+    Order Deny,Allow
+    Allow from all
+  </Directory>
+</VirtualHost>

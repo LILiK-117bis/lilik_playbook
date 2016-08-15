@@ -1,6 +1,10 @@
 ---
 - name: install {{ service_name }}
-  apt: name="{{ item }}" state=present
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
   with_items: "{{ service_packages }}"
 - name: start {{ service_name }} at boot
   service: name="{{ service_name }}" enabled=yes

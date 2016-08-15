@@ -6,5 +6,5 @@
 - hosts: webmail
   roles:
       - role: roundcube
-        imap_server: "{{ hostvars['mail'].ansible_host }}"
-        fqdn_domain: "lilik.it"
+        # imap_server: "{{ hostvars['mail'].ansible_host }}"
+        # fqdn_domain: "lilik.it"

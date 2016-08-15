@@ -3,4 +3,4 @@
   vars:
     service_name: mysql
     service_packages:
-        - mysql
+        - mysql-server

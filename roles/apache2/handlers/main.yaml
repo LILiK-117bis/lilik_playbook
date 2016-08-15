@@ -3,11 +3,3 @@
   # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
   vars:
     service_name: apache2
-
-- name: enable apache2 configuration
-  file:
-      src: "/etc/apache2/sites-available/{{ config_name }}"
-      dest: "/etc/apache2/sites-enabled/{{ config_name }}"
-      state: link
-  when: config_name is defined
-  notify: restart apache2

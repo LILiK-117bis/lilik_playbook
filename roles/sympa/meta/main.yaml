@@ -1,3 +1,4 @@
 ---
 dependencies:
   - role: nginx
+    parent_role_path: "sympa"

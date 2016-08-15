@@ -6,3 +6,5 @@
 - hosts: blogs
   roles:
       - role: wordpress
+        site_names:
+          - kaos

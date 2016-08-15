@@ -2,13 +2,23 @@
 - hosts: vm_hosts
   tasks:
     - name: install lxc related packages
-      apt: name={{ item }} state=latest
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
       with_items:
           - lxc
           - python
           - python-lxc
     - name: install bridge utilities
-      apt: name=bridge-utils state=latest
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
+      with_items:
+        - bridge-utils
       notify: restart networking
     # We should fix this bug. We really should. It's a bug.
     # Bridge-utils requires a complete system reboot to enable the new bridge.
@@ -18,7 +28,11 @@
           dest: /etc/network/interfaces
       notify: restart networking
     - name: install utilities
-      apt: name={{ item }} state=latest
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+        cache_valid_time: 3600
       with_items:
           - vim
           - htop
@@ -37,4 +51,3 @@
         service: name=networking state=reloaded
       - name: restart sshd
         service: name=networking state=reloaded
-

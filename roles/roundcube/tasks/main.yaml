@@ -3,17 +3,30 @@
 
 - name: install roundcube packages
   apt:
-      name: '{{ item }}'
-      state: latest
-      update_cache: yes
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
   with_items:
       - roundcube-sqlite3
       - roundcube
       - roundcube-plugins
-- name: add nginx config for roundcube
-  template:
-      src: roundcube_nginx.j2
-      dest: "/etc/nginx/sites-available/{{ config_name }}"
   notify:
-      - enable nginx configuration
       - restart nginx
+
+- name: copy lilik-150x54.png
+  copy:
+    src: lilik-150x54.png
+    dest: /usr/share/roundcube/skins/classic/images/
+
+- name: copy my-roundcube.php
+  template:
+      src: "my-roundcube.php.j2"
+      dest: "/etc/roundcube/my-roundcube.php"
+      mode: 0600
+
+- name: include my-roundcube.php
+  lineinfile:
+    dest: /etc/roundcube/config.inc.php
+    insertafter: '\?>'
+    line: include_once("/etc/roundcube/my-roundcube.php");
