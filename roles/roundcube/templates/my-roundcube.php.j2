@@ -1,19 +1,19 @@
 <?php
-$config['default_host'] = 'ssl://mail.lilik.it';
+$config['default_host'] = 'ssl://{{ hostvars['mail'].ansible_host }}';
 $config['default_port'] = 993;
 $config['imap_auth_type'] = 'login';
-$config['smtp_server'] = 'mail.lilik.it';
+$config['smtp_server'] = '{{ hostvars['mail'].ansible_host }}';
 $config['smtp_helo_host'] = 'webmail.lilik.it';
 $config['skin_logo'] = '/images/lilik-150x54.png';
 $config['username_domain'] = 'lilik.it';
-$config['product_name'] = 'LiLIK Webmail';
-$config['plugins'] = array('password','carddav');
+$config['product_name'] = 'LILiK Webmail';
+$config['plugins'] = array('password');
 $config['language'] = 'it_IT';
 $config['skin'] = 'classic';
 $config['default_imap_folders'] = array('INBOX', 'Drafts', 'Sent', 'Junk', 'Trash', 'Archive');
 $config['create_default_folders'] = true;
 
-# TODO remove when dovecot will use a valid ssl certificate
+# TODO: ssl, remove when dovecot will use a valid ssl certificate
 $config['imap_conn_options'] = array(
   'ssl'         => array(
 	 'verify_peer'  => false,

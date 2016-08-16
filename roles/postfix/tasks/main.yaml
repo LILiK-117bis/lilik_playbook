@@ -10,130 +10,42 @@
       question: 'postfix/mailname'
       vtype: 'string'
       value: 'lilik.it'
-- name: install postfix packages
-  apt:
-      name: '{{ item }}'
-      state: latest
-      install_recommends: false
-  with_items:
+
+- include: service.yaml
+  vars:
+    service_name: postfix
+    service_packages:
       - postfix
       - postfix-ldap
-      - dovecot-ldap
-      - dovecot-imapd
+      # TODO: log, add a centralized log server
       - rsyslog
-#      - dovecot-lmtpd
-#      - amavisd-new
-#      - postgrey #TODO
-#      - spamassassin
-#      - clamav-daemon
 
 - name: upload ldap-aliases.cf
   template:
      src: ldap-aliases.cf.j2
      dest: "/etc/postfix/ldap-aliases.cf"
-  notify: restart_postfix
+  notify: restart postfix
+
 - lineinfile: dest=/etc/postfix/main.cf line="virtual_alias_maps = proxy:ldap:/etc/postfix/ldap-aliases.cf"
-  notify: restart_postfix
+  notify: restart postfix
 
 - name: upload ldap-domains.cf
   template:
      src: ldap-domains.cf.j2
      dest: "/etc/postfix/ldap-domains.cf"
-  notify: restart_postfix
+  notify: restart postfix
+
 - lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_domains = proxy:ldap:/etc/postfix/ldap-domains.cf"
-  notify: restart_postfix
+  notify: restart postfix
 
 - name: upload ldap-accounts.cf
   template:
      src: ldap-accounts.cf.j2
      dest: "/etc/postfix/ldap-accounts.cf"
-  notify: restart_postfix
+  notify: restart postfix
+
 - lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_maps = proxy:ldap:/etc/postfix/ldap-accounts.cf"
-  notify: restart_postfix
+  notify: restart postfix
 
-#TODO remove previous mydestination definition
-- lineinfile: dest=/etc/postfix/main.cf line="mydestination = mail.lilik.it, lists.lilik.it, localhost" state=present
-  notify: restart_postfix
-
-- blockinfile:
-    dest: "/etc/dovecot/conf.d/10-master.conf"
-    insertafter: "unix_listener auth-userdb {"
-    content: |
-        group = postman
-        mode = 0664
-        user = postman
-  notify: restart_postfix
-
-- lineinfile: dest=/etc/postfix/main.cf line="virtual_transport = dovecot" state=present
-  notify: restart_postfix
-
-- blockinfile:
-    dest: /etc/postfix/master.cf
-    block: |
-      dovecot   unix  -       n       n       -       -       pipe
-        flags=DRhu user=postman:postman argv=/usr/lib/dovecot/deliver -d ${recipient} -f ${sender}
-  notify: restart_postfix
-
-- name: create postman group
-  group: name=postman state=present gid=800
-
-- name: create postman user
-  user: name=postman state=present uid=800 shell=/dev/null
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf regexp='^mail_location' state=absent
-  notify: restart_dovecot
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_location = maildir:/home/postman/%d/%n' state=present
-  notify: restart_dovecot
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_gid = 800' state=present
-  notify: restart_dovecot
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_uid = 800' state=present
-  notify: restart_dovecot
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-system.conf.ext" state=absent
-  notify: restart_dovecot
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-ldap.conf.ext" state=present
-  notify: restart_dovecot
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_default_realm = {{ fqdn_domain }}\n"
-  notify: restart_dovecot
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_mechanisms = login plain"
-  notify: restart_dovecot
-
-- template: src=dovecot-ldap.conf.ext.j2 dest=/etc/dovecot/dovecot-ldap.conf.ext
-  notify: restart_dovecot
-
-#- lineinfile: dest=/etc/postfix/main.cf line="content_filter=smtp-amavis:[127.0.0.1]:10024" state=present
-#  notify: restart_postfix
-
-#- blockinfile: |
-#    dest=/etc/postfix/master.cf
-#    content=" smtp-amavis unix    -       -       n       -       2     smtp
-#    -o smtp_data_done_timeout=1200
-#    -o smtp_send_xforward_command=yes
-#    -o disable_dns_lookups=yes
-#    -o max_use=20
-#
-#     127.0.0.1:10025 inet n    -       n       -       -     smtpd
-#    -o content_filter=
-#    -o smtpd_delay_reject=no
-#    -o smtpd_client_restrictions=permit_mynetworks,reject
-#    -o smtpd_helo_restrictions=
-#    -o smtpd_sender_restrictions=
-#    -o smtpd_recipient_restrictions=permit_mynetworks,reject
-#    -o smtpd_data_restrictions=reject_unauth_pipelining
-#    -o smtpd_end_of_data_restrictions=
-#    -o smtpd_restriction_classes=
-#    -o mynetworks=127.0.0.0/8
-#    -o smtpd_error_sleep_time=0
-#    -o smtpd_soft_error_limit=1001
-#    -o smtpd_hard_error_limit=1000
-#    -o smtpd_client_connection_count_limit=0
-#    -o smtpd_client_connection_rate_limit=0
-#    -o receive_override_options=no_header_body_checks,no_unknown_recipient_checks,no_milters
-#    -o local_header_rewrite_clients="
-#  notify: restart_postfix
+- lineinfile: dest=/etc/postfix/main.cf line="mydestination = mail.lilik.it, lists.lilik.it, localhost" regexp='mydestination =' state=present
+  notify: restart postfix

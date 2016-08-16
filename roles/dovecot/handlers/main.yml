@@ -2,3 +2,7 @@
 - include: service.yaml
   vars:
     service_name: postfix
+
+- include: service.yaml
+  vars:
+    service_name: dovecot

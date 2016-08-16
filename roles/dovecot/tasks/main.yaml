@@ -1,0 +1,121 @@
+- include: service.yaml
+  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
+  vars:
+    service_name: dovecot
+    service_packages:
+      - dovecot-ldap
+      - dovecot-imapd
+      - rsyslog
+#      - dovecot-lmtpd
+#      - amavisd-new
+#      - postgrey #TODO
+#      - spamassassin
+#      - clamav-daemon
+
+- lineinfile: dest=/etc/postfix/main.cf line="virtual_transport = dovecot" state=present
+  notify: restart postfix
+
+- blockinfile:
+    dest: /etc/postfix/master.cf
+    block: |
+      dovecot   unix  -       n       n       -       -       pipe
+        flags=DRhu user=postman:postman argv=/usr/lib/dovecot/deliver -d ${recipient} -f ${sender}
+  notify: restart postfix
+
+- name: create postman group
+  group: name=postman state=present
+
+- name: create postman user
+  user: name=postman state=present shell=/dev/null
+
+- name: edit dovecot configuration
+  lineinfile: dest=/etc/dovecot/conf.d/10-master.conf line='    port = 143' insertafter='inet_listener imap {' state=present
+  notify: restart dovecot
+
+- blockinfile:
+    dest: /etc/dovecot/conf.d/10-master.conf
+    insertafter: 'inet_listener imaps {'
+    marker: '#ANSIBLE BLOCK FOR IMAPS PORT'
+    block: |
+                  port = 993
+                  ssl = yes
+  notify: restart dovecot
+
+- blockinfile:
+    dest: "/etc/dovecot/conf.d/10-master.conf"
+    insertafter: "unix_listener auth-userdb {"
+    marker: '#ANSIBLE BLOCK FOR AUTH USER'
+    block: |
+        group = postman
+        mode = 0664
+        user = postman
+  notify: restart dovecot
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_location = maildir:/home/postman/%d/%n' regexp='^mail_location = ' state=present
+  notify: restart dovecot
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_gid = postman' state=present
+  notify: restart dovecot
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_uid = postman' state=present
+  notify: restart dovecot
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-system.conf.ext" state=absent
+  notify: restart dovecot
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-ldap.conf.ext" state=present
+  notify: restart dovecot
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_default_realm = {{ fqdn_domain }}"
+  notify: restart dovecot
+
+- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_mechanisms = login plain"
+  notify: restart dovecot
+
+- blockinfile:
+    dest: /etc/dovecot/conf.d/10-ssl.conf
+    block: |
+        ssl = yes
+        ssl_cert = </etc/dovecot/dovecot.pem
+        ssl_key = </etc/dovecot/private/dovecot.pem
+
+# TODO: ssl, remove when dovecot will use a valid ssl certificate
+- name: generate certificates
+  shell: openssl req -new -x509 -subj "/C=US/ST=Oregon/L=Portland/O=IT/CN=10.0.58.13" -days 3650 -nodes -newkey rsa:4096 -out /etc/dovecot/dovecot.pem -keyout /etc/dovecot/private/dovecot.pem
+  args:
+    creates: /etc/dovecot/dovecot.pem
+  notify: restart dovecot
+
+- template: src=dovecot-ldap.conf.ext.j2 dest=/etc/dovecot/dovecot-ldap.conf.ext
+  notify: restart dovecot
+
+#- lineinfile: dest=/etc/postfix/main.cf line="content_filter=smtp-amavis:[127.0.0.1]:10024" state=present
+#  notify: restart_postfix
+
+#- blockinfile: |
+#    dest=/etc/postfix/master.cf
+#    content=" smtp-amavis unix    -       -       n       -       2     smtp
+#    -o smtp_data_done_timeout=1200
+#    -o smtp_send_xforward_command=yes
+#    -o disable_dns_lookups=yes
+#    -o max_use=20
+#
+#     127.0.0.1:10025 inet n    -       n       -       -     smtpd
+#    -o content_filter=
+#    -o smtpd_delay_reject=no
+#    -o smtpd_client_restrictions=permit_mynetworks,reject
+#    -o smtpd_helo_restrictions=
+#    -o smtpd_sender_restrictions=
+#    -o smtpd_recipient_restrictions=permit_mynetworks,reject
+#    -o smtpd_data_restrictions=reject_unauth_pipelining
+#    -o smtpd_end_of_data_restrictions=
+#    -o smtpd_restriction_classes=
+#    -o mynetworks=127.0.0.0/8
+#    -o smtpd_error_sleep_time=0
+#    -o smtpd_soft_error_limit=1001
+#    -o smtpd_hard_error_limit=1000
+#    -o smtpd_client_connection_count_limit=0
+#    -o smtpd_client_connection_rate_limit=0
+#    -o receive_override_options=no_header_body_checks,no_unknown_recipient_checks,no_milters
+#    -o local_header_rewrite_clients="
+#  notify: restart_postfix

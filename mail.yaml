@@ -8,3 +8,6 @@
       - role: postfix
         ldap_server: "{{ hostvars['ldap'].ansible_host }}"
         fqdn_domain: "lilik.it"
+      - role: dovecot
+        fqdn_domain: "lilik.it"
+        ldap_server: "{{ hostvars['ldap'].ansible_host }}"
