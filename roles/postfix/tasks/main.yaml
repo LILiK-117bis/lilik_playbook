@@ -47,5 +47,27 @@
 - lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_maps = proxy:ldap:/etc/postfix/ldap-accounts.cf"
   notify: restart postfix
 
-- lineinfile: dest=/etc/postfix/main.cf line="mydestination = mail.lilik.it, lists.lilik.it, localhost" regexp='mydestination =' state=present
+- lineinfile: dest=/etc/postfix/main.cf line="mydestination = mail.lilik.it, localhost" regexp='mydestination =' state=present
+  notify: restart postfix
+
+- name: edit postfix mynetworks
+  lineinfile: dest=/etc/postfix/main.cf line="mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 10.0.0.0/16" regexp='mynetworks =' state=present
+  notify: restart postfix
+
+- name: create transport map
+  lineinfile: dest=/etc/postfix/transport line="lists.lilik.it      :[{{ lists_server }}]" regexp="lists.lilik.it" create=yes
+  register: postfix_transport_result
+  notify: restart postfix
+
+- name: ensure transport map is compiled
+  shell: postmap /etc/postfix/transport
+  notify: reload postfix
+  when: postfix_transport_result | changed
+
+- name: enable transport map
+  lineinfile: dest=/etc/postfix/main.cf line="transport_maps = hash:/etc/postfix/transport" regexp='transport_maps =' state=present
+  notify: restart postfix
+
+- name: add lists.lilik.it relay
+  lineinfile: dest=/etc/postfix/main.cf line="relay_domains = lists.lilik.it" regexp='relay_domains =' state=present
   notify: restart postfix

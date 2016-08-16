@@ -35,7 +35,7 @@
 - blockinfile:
     dest: /etc/dovecot/conf.d/10-master.conf
     insertafter: 'inet_listener imaps {'
-    marker: '#ANSIBLE BLOCK FOR IMAPS PORT'
+    marker: '#{mark} ANSIBLE BLOCK FOR IMAPS PORT'
     block: |
                   port = 993
                   ssl = yes
@@ -44,7 +44,7 @@
 - blockinfile:
     dest: "/etc/dovecot/conf.d/10-master.conf"
     insertafter: "unix_listener auth-userdb {"
-    marker: '#ANSIBLE BLOCK FOR AUTH USER'
+    marker: '#{mark} ANSIBLE BLOCK FOR AUTH USER'
     block: |
         group = postman
         mode = 0664
