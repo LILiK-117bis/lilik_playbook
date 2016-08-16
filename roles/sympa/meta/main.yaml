@@ -2,3 +2,6 @@
 dependencies:
   - role: nginx
     parent_role_path: "sympa"
+  - role: exim4
+    stmp_relay: "{{ hostvars['mail'].ansible_host }}"
+    sympa_transport: true

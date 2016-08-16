@@ -1,0 +1,105 @@
+
+- name: configure exim4-config
+  debconf:
+      name: 'exim4-config'
+      question: '{{ item.key }}'
+      vtype: 'string'
+      value: '{{ item.value }}'
+  with_dict:
+    exim4/dc_smarthost: '{{ stmp_relay }}'
+    exim4/dc_minimaldns: false
+    exim4/dc_postmaster:
+    exim4/dc_localdelivery: mbox format in /var/mail/
+    exim4/dc_readhost:
+    exim4/dc_other_hostnames: '{{ ansible_hostname }}.lilik.it'
+    exim4/dc_relay_nets:
+    exim4/exim4-config-title:
+    exim4/no_config: false
+    exim4/mailname: '{{ ansible_hostname }}.lilik.it'
+    exim4/use_split_config: false
+    exim4/hide_mailname: false
+    exim4/dc_relay_domains:
+  notify:
+    - update exim4 configuration
+    - restart exim4
+
+- name: configure exim4-config (sympa_transport)
+  debconf:
+      name: 'exim4-config'
+      question: '{{ item.key }}'
+      vtype: 'string'
+      value: '{{ item.value }}'
+  with_dict:
+    exim4/dc_eximconfig_configtype: mail sent by smarthost; received via SMTP or fetchmail
+    exim4/dc_local_interfaces:
+  when: sympa_transport | bool
+  notify:
+    - update exim4 configuration
+    - restart exim4
+
+
+- name: configure exim4-config (smarthost)
+  debconf:
+      name: 'exim4-config'
+      question: '{{ item.key }}'
+      vtype: 'string'
+      value: '{{ item.value }}'
+  with_dict:
+    exim4/dc_eximconfig_configtype: mail sent by smarthost; no local mail
+    exim4/dc_local_interfaces: 127.0.0.1 ; ::1
+  when: not sympa_transport | bool
+  notify:
+    - update exim4 configuration
+    - restart exim4
+
+- block:
+  - include: service.yaml
+    # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
+    vars:
+      service_name: exim4
+      service_packages:
+        - exim4
+
+  - name: exim4 macro for sympa aliases
+    blockinfile:
+      dest: /etc/exim4/exim4.conf.localmacros
+      block: |
+              #--------------
+              # Activating pipe transport in system_aliases router (pipes in /etc/aliases)
+              .ifndef SYSTEM_ALIASES_PIPE_TRANSPORT
+              SYSTEM_ALIASES_PIPE_TRANSPORT = address_pipe
+              .endif
+              .ifndef SYSTEM_ALIASES_USER
+              SYSTEM_ALIASES_USER = sympa
+              .endif
+              .ifndef SYSTEM_ALIASES_GROUP
+              SYSTEM_ALIASES_GROUP = sympa
+              .endif
+              #--------------
+      create: yes
+    notify:
+      - update exim4 configuration
+      - restart exim4
+
+  - name: exim4 pipe for sympa aliases
+    blockinfile:
+      dest: /etc/exim4/exim4.conf.template
+      block: |
+              #--------------
+              # Using alias pipe definitions for the Sympa lists in /etc/mail/sympa/aliases
+              sympa_aliases:
+                debug_print = "R: system_aliases for $local_part@$domain"
+                driver = redirect
+                domains = +local_domains
+                allow_fail
+                allow_defer
+                data = ${lookup{$local_part}lsearch{/etc/mail/sympa/aliases}}
+                user = sympa
+                group = sympa
+                pipe_transport = address_pipe
+              #--------------
+      insertbefore: 'system_aliases:'
+    notify:
+      - update-exim4.conf
+      - restart exim4
+  when: sympa_transport | bool

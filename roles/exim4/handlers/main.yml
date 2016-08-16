@@ -1,0 +1,11 @@
+---
+- name: update exim4 configuration
+  shell: rm /etc/exim4/update-exim4.conf.conf || true; dpkg-reconfigure exim4-config -f noninteractive; /usr/sbin/update-exim4.conf
+
+- name: update-exim4.conf
+  shell: /usr/sbin/update-exim4.conf
+  notify: restart exim4
+
+- include: service.yaml
+  vars:
+    service_name: exim4
