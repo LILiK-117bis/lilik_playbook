@@ -32,10 +32,5 @@ scope = subtree
 # ldap filter, return an entity that is a virtual mail account
 user_filter = (&(objectClass=VirtualMailAccount)(mail=%n)(accountActive=TRUE)(delete=FALSE))
 
-# to prevent the uid and gid mappings from the ldap object to
-# dovecot mailbox, we map them to unused ldap fields
-# the sytnax is: "ldap_attribute = dovecot_attribute"
-# this is done because otherwise dovecot will deliver
-# emails to the user directory instead of the maildir directory
-# handled by the user postman
-user_attrs = disablehomeDirectory=home,disableuidNumber=uid,disablegidNumber=gid
+# when using global uid/gid use this
+users_attrs = homeDirectory=vdhome
