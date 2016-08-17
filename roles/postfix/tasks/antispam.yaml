@@ -1,0 +1,54 @@
+- include: service.yaml
+  vars:
+    service_name: clamav-daemon
+    service_packages:
+           - clamav-daemon
+    install_recommends: yes
+
+- include: service.yaml
+  vars:
+    service_name: amavisd-milter
+    service_packages:
+           - amavisd-milter
+           - spamassassin
+    install_recommends: yes
+
+- name: disable spamassassin at boot
+  service: name="spamassassin" enabled=no
+
+# TODO spam, discard spam instead of bouncing it
+# /etc/amavis/conf.d/
+# $final_spam_destiny       = D_DISCARD;
+
+- name: configure amavisd-milter socket
+  blockinfile:
+    dest: '/etc/default/amavisd-milter'
+    block: |
+      MILTERSOCKET=inet:60001@127.0.0.1
+  notify: restart amavisd-milter
+
+- name: add amavis milter for smtp to postfix
+  lineinfile:
+    dest: '/etc/postfix/main.cf'
+    line: 'smtpd_milters=inet:127.0.0.1:60001'
+    regexp: '^smtpd_milters='
+  notify: restart postfix
+
+- name: add amavis milter for non smtp to postfix
+  lineinfile:
+    dest: '/etc/postfix/main.cf'
+    line: 'non_smtpd_milters=inet:127.0.0.1:60001'
+    regexp: '^non_smtpd_milters='
+  notify: restart postfix
+
+- include: service.yaml
+  vars:
+    service_name: postgrey
+    service_packages:
+           - postgrey
+
+- name: add postgrey to postfix
+  lineinfile:
+    dest: '/etc/postfix/main.cf'
+    line: 'smtpd_recipient_restrictions = check_policy_service inet:127.0.0.1:10023'
+  notify: restart postfix

@@ -71,3 +71,6 @@
 - name: add lists.lilik.it relay
   lineinfile: dest=/etc/postfix/main.cf line="relay_domains = lists.lilik.it" regexp='relay_domains =' state=present
   notify: restart postfix
+
+- name: install antivirus and anti spam services
+  include: antispam.yaml
