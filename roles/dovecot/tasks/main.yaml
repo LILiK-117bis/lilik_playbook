@@ -61,25 +61,88 @@
 - lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-ldap.conf.ext" state=present
   notify: restart dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_default_realm = {{ fqdn_domain }}"
+- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_default_realm = {{ domain }}"
   notify: restart dovecot
 
 - lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_mechanisms = login plain"
   notify: restart dovecot
 
-- blockinfile:
+- name: enable ssl key
+  blockinfile:
     dest: /etc/dovecot/conf.d/10-ssl.conf
     block: |
         ssl = yes
-        ssl_cert = </etc/dovecot/dovecot.pem
-        ssl_key = </etc/dovecot/private/dovecot.pem
+        ssl_cert = </etc/dovecot/dovecot.cert
+        ssl_key = </etc/dovecot/private/dovecot.key
 
-# TODO: ssl, remove when dovecot will use a valid ssl certificate
-- name: generate certificates
-  shell: openssl req -new -x509 -subj "/C=US/ST=Oregon/L=Portland/O=IT/CN=10.0.58.13" -days 3650 -nodes -newkey rsa:4096 -out /etc/dovecot/dovecot.pem -keyout /etc/dovecot/private/dovecot.pem
+# # TODO: ssl, remove when dovecot will use a valid ssl certificate
+# - name: generate certificates
+#   shell: openssl req -new -x509 -subj "/C=US/ST=Oregon/L=Portland/O=IT/CN=10.0.58.13" -days 3650 -nodes -newkey rsa:4096 -out /etc/dovecot/dovecot.pem -keyout /etc/dovecot/private/dovecot.pem
+#   args:
+#     creates: /etc/dovecot/dovecot.pem
+#   notify: restart dovecot
+
+- name: generate the RSA key
+  shell: "openssl genrsa -out /etc/dovecot/private/dovecot.key 2048"
   args:
-    creates: /etc/dovecot/dovecot.pem
+    creates: /etc/dovecot/private/dovecot.key
   notify: restart dovecot
+
+- name: create CSR
+  shell: 'openssl req -new -sha256 -subj "/C=IT/ST=ITALY/L=TUSCANY/O=IT/CN={{ fqdn_domain }}" -key /etc/dovecot/private/dovecot.key -out /etc/dovecot/private/dovecot.csr'
+  args:
+    creates: /etc/dovecot/private/dovecot.csr
+  notify: restart dovecot
+
+- name: check if dovecot cert key exist
+  stat:
+    path: /etc/dovecot/dovecot.cert
+  register: dovecot_cert_key
+
+- block:
+    - name: get pub key
+      shell: "cat /etc/dovecot/private/dovecot.csr"
+      register: pub_key
+#    - debug: var=pub_key
+    - name: generate host request
+      local_action: command ../ca_manager/make_ssl_host_request.py {{ pub_key.stdout|quote }} {{ fqdn_domain|quote }}
+      register: cert_request
+#    - debug: var=cert_request
+    - name: start sign request
+      raw: "{{ cert_request.stdout|string }}"
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      with_items: "{{groups['cas']}}"
+      register: request_result
+#    - debug: var=request_result
+
+    - set_fact:
+          request_output: "{{ request_result.results[0].stdout|string|from_json }}"
+    - debug: var=request_output
+
+    - name: generate get request
+      local_action: command ../ca_manager/make_get_request.py {{ request_output.requestID }}
+      register: get_request
+#    - debug: var=get_request
+
+    - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
+
+    - name: wait for cert
+      raw: "{{ get_request.stdout|string }}"
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      with_items: "{{groups['cas']}}"
+      register: cert_result
+#    - debug: var=cert_result
+
+    - set_fact:
+          cert_key: "{{ cert_result.results[0].stdout|string|from_json }}"
+#    - debug: var=request_output
+
+    - name: set pub key
+      shell: "echo '{{ cert_key.result }}' > /etc/dovecot/dovecot.cert"
+      register: set_pub_key
+  when: not dovecot_cert_key.stat.exists
 
 - template: src=dovecot-ldap.conf.ext.j2 dest=/etc/dovecot/dovecot-ldap.conf.ext
   notify: restart dovecot

@@ -27,6 +27,19 @@
       owner: root
       group: www-data
 
+- name: copy test_ssl_ca.crt
+  copy:
+      src: "test_ssl_ca.crt"
+      dest: "/usr/local/share/ca-certificates/test_ssl_ca.crt"
+      mode: 0444
+  notify: update-ca-certificates
+
+#TODO: remove when dovecot will use a valid dns record
+- name: '(FIX REMOVE THIS ACTION) add temporary host record'
+  lineinfile:
+    dest: /etc/hosts
+    line: "{{ hostvars['mail'].ansible_host }}  {{ mail_server }}"
+    regexp: "{{ mail_server }}$"
 
 - name: include my-roundcube.php
   lineinfile:
