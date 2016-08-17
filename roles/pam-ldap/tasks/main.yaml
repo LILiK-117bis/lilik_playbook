@@ -1,0 +1,81 @@
+- name: configure libpam-ldap
+  debconf:
+      name: 'libpam-ldap'
+      question: '{{ item.key }}'
+      vtype: 'string'
+      value: '{{ item.value }}'
+  with_dict:
+    libpam-ldap/bindpw: (password omitted)
+    libpam-ldap/rootbindpw: (password omitted)
+    libpam-ldap/rootbinddn:
+    libpam-ldap/dbrootlogin: false
+    libpam-ldap/dblogin: false
+    libpam-ldap/override: 'true'
+    libpam-ldap/pam_password: crypt
+    libpam-ldap/binddn:
+    shared/ldapns/ldap_version: 3
+    shared/ldapns/ldap-server: ldap://{{ ldap_server }}/
+    shared/ldapns/base-dn: dc=lilik,dc=it
+  notify:
+     - update libpam-ldap configuration
+
+- name: configure libnss-ldap
+  debconf:
+      name: 'libnss-ldap'
+      question: '{{ item.key }}'
+      vtype: 'string'
+      value: '{{ item.value }}'
+  with_dict:
+    libnss-ldap/bindpw: (password omitted)
+    libnss-ldap/rootbindpw: (password omitted)
+    libnss-ldap/override: 'true'
+    libnss-ldap/confperm: true
+    libnss-ldap/dbrootlogin: false
+    libnss-ldap/nsswitch:
+    libnss-ldap/binddn:
+    libnss-ldap/rootbinddn:
+    libnss-ldap/dblogin: false
+    shared/ldapns/ldap_version: 3
+    shared/ldapns/ldap-server: ldap://{{ ldap_server }}/
+    shared/ldapns/base-dn: dc=lilik,dc=it
+  notify:
+     - update libnss-ldap configuration
+
+- name: set default shell to bash in skel
+  lineinfile:
+    insertbefore: BOF
+    dest: /etc/skel/.profile
+    line: 'SHELL=/bin/bash exec /bin/bash'
+    regexp: '^SHELL='
+
+- name: create user home on login
+  template:
+    src: pam-mkhomedir.j2
+    dest: /usr/share/pam-configs/mkhomedir
+  notify: pam-auth-update
+
+- name: enable nss ldap passwd
+  lineinfile:
+    dest: /etc/nsswitch.conf
+    line: 'passwd:         compat ldap'
+    regexp: '^passwd:'
+  notify: restart nscd
+
+- name: enable nss ldap group
+  lineinfile:
+    dest: /etc/nsswitch.conf
+    line: 'group:          compat ldap'
+    regexp: '^group:'
+  notify: restart nscd
+
+- name: install pam ldap packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+      - libpam-ldap
+      - libnss-ldap
+      # TODO: log, add a centralized log server
+      - rsyslog
