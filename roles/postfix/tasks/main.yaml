@@ -20,23 +20,23 @@
       # TODO: log, add a centralized log server
       - rsyslog
 
-- name: configure ldap-aliases for postfix 
+- name: configure ldap-aliases for postfix
   template:
      src: ldap-aliases.cf.j2
      dest: "/etc/postfix/ldap-aliases.cf"
-  notify: restart postfix
+  notify: restart_postfix
 
-- name: configure ldap-aliases for postfix
+- name: provide postfix aliases from ldap-aliases
   lineinfile:
     dest: /etc/postfix/main.cf
     line: "virtual_alias_maps = proxy:ldap:/etc/postfix/ldap-aliases.cf"
-  notify: restart postfix
+  notify: restart_postfix
 
 - name: configure ldap-domains for postfix
   template:
      src: ldap-domains.cf.j2
      dest: "/etc/postfix/ldap-domains.cf"
-  notify: restart postfix
+  notify: restart_postfix
 
 - name: provide postfix mailbox domains from ldap-domains
   lineinfile:
@@ -49,21 +49,29 @@
      src: ldap-accounts.cf.j2
      dest: "/etc/postfix/ldap-accounts.cf"
   notify: restart_postfix
-- lineinfile: dest=/etc/postfix/main.cf line="virtual_mailbox_maps = proxy:ldap:/etc/postfix/ldap-accounts.cf"
+
+- name: configure ldap-accounts for postfix
+  lineinfile:
+    dest: /etc/postfix/main.cf
+    line: "virtual_mailbox_maps = proxy:ldap:/etc/postfix/ldap-accounts.cf"
   notify: restart_postfix
 
-#TODO remove previous mydestination definition
-- lineinfile: dest=/etc/postfix/main.cf line="mydestination = mail.lilik.it, lists.lilik.it, localhost" state=present
+- name: configure available mail destinations for postfix, replace default
+  replace:
+    dest: /etc/postfix/main.cf
+    regexp: "^mydestination.*$"
+    replace: "mydestination = mail.lilik.it, lists.lilik.it, localhost"
   notify: restart_postfix
 
-- name: Configure Postfix (limit to one recipient for every delivery)
+- name: configure postfix's recipient limit for delivery
   lineinfile:
     dest: /etc/postfix/main.cf
     line: "dovecot_destination_recipient_limit = 1"
     state: present
   notify: restart_postfix
 
-- blockinfile:
+- name: configure service auth-userdb in dovecot configuration
+  blockinfile:
     dest: "/etc/dovecot/conf.d/10-master.conf"
     insertafter: "unix_listener auth-userdb {"
     content: |
@@ -72,10 +80,15 @@
         user = postman
   notify: restart_postfix
 
-- lineinfile: dest=/etc/postfix/main.cf line="virtual_transport = dovecot" state=present
+- name: configure virtual_transport method in postfix configuration
+  lineinfile:
+    dest: /etc/postfix/main.cf
+    line: "virtual_transport = dovecot"
+    state: present
   notify: restart_postfix
 
-- blockinfile:
+- name: configure postfix command to deliver mail
+  blockinfile:
     dest: /etc/postfix/master.cf
     block: |
       dovecot   unix  -       n       n       -       -       pipe
@@ -87,9 +100,6 @@
 
 - name: create postman user
   user: name=postman state=present uid=800 shell=/dev/null
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf regexp='^mail_location' state=absent
-  notify: restart_dovecot
 
 - name: configure ldap-accounts for postfix
   lineinfile:
@@ -145,24 +155,36 @@
 - name: install antivirus and anti spam services
   include: antispam.yaml
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_location = maildir:/home/postman/%d/%n' state=present
+- name: configure mail_location in dovecot configuration, replace default
+  replace:
+    dest: /etc/dovecot/conf.d/10-mail.conf
+    regexp: "^mail_location.*$"
+    replace: 'mail_location = maildir:/home/postman/%d/%n'
   notify: restart_dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_gid = 800' state=present
+- name: ensure system users cannot be used with dovecot
+  lineinfile:
+    dest: /etc/dovecot/conf.d/10-auth.conf
+    line: "!include auth-system.conf.ext"
+    state: absent
   notify: restart_dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_uid = 800' state=present
+- name: ensure ldap users can be used with dovecot
+  lineinfile:
+    dest: /etc/dovecot/conf.d/10-auth.conf
+    line: "!include auth-ldap.conf.ext"
+    state: present
   notify: restart_dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-system.conf.ext" state=absent
-  notify: restart_dovecot
+- name: set default realm for dovecot
+  lineinfile:
+    dest: /etc/dovecot/conf.d/10-auth.conf
+    line: "auth_default_realm = {{ fqdn_domain }}"
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-ldap.conf.ext" state=present
-  notify: restart_dovecot
-
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_default_realm = {{ fqdn_domain }}"
-
-- template: src=dovecot-ldap.conf.ext.j2 dest=/etc/dovecot/dovecot-ldap.conf.ext
+- name: configure ldap authentication for dovecot
+  template:
+    src: dovecot-ldap.conf.ext.j2
+    dest: /etc/dovecot/dovecot-ldap.conf.ext
   notify: restart_dovecot
 
 - name: provide global uid/gid to dovecot
