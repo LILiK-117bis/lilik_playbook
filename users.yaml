@@ -1,0 +1,12 @@
+---
+- hosts: biff
+  roles:
+      - role: lxc_guest
+        vm_name: users
+- hosts: users
+  roles:
+      - role: fail2ban
+      - role: pam-ldap
+        ldap_server: "{{ hostvars['ldap'].ansible_host }}"
+      - role: apache2
+        user_dir: true
