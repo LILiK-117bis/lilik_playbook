@@ -2,5 +2,6 @@
 - include: blogs.yaml
 - include: lists.yaml
 - include: projects.yaml
+- include: users.yaml
 - include: webmail.yaml
 - include: wiki.yaml
