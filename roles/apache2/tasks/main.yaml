@@ -37,3 +37,16 @@
   with_items: "{{ config_names }}"
   when: config_names is defined
   notify: restart apache2
+
+- block:
+    - name: enable apache userdir module
+      apache2_module: state=present name=userdir
+      notify: restart apache2
+
+    - name: create public_html in /etc/skel
+      file:
+        path: /etc/skel/public_html
+        state: directory
+        mode: 660
+
+  when: user_dir | bool
