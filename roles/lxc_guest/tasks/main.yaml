@@ -119,6 +119,10 @@
   register: install_packages
   changed_when: "install_packages.stdout.find('0 newly installed') == -1"
 
+- name: lookup user ca key
+  set_fact:
+    user_ca_key: "{{ lookup('file', 'test_ssh_ca.pub') }}"
+
 - name: update container user ca key
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'ssh-rsa {{ user_ca_key }}' /etc/ssh/user_ca.pub || echo 'ssh-rsa {{ user_ca_key }}' > /etc/ssh/user_ca.pub"
   register: update_user_ca_key
