@@ -36,7 +36,6 @@
       src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
       dest: /etc/nginx/sites-available/{{ item }}.conf
   with_items: "{{ config_names }}"
-  when: config_names is defined
 
 - name: enable nginx configurations
   file:
@@ -44,5 +43,4 @@
       dest: "/etc/nginx/sites-enabled/{{ item }}.conf"
       state: link
   with_items: "{{ config_names }}"
-  when: config_names is defined
   notify: restart nginx
