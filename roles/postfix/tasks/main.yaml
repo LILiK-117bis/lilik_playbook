@@ -44,13 +44,14 @@
     line: "virtual_mailbox_domains = proxy:ldap:/etc/postfix/ldap-domains.cf"
   notify: restart postfix
 
-- name: provide postfix users from ldap-accounts
+
+- name: configure ldap-accounts for postfix
   template:
      src: ldap-accounts.cf.j2
      dest: "/etc/postfix/ldap-accounts.cf"
   notify: restart postfix
 
-- name: configure ldap-accounts for postfix
+- name: provide postfix users from ldap-accounts
   lineinfile:
     dest: /etc/postfix/main.cf
     line: "virtual_mailbox_maps = proxy:ldap:/etc/postfix/ldap-accounts.cf"
