@@ -26,7 +26,7 @@
      dest: "/etc/postfix/ldap-aliases.cf"
   notify: restart postfix
 
-- name: configure ldap-aliases for postfix
+- name: provide postfix aliases from ldap-aliases
   lineinfile:
     dest: /etc/postfix/main.cf
     line: "virtual_alias_maps = proxy:ldap:/etc/postfix/ldap-aliases.cf"
