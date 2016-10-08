@@ -75,9 +75,9 @@
 
     - name: start sign request
       raw: "{{ cert_request | to_json }}"
-      delegate_to: "{{item}}"
+      delegate_to: "{{ item }}"
       delegate_facts: True
-      with_items: "{{groups['cas']}}"
+      with_items: "{{ groups['cas'] }}"
       register: request_result
 
     - debug: var=request_result verbosity=2
@@ -102,9 +102,9 @@
 
     - name: wait for cert
       raw: "{{ get_request | to_json }}"
-      delegate_to: "{{item}}"
+      delegate_to: "{{ item }}"
       delegate_facts: True
-      with_items: "{{groups['cas']}}"
+      with_items: "{{ groups['cas'] }}"
       register: cert_result
 
     - debug: var=cert_result verbosity=2
