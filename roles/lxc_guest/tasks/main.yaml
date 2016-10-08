@@ -1,4 +1,4 @@
-- name: check for lxc container existance
+- name: check for lxc container dir
   stat:
     path: '/var/lib/lxc/{{ vm_name }}'
   register: lxc_existance
