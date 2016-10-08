@@ -3,6 +3,11 @@
     path: '/var/lib/lxc/{{ vm_name }}'
   register: lxc_existance
 
+- name: check for lxc container existance
+  container_exists:
+    name: "{{ vm_name }}"
+  register: container_exists
+
 - block:
     - name: create the lxc container
       lxc_container:
@@ -26,7 +31,7 @@
           name: "{{ vm_name }}"
           state: started
       when: auto_start|bool
-  when: not (lxc_existance.stat.exists and lxc_existance.stat.isdir)
+  when: not (container_exists.exists and lxc_existance.stat.isdir)
 
 - name: update container config
   template:
