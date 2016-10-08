@@ -29,7 +29,9 @@
   when: not (lxc_existance.stat.exists and lxc_existance.stat.isdir)
 
 - name: update container config
-  template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
+  template:
+    src: config.j2
+    dest: "/var/lib/lxc/{{ vm_name }}/config"
   register: container_config
 
 - name: set container running state
@@ -86,12 +88,15 @@
           type: 'get_certificate'
           requestID: '{{ request_output.requestID }}'
 
-    - debug: var=get_request verbosity=2
+    - debug:
+        var: get_request
+        verbosity: 2
 
-    - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
+    - debug:
+        msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
 
     - name: wait for cert
-      raw: "{{ get_request|to_json }}"
+      raw: "{{ get_request | to_json }}"
       delegate_to: "{{item}}"
       delegate_facts: True
       with_items: "{{groups['cas']}}"
@@ -102,7 +107,9 @@
     - set_fact:
           cert_key: "{{ cert_result.results[0].stdout|string|from_json }}"
 
-    - debug: var=request_output verbosity=2
+    - debug:
+        var: request_output
+        verbosity: 2
 
     - name: set cert key
       shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "echo '{{ cert_key.result }}' > /etc/ssh/ssh_host_ed25519_key-cert.pub"
@@ -141,7 +148,10 @@
   when: set_pub_key.changed or install_packages.changed or update_user_ca_key.changed or trust_ca_key.changed or container_network.changed or container_config.changed or container_dns_configuration.changed
 
 - name: "waiting for ssh on {{ vm_name }} vm to start"
-  wait_for: host="{{ hostvars[vm_name]['ansible_host'] }}" port=22 timeout=30
+  wait_for:
+    host: "{{ hostvars[vm_name]['ansible_host'] }}"
+    port: 22
+    timeout: 30
   delegate_to: "{{ inventory_hostname }}"
   delegate_facts: True
 
