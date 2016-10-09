@@ -22,16 +22,6 @@ options:
             - path of the file to check
 '''
 
-def read_file_in_container(path):
-    with open(path, 'r') as lines:
-        print(lines.read())
-    return 0
-
-def write_file_in_container(path):
-    with open(path, 'w') as out:
-        out.write("pippo")
-    return 0
-
 def check_file_in_container(path):
     import os
     import json
