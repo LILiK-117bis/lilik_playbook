@@ -50,6 +50,11 @@
   register: container_dns_configuration
   changed_when: "container_dns_configuration.stdout != 'nameserver {{ hostvars[ext_gateway].ansible_host }}'"
 
+
+- name: Check if host certificate exists
+  container_certificate_exists:
+    name: "{{ vm_name }}"
+
 - name: check if cert key exist
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "ls /etc/ssh/ssh_host_ed25519_key-cert.pub"
   register: cert_key_existance
