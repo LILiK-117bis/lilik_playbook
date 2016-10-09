@@ -25,18 +25,17 @@ options:
 def check_file_in_container(path):
     import os
     import json
-    result = {
-        changed: True,
-        exists: False,
-        failure: False,
-        path: path,
-    }
+    result = dict(
+        exists = False,
+        failed = False,
+        path = path,
+    )
     if os.path.exists(path):
-        result.exists = True
+        result['exists'] = True
     else:
-        result.failure = True
+        result['exists'] = True
 
-    print(json.dump(result))
+    print(json.dumps(result))
     return 0
 
 def main():
