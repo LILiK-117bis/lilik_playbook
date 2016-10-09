@@ -30,7 +30,8 @@ options:
         description:
             - append instead of overwrite
 '''
-def write_file_in_container(path, text):
+def write_file_in_container(args):
+    (path, text) = args
     with open(path, 'w') as out:
         out.write(text)
     return 0
@@ -93,8 +94,7 @@ def main():
 
         file_exists = container.attach_wait(
                 writing_function,
-                file_path,
-                text,
+                (file_path, text,),
                 env_policy = lxc.LXC_ATTACH_CLEAR_ENV,
                 )
 
