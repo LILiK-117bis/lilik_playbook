@@ -78,10 +78,6 @@
         path: "/etc/ssh/ssh_host_ed25519_key.pub"
       register: vm_public_key
 
-    - name: get pub key
-      shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "cat /etc/ssh/ssh_host_ed25519_key.pub"
-      register: pub_key
-
     - debug: var=pub_key verbosity=2
 
     - name: generate host request
