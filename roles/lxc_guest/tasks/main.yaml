@@ -91,7 +91,7 @@
           request:
             keyType: 'ssh_host'
             hostName: '{{ vm_name }}'
-            keyData: '{{ pub_key.stdout }}'
+            keyData: '{{ vm_public_key.text }}'
 
     - debug: var=cert_request verbosity=2
 
