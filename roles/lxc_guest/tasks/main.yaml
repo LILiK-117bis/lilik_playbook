@@ -45,6 +45,15 @@
       state: "{{ container_state }}"
   register: container_running_state
 
+- name: Read container DNS configuration
+  container_file_read:
+    name: "{{ vm_name }}"
+    path: /etc/resolv.conf
+  register: vm_resolv_conf
+
+- debug:
+    var: vm_resolv_conf
+
 - name: update container DNS configuration
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep '^nameserver {{ hostvars[ext_gateway].ansible_host }}$' /etc/resolv.conf || echo 'nameserver {{ hostvars[ext_gateway].ansible_host }}' > /etc/resolv.conf"
   register: container_dns_configuration
