@@ -72,7 +72,7 @@ def main():
 
         file_exists = container.attach_wait(
                 read_file_in_container,
-                file_path,
+                (file_path, module),
                 env_policy = lxc.LXC_ATTACH_CLEAR_ENV,
                 )
 
