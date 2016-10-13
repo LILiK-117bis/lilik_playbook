@@ -77,11 +77,13 @@ def main():
                 )
 
     else:
-        result['changed'] = False
-        result['failed'] = True
-        result['msg'] = "Target container does not exists"
+        module.fail_json(
+                available_container = lxc.list_containers(),
+                msg = 'Target container does not exists',
+                name = container_name,
+                path = file_path,
+                )
 
-    module.exit_json(**result)
 
 if __name__ == '__main__':
     main()
