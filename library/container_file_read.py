@@ -22,11 +22,19 @@ options:
             - path of the file to check
 '''
 
-def read_file_in_container(path):
-    import json
-    with open(path, 'r') as lines:
-        print(json.dump({ key_data: lines.read()}))
-    return 0
+def read_file_in_container(args):
+    (path, module) = args
+    try:
+        with open(path, 'r') as lines:
+            module.exit_json(
+                path = path,
+                text = lines.read().strip('\n'),
+            )
+    except IOError, e:
+        module.exit_json(
+            msg = e,
+            path = path,
+        )
 
 def main():
     module = AnsibleModule(
