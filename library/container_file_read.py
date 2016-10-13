@@ -56,7 +56,6 @@ def main():
     except ImportError:
         module.fail_json(
                 changed = False,
-                failed = True,
                 msg = 'Error importing lxc, is python-lxc installed?',
                 )
 
