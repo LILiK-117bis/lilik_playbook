@@ -57,6 +57,7 @@
 
 - debug:
     var: vm_resolv_conf
+    verbosity: 2
 
 - name: update container DNS configuration
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep '^nameserver {{ hostvars[ext_gateway].ansible_host }}$' /etc/resolv.conf || echo 'nameserver {{ hostvars[ext_gateway].ansible_host }}' > /etc/resolv.conf"
@@ -70,6 +71,10 @@
     path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
   register: vm_ssh_certificate_exists
 
+- debug:
+    var: vm_ssh_certificate_exists
+    verbosity: 2
+
 - block:
     - name: Read host public key
       container_file_read:
@@ -79,6 +84,7 @@
 
     - debug:
         var: vm_public_key
+        verbosity: 2
 
     - name: generate host request
       set_fact:
@@ -89,7 +95,9 @@
             hostName: '{{ vm_name }}'
             keyData: '{{ vm_public_key.text }}'
 
-    - debug: var=cert_request verbosity=2
+    - debug:
+        var: cert_request
+        verbosity: 2
 
     - name: start sign request
       raw: "{{ cert_request | to_json }}"
@@ -99,12 +107,16 @@
       register: request_result
       failed_when: "( request_result.stdout | from_json ).failed"
 
-    - debug: var=request_result verbosity=2
+    - debug:
+        var: request_result
+        verbosity: 2
 
     - set_fact:
         request_output: "{{ request_result.stdout | string | from_json }}"
 
-    - debug: var=request_output verbosity=2
+    - debug:
+        var: request_output
+        verbosity: 2
 
     - name: generate get request
       set_fact:
@@ -127,7 +139,9 @@
       register: cert_result
       failed_when: "(cert_result | from_json).stdout.failed"
 
-    - debug: var=cert_result verbosity=2
+    - debug:
+        var: cert_result
+        verbosity: 2
 
     - set_fact:
           cert_key: "{{ cert_result.stdout | string | from_json }}"
