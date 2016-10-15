@@ -7,5 +7,9 @@
       cache_valid_time: 3600
   with_items:
       - dokuwiki
+- name: Write dokuwiki configuration to local.php
+  copy:
+    src: dokuwiki.php
+    dest: /etc/dokuwiki/local.php
   notify:
       - restart nginx
