@@ -24,8 +24,12 @@
 #              echo "TrustedUserCAKeys /etc/ssh/user_ca.pub" >> /etc/ssh/sshd_config
 #              sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces
           state: stopped
+
     - name: deploy container config
-      template: src=config.j2 dest="/var/lib/lxc/{{ vm_name }}/config"
+      template:
+        src: config.j2
+        dest: "/var/lib/lxc/{{ vm_name }}/config"
+
     - name: start container
       lxc_container:
           name: "{{ vm_name }}"
