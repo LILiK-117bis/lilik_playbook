@@ -138,7 +138,8 @@
         path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
         text: "{{ cert_key.result }}"
       register: set_pub_key
-  when: "cert_key_existance.rc != 0"
+  when: "not vm_ssh_certificate_exists.exists"
+
 
 - name: update container network configuration
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'iface eth0 inet manual' /etc/network/interfaces || sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces"
