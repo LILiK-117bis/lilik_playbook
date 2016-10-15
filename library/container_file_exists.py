@@ -22,21 +22,14 @@ options:
             - path of the file to check
 '''
 
-def check_file_in_container(path):
+def check_file_in_container(args):
+    (path, module) = args
     import os
-    import json
-    result = dict(
-        exists = False,
-        failed = False,
-        path = path,
-    )
-    if os.path.exists(path):
-        result['exists'] = True
-    else:
-        result['exists'] = True
 
-    print(json.dumps(result))
-    return 0
+    module.exit_json(
+            exists = os.path.exists(path),
+            path = path,
+            )
 
 def main():
     module = AnsibleModule(
@@ -65,26 +58,21 @@ def main():
     container_name = module.params.get('name')
     file_path = module.params.get('path')
 
-    result = {}
-    result['name'] = container_name
-    result['path'] = file_path
-
     if container_name in lxc.list_containers():
 
         container = lxc.Container(container_name)
 
         file_exists = container.attach_wait(
                 check_file_in_container,
-                file_path,
+                (file_path, module),
                 env_policy = lxc.LXC_ATTACH_CLEAR_ENV,
                 )
 
     else:
-        result['changed'] = False
-        result['failed'] = True
-        result['msg'] = "Target container does not exists"
-
-    module.exit_json(**result)
+        module.fail_json(
+                changed = False,
+                msg = 'Target container does not exists',
+                )
 
 if __name__ == '__main__':
     main()
