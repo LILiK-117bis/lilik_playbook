@@ -70,11 +70,6 @@
     path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
   register: vm_ssh_certificate_exists
 
-- name: check if cert key exist
-  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "ls /etc/ssh/ssh_host_ed25519_key-cert.pub"
-  register: cert_key_existance
-  ignore_errors: true
-  changed_when: "cert_key_existance.rc != 0"
 - block:
     - name: Read host public key
       container_file_read:
