@@ -125,6 +125,7 @@
       delegate_facts: True
       with_items: "{{ groups['cas'] }}"
       register: cert_result
+      failed_when: "(cert_result | from_json).stdout.failed"
 
     - debug: var=cert_result verbosity=2
 
