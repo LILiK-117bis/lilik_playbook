@@ -97,6 +97,7 @@
       delegate_facts: True
       with_items: "{{ groups['cas'] }}"
       register: request_result
+      failed_when: "( request_result.stdout | from_json ).failed"
 
     - debug: var=request_result verbosity=2
 
