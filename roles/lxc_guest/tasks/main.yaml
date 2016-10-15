@@ -102,7 +102,7 @@
     - debug: var=request_result verbosity=2
 
     - set_fact:
-          request_output: "{{ request_result.results[0].stdout|string|from_json }}"
+        request_output: "{{ request_result.stdout | string | from_json }}"
 
     - debug: var=request_output verbosity=2
 
