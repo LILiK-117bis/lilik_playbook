@@ -13,7 +13,9 @@
     state: present
 
 - name: add gitlab omnibus repository
-  apt_repository: repo='deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ jessie main' state=present
+  apt_repository:
+    repo: 'deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ jessie main'
+    state: present
 
 - name: install gitlab package
   apt:
@@ -26,7 +28,8 @@
 
 - block:
     - name: create gitlab DB
-      postgresql_db: name=gitlabhq_production
+      postgresql_db:
+        name: gitlabhq_production
     - name: create gitlab DB user
       postgresql_user:
         name: gitlab-psql
