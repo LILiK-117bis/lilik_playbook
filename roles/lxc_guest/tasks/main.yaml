@@ -13,6 +13,7 @@
       lxc_container:
           name: "{{ vm_name }}"
           backing_store: lvm
+          fs_size: "{{ vm_size }}"
           vg_name: "{{ inventory_hostname }}vg"
           lv_name: "vm_{{ vm_name }}"
           fs_type: xfs

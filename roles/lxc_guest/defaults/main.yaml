@@ -2,3 +2,4 @@
 auto_start: true
 container_state: started
 distro: jessie
+vm_size: 5G
