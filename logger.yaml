@@ -11,8 +11,39 @@
         name: rsyslog
         update_cache: yes
 
-    - name: Enable rsyslog daemon
+- hosts: logger
+  tasks:
+    - name: Configure rsyslog server
+      blockinfile:
+        block: >
+          $ModLoad imudp
+
+          $UDPServerRun 514
+
+          $$ModLoad imtcp
+
+          $InputTCPServerRun 514
+
+        dest: /etc/rsyslog.conf
+        state: present
+
+    - name: Enable rsyslog on server
       service:
         name: rsyslog
-        enable: yes
+        enabled: yes
+        state: started
+
+- hosts: all
+  vars:
+    - log_destination: 
+  tasks:
+    - name: Configure rsyslog client
+      template:
+        dest: /etc/rsyslog.d/50-default.conf
+        src: templates/rsyslog_client.conf
+
+    - name: Enable rsyslog on client
+      service:
+        name: rsyslog
+        enabled: yes
         state: started
