@@ -1,11 +1,12 @@
 ---
 - hosts: biff
   roles:
-      - role: lxc_guest
-        vm_name: logger
-- hosts: logger
-- tasks:
-    - name: Install rsyslog
+    - role: lxc_guest
+      vm_name: logger
+
+- hosts: all
+  tasks:
+    - name: Install rsyslog on client
       apt:
         name: rsyslog
         update_cache: yes
