@@ -7,7 +7,9 @@
         - nginx
 
 - name: disable nginx default configuration
-  file: path=/etc/nginx/sites-enabled/default state=absent
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
   notify: restart nginx
 
 - name: install php5-fpm
