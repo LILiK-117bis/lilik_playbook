@@ -9,12 +9,16 @@
       - postgresql-contrib
       - python-psycopg2
       - ca-certificates
+
 - name: generate mattermost DB password
-  gen_passwd: length=20
+  gen_passwd:
+     length: 20
   register: new_password
+
 - block:
     - name: create mattermost DB
-      postgresql_db: name=mattermost
+      postgresql_db:
+        name: mattermost
     - name: create mattermost DB user
       postgresql_user:
         name: mmuser
@@ -24,20 +28,36 @@
   become: true
   become_method: su
   become_user: postgres
+
 - name: download latest mattermost
   get_url:
       url: "https://releases.mattermost.com/{{ mattermost_version }}/mattermost-team-{{ mattermost_version }}-linux-amd64.tar.gz"
       dest: "/opt/mattermost.tar.gz"
   register: new_download
+
 - name: unpack mattermost
-  unarchive: src=/opt/mattermost.tar.gz dest=/opt copy=no
+  unarchive:
+    src: /opt/mattermost.tar.gz
+    dest: /opt
+    copy: no
   when: new_download.changed
+
 - name: create mattermost data directory
-  file: path=/opt/mattermost/data state=directory
+  file:
+    path: /opt/mattermost/data
+    state: directory
+
 - name: create mattermost group
-  group: name=mattermost system=true
+  group:
+    name: mattermost
+    system: true
+
 - name: create mattermost user and group
-  user: name=mattermost group=mattermost system=true
+  user:
+    name: mattermost
+    group: mattermost
+    system: true
+
 - name: set mattermost directory permissions
   file:
       path: /opt/mattermost
@@ -45,19 +65,26 @@
       group: mattermost
       mode: g+w
       recurse: true
+
 - name: configure mattermost (driver name)
   json_file:
       path: /opt/mattermost/config/config.json
       key: "SqlSettings.DriverName"
       value: "postgres"
+
 - name: configure mattermost (data source)
   json_file:
       path: /opt/mattermost/config/config.json
       key: "SqlSettings.DataSource"
       value: "postgres://mmuser:{{ new_password.passwd }}@127.0.0.1:5432/mattermost?sslmode=disable&connect_timeout=10"
+
 - name: install mattermost systemd unit
   template:
       src: mattermost.service.j2
       dest: /etc/systemd/system/mattermost.service
+
 - name: enable mattermost service
-  service: name=mattermost enabled=yes state=started
+  service:
+    name: mattermost
+    enabled: yes
+    state: started
