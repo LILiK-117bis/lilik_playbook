@@ -1,0 +1,7 @@
+# handlers are run in the order listed not in the order notified
+---
+- name: restart container
+  lxc_container:
+      name: "{{ vm_name }}"
+      state: restarted
+  register: container_restart

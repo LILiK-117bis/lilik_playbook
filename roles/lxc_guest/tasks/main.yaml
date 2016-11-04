@@ -1,3 +1,4 @@
+---
 - name: check for lxc container dir
   stat:
     path: '/var/lib/lxc/{{ vm_name }}'
@@ -39,6 +40,7 @@
     src: config.j2
     dest: "/var/lib/lxc/{{ vm_name }}/config"
   register: container_config
+  notify: restart container
 
 - name: set container running state
   lxc_container:
@@ -149,6 +151,7 @@
         path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
         text: "{{ cert_key.result }}"
       register: set_pub_key
+      notify: restart container
   when: "not vm_ssh_certificate_exists.exists"
 
 
@@ -156,11 +159,13 @@
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'iface eth0 inet manual' /etc/network/interfaces || sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces"
   register: container_network
   changed_when: "container_network.stdout != 'iface eth0 inet manual'"
+  notify: restart container
 
 - name: install packages
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "apt-get install python ssh -y"
   register: install_packages
   changed_when: "install_packages.stdout.find('0 newly installed') == -1"
+  notify: restart container
 
 - name: lookup user ca key
   set_fact:
@@ -176,13 +181,17 @@
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'TrustedUserCAKeys /etc/ssh/user_ca.pub' /etc/ssh/sshd_config || echo 'TrustedUserCAKeys /etc/ssh/user_ca.pub' >> /etc/ssh/sshd_config"
   register: trust_ca_key
   changed_when: "trust_ca_key.stdout != 'TrustedUserCAKeys /etc/ssh/user_ca.pub'"
+  notify: restart container
 
-- name: restart-container
-  lxc_container:
-      name: "{{ vm_name }}"
-      state: restarted
-  register: container_restart
-  when: set_pub_key.changed or install_packages.changed or update_user_ca_key.changed or trust_ca_key.changed or container_network.changed or container_config.changed or container_dns_configuration.changed
+  # Restart container when one in
+  # - container_dns_configuration
+  # - network conf has changed
+  # - set_pub_key
+  # - install_packages
+  # - trust_ca_key
+  # - container_network
+  # is changed by executing handlers now
+- meta: flush_handlers
 
 - name: "waiting for ssh on {{ vm_name }} vm to start"
   wait_for:
@@ -193,4 +202,3 @@
   delegate_facts: True
 
 - pause: seconds=20
-  when: container_restart.changed or container_running_state.changed
