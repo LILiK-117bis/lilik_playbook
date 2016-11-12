@@ -9,6 +9,11 @@
     name: "{{ vm_name }}"
   register: container_exists
 
+- name: Check debian release
+  assert:
+    that: distro in [ 'wheezy', 'jessie', 'stretch', 'sid', ]
+    msg: "release {{ distro }} not supported by debian template"
+
 - block:
     - name: create the lxc container
       lxc_container:
