@@ -22,6 +22,10 @@
           template: debian
           template_options: --release {{ distro }} --packages=ssh,python
           state: stopped
+      # suppress messages related to file descriptors
+      # leaking when lvm is invoked
+      environment:
+        LVM_SUPPRESS_FD_WARNINGS: 1
 
     - name: deploy container config
       template:
