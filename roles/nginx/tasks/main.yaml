@@ -28,7 +28,7 @@
 
 - name: provision letsencrypt challenge folder
   file:
-    path: "{{ letsencrypt.challenge_webroot }}/.well-known/acme-challenge"
+    path: "{{ letsencrypt_challenge_webroot }}/.well-known/acme-challenge"
     state: directory
     owner: root
     group: root
@@ -82,12 +82,13 @@
     dest: "/etc/nginx/sites-available/{{ item.server.file_name }}"
   with_items: "{{ nginx_sites }}"
   when: nginx_sites is defined and nginx_sites
+  notify: restart nginx
   
 - name: enable nginx configurations used for letsencrypt challenge
   file:
     path: "/etc/nginx/sites-enabled/{{ item.server.file_name }}"
     state: link
-    src: "/etc/nginx/sites-enabled/{{ item.server.file_name }}"
+    src: "/etc/nginx/sites-available/{{ item.server.file_name }}"
   with_items: "{{ nginx_sites }}"
   when: letsencrypt|bool and item.use_for_challenge is defined and item.use_for_challenge|bool and nginx_sites is defined and nginx_sites
 
@@ -103,7 +104,7 @@
   when: letsencrypt|bool
 
 - name: provision ssl cert/key(s) with letsencrypt
-  include: letsencrypt.yml
+  include: letsencrypt.yaml
   with_items: "{{ nginx_sites }}"
   when: letsencrypt|bool and item.letsencrypt is defined and nginx_sites is defined and nginx_sites
 

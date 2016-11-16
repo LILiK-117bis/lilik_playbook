@@ -19,6 +19,11 @@ nginx_separate_logs_per_site: False
 
 letsencrypt_account_key: "/etc/ssl/private/letsencrypt.key.pem"
 letsencrypt_challenge_webroot: "/var/www/html"
+letsencrypt_ssl_country: "IT"
+letsencrypt_ssl_state: "Italy"
+letsencrypt_ssl_loc: "Florence"
+letsencrypt_ssl_org: "LILiK"
+letsencrypt_ssl_email: "letsencrypt@example.com"
 
 nginx_sites:
   
