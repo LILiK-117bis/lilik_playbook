@@ -1,0 +1,6 @@
+---
+letsencrypt_requirements:
+#  - python-selinux
+  - openssl
+  - python-openssl
+  - ca-certificates

@@ -1,0 +1,9 @@
+- name: copy challenge file inside webroot
+  copy:
+    dest: "{{ letsencrypt_challenge_webroot }}/{{ chall.value.http-01.resource }}"
+    content: "{{ chall.value.http-01.resource_value }}"
+  with_dict: "{{ letsencrypt_challenge.challenge_data }}"
+  loop_contro:
+    loop_var: chall
+
+    

@@ -6,6 +6,35 @@
     service_packages:
         - nginx
 
+- name: install letsencrypt dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items: "{{ letsencrypt_requirements }}"
+  when: letsencrypt|bool
+
+- name: provision directories for site specific configurations
+  file:
+    path: /etc/nginx/{{ item }}
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - "sites-available"
+    - "sites-enabled"
+
+- name: provision letsencrypt challenge folder
+  file:
+    path: "{{ letsencrypt.challenge_webroot }}/.well-known/acme-challenge"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  when: letsencrypt|bool
+    
 - name: disable nginx default configuration
   file:
     path: /etc/nginx/sites-enabled/default
@@ -33,16 +62,55 @@
       - enable nginx configuration
       - restart nginx
 
-- name: add nginx configurations
+- name: add nginx configuration custom templates
   template:
       src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
-      dest: /etc/nginx/sites-available/{{ item }}.conf
+      dest: "/etc/nginx/sites-available/{{ item }}.conf"
   with_items: "{{ config_names }}"
 
-- name: enable nginx configurations
+- name: enable nginx configuration custom templates
   file:
       src: "/etc/nginx/sites-available/{{ item }}.conf"
       dest: "/etc/nginx/sites-enabled/{{ item }}.conf"
       state: link
   with_items: "{{ config_names }}"
+  notify: restart nginx
+
+- name: generate nginx configurations from standard template
+  template:
+    src: site.j2
+    dest: "/etc/nginx/sites-available/{{ item.server.file_name }}"
+  with_items: "{{ nginx_sites }}"
+
+- name: enable nginx configurations used for letsencrypt challenge
+  file:
+    path: "/etc/nginx/sites-enabled/{{ item.server.file_name }}"
+    state: link
+    src: "/etc/nginx/sites-enabled/{{ item.server.file_name }}"
+  with_items: "{{ nginx_sites }}"
+  when: letsencrypt|bool and item.use_for_challenge is defined and item.use_for_challenge|bool
+
+- name: restart nginx to start enabled configurations used for letsencrypt
+  service:
+    name: nginx
+    state: restarted
+  when: letsencrypt|bool
+
+- name: provision letsencrypt account private key
+  openssl_privatekey:
+    path: "{{ letsencrypt_account_key }}"
+  when: letsencrypt|bool
+
+- name: provision ssl cert/key(s) with letsencrypt
+  include: letsencrypt.yml
+  with_items: "{{ nginx_sites }}"
+  when: letsencrypt|bool and item.letsencrypt is defined
+
+- name: enable nginx configuration generated from standard template
+  file:
+    path: "/etc/nginx/sites-enabled/{{ item.server.file_name }}"
+    state: link
+    src: "/etc/nginx/sites-available/{{ item.server.file_name }}"
+  with_items: "{{ nginx_sites }}"
+  when: nginx_sites is defined and nginx_sites
   notify: restart nginx

@@ -1,0 +1,35 @@
+- name: provision ssl host private key
+  openssl_privatekey:
+    path: "{{ item.server.ssl_certificate_key }}"
+
+- name: generate certificate signing request
+    command: >
+    openssl req
+      -new
+      -sha256
+      -nodes
+      -key {{ item.server.ssl_certificate_key }}
+      -out {{ item.letsencrypt.ssl_csr }}
+      -subj "/C={{ item.letsencrypt.ssl_country }}
+      /ST={{ item.letsencrypt.ssl_state }}
+      /L{{ item.letsencrypt.ssl_loc }}
+      /O={{ item.letsencrypt.ssl_org }}
+      /emailAddress={{ item.letsencrypt.ssl_email }}"
+
+- name: get challenge(s) from letsencrypt server
+  letsencrypt:
+    account_key: "{{ letsencrypt_account_key }}"
+    csr: "{{ item.letsencrypt.ssl_csr }}"
+    dest: "{{ item.server.ssl_certificate }}"
+  register: letsencrypt_challenge
+
+- name: store challenge(s) in local dir
+  include: store_challenge.yaml
+  when: letsencrypt_challenge|changed
+
+- name: get signed certificate(s) from letsencrypt server
+  letsencrypt:
+    account_key: "{{ letsencrypt_account_key }}"
+    csr: "{{ item.letsencrypt.ssl_csr }}"
+    dest: "{{ item.server.ssl_certificate }}"
+    data: "{{ letsencrypt_challenge }}"

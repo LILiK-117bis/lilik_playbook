@@ -1,4 +1,24 @@
 ---
-  is_proxy: false
-  php: false
-  config_names: []
+is_proxy: false
+php: false
+config_names: []
+letsencrypt: false
+
+nginx_max_clients: 512
+
+nginx_http_params:
+  senfile: "on"
+  tcp_nopush: "on"
+  tcp_nodelay: "on"
+  keepalive_timeout: "65"
+  
+nginx_log_dir: "/var/log/nginx" 
+nginx_access_log_name: "access.log"
+nginx_error_log_name: "error.log"
+nginx_separate_logs_per_site: False
+
+letsencrypt_account_key: "/etc/ssl/private/letsencrypt.key.pem"
+letsencrypt_challenge_webroot: "/var/www/html"
+
+nginx_sites:
+  
