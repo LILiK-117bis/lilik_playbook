@@ -17,6 +17,7 @@ nginx_access_log_name: "access.log"
 nginx_error_log_name: "error.log"
 nginx_separate_logs_per_site: False
 
+letsencrypt_pause: false
 letsencrypt_account_key: "/etc/ssl/private/letsencrypt.key.pem"
 letsencrypt_challenge_webroot: "/var/www/html"
 letsencrypt_ssl_country: "IT"
