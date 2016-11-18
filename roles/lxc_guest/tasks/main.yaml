@@ -143,7 +143,7 @@
       delegate_to: ca_request
       delegate_facts: True
       register: cert_result
-      failed_when: "(cert_result | from_json).stdout.failed"
+      failed_when: "(cert_result.stdout | from_json).failed"
 
     - debug:
         var: cert_result
