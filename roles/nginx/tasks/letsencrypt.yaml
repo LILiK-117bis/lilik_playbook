@@ -28,6 +28,12 @@
   include: store_challenge.yaml
   when: letsencrypt_challenge|changed
 
+- pause:
+    prompt: "LETSENCRYPT REMOTE VERIFICATION REQUIRED!. Perform any action to
+    make server reachable from outside, then press ENTER to start
+    verification"
+  when: letsencrypt_challenge|changed and letsencrypt_pause|bool
+
 - name: get signed certificate(s) from letsencrypt server
   letsencrypt:
     account_key: "{{ letsencrypt_account_key }}"
