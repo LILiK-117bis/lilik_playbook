@@ -71,6 +71,7 @@
       src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
       dest: "/etc/nginx/sites-available/{{ item }}.conf"
   with_items: "{{ config_names }}"
+  when: config_names is defined and item|bool
 
 - name: enable nginx configuration custom templates
   file:
@@ -78,6 +79,7 @@
       dest: "/etc/nginx/sites-enabled/{{ item }}.conf"
       state: link
   with_items: "{{ config_names }}"
+  when: config_names is defined and item|bool
   notify: restart nginx
 
 - name: generate nginx configurations from standard template
