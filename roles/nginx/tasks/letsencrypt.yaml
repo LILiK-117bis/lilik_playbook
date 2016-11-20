@@ -22,6 +22,7 @@
     account_key: "{{ letsencrypt_account_key }}"
     csr: "{{ item.letsencrypt.ssl_csr | default(item.server.ssl_certificate~'.csr') }}"
     dest: "{{ item.server.ssl_certificate }}"
+    acme_directory: "{{ letsencrypt_acme_dir | default(omit) }}"
   register: letsencrypt_challenge
 
 - name: store challenge(s) in local dir
@@ -39,5 +40,6 @@
     account_key: "{{ letsencrypt_account_key }}"
     csr: "{{ item.letsencrypt.ssl_csr | default(item.server.ssl_certificate~'.csr') }}"
     dest: "{{ item.server.ssl_certificate }}"
+    acme_directory: "{{ letsencrypt_acme_dir | default(omit) }}"
     data: "{{ letsencrypt_challenge }}"
   notify: restart nginx
