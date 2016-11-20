@@ -88,7 +88,17 @@
     dest: "/etc/nginx/sites-available/{{ item.server.file_name }}"
   with_items: "{{ nginx_sites }}"
   when: nginx_sites is defined and nginx_sites
+  register: nginx_gen_conf
   notify: restart nginx
+
+- name: disable ssl configurations with pending cert issuing
+  file:
+    path: "/etc/nginx/sites-enabled/{{ item.item.server.file_name }}"
+    state: absent
+  with_items: "{{ nginx_gen_conf.results }}"
+  when:
+    - item | changed
+    - item.item.letsencrypt is defined
   
 - name: enable nginx configurations used for letsencrypt challenge
   file:
