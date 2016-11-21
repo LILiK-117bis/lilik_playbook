@@ -3,4 +3,8 @@
   vars:
     service_name: mysql
     service_packages:
-        - mysql-server
+      - mysql-server
+- name: Install python bindings to mysql
+  apt:
+    name: python-mysqldb
+    update_cache: yes
