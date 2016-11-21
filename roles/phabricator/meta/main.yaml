@@ -1,0 +1,9 @@
+---
+dependencies:
+  - role: nginx
+    php: true
+    parent_role_path: "phabricator"
+    config_names: [ "phabricator" ]
+    verbosity: 2
+
+  - role: mysql

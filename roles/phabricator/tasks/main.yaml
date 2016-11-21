@@ -1,0 +1,57 @@
+---
+- name: Generate admin password
+  gen_passwd:
+    length: 20
+  register: new_passwd
+
+#- name: Create phabricator DB
+#  mysql_db:
+#    name: phabricator_prod
+#    state: present
+
+#- name: Set name for php-fpm socket
+#  template:
+#    
+
+- name: Create phabricator user in mysql
+  mysql_user:
+    name: phabricator
+    password: "{{ new_passwd.passwd }}"
+    state: present
+    priv: "`phabricator\_%`.*:ALL"
+
+- name: Configure phabricator
+  debconf:
+    name: 'phabricator'
+    question: '{{ item.key }}'
+    vtype: 'string'
+    value: '{{ item.value }}'
+  with_dict:
+    phabricator/phabricator_mysql_pwd: "{{ new_passwd.passwd }}"
+    phabricator/pwd_check: "{{ new_passwd.passwd }}"
+    phabricator/domain_name: "phabricator.lilik.it"
+    phabricator/phabricator_mysql_user: "phabricator"
+    phabricator/password_mismatch: ""
+    phabricator/webserver: "nginx"
+    phabricator/mysql_host: "localhost"
+#  notify: Update phabricator configuration
+
+#- meta: flush_handlers
+
+- name: Install apt-utils to configure phabricator
+  apt:
+    name: apt-utils
+    state: present
+
+- name: Install phabricator and associated packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    install_recommends: no
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+      - php-mbstring
+      - phabricator
+#      - php-apcu
+#      - php-gd
