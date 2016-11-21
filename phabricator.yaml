@@ -1,0 +1,10 @@
+---
+- hosts: biff
+  roles:
+    - role: lxc_guest
+      vm_name: phabricator
+      vm_size: 10G
+
+- hosts: phabricator
+  roles:
+    - role: phabricator
