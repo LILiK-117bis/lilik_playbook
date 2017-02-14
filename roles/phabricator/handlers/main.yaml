@@ -1,0 +1,4 @@
+---
+- name: Update phabricator configuration
+  shell: rm /var/lib/phabricator/local.json || true; dpkg-reconfigure phabricator noninteractive
+
