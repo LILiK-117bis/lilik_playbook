@@ -48,6 +48,10 @@
       notify: restart sshd
   handlers:
       - name: restart networking
-        service: name=networking state=reloaded
+        service:
+          name: networking
+          state: reloaded
       - name: restart sshd
-        service: name=networking state=reloaded
+        service:
+          name: networking
+          state: reloaded
