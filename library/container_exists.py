@@ -48,7 +48,7 @@ def main():
         result['exists'] = False
 
 
-    result['changed'] = True
+    result['changed'] = False
     module.exit_json(**result)
 
 
