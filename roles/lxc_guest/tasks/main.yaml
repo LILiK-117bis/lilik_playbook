@@ -119,7 +119,7 @@
         verbosity: 2
 
     - set_fact:
-        request_output: "{{ request_result.stdout | string | from_json }}"
+        request_output: "{{ request_result.results[0].stdout | from_json }}"
 
     - debug:
         var: request_output
@@ -150,7 +150,7 @@
         verbosity: 2
 
     - set_fact:
-          cert_key: "{{ cert_result.stdout | string | from_json }}"
+          cert_key: "{{ cert_result.results[0].stdout | string | from_json }}"
 
     - name: Write certificate to container
       container_file_write:
