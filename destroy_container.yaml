@@ -11,6 +11,9 @@
         prompt: 'if you really are sure, enter the container name again'
         private: no
   tasks:
+      - fail:
+          msg: "Task aborted by the user."
+        when: "confirm1 != 'yes' or confirm2 != '{{ container_name }}'"
       - block:
           - name: shutdown lxc container
             lxc_container:
