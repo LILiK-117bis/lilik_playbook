@@ -12,14 +12,14 @@
     state: absent
   notify: restart nginx
 
-- name: install php-fpm
+- name: install php5-fpm
   apt:
     name: "{{ item }}"
     state: present
     update_cache: yes
     cache_valid_time: 3600
   with_items:
-      - php-fpm
+      - php5-fpm
   when: php | bool
   notify:
       - restart nginx
