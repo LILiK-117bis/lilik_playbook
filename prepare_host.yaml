@@ -20,6 +20,9 @@
       with_items:
         - bridge-utils
       notify: restart networking
+    - name: install vlan module
+      apt:
+        name: vlan
     # We should fix this bug. We really should. It's a bug.
     # Bridge-utils requires a complete system reboot to enable the new bridge.
     - name: configure bridge
