@@ -9,9 +9,13 @@ iface lo inet loopback
 
 # The primary network interface
 auto br0
-iface br0 inet static
-        address {{ ansible_default_ipv4.address }}
-        netmask 255.255.0.0
-        gateway {{ hostvars[ext_gateway]['ansible_host'] }}
-        bridge_ports eth0
+iface br0 inet manual
+        bridge_ports eth0.{{ virtual_machine_vlan }}
         bridge_fd 1
+
+auto eth0.{{ management_vlan }}
+iface eth0.{{ management_vlan }} inet static
+	address {{ ansible_default_ipv4.address }}
+        gateway {{ hostvars[ext_gateway]['ansible_host'] }}
+        netmask 255.255.255.0
+	vlan-raw-device eth0
