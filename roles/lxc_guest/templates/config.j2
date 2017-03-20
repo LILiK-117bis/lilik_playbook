@@ -10,6 +10,6 @@ lxc.network.type = veth
 lxc.network.flags = up
 lxc.network.link = br0
 lxc.network.name = eth0
-lxc.network.ipv4 = {{ hostvars[vm_name]['ansible_host'] }}/16
+lxc.network.ipv4 = {{ hostvars[vm_name]['ansible_host'] }}/24
 lxc.network.ipv4.gateway = {{ hostvars[ext_gateway]['ansible_host'] }}
 lxc.start.auto = {% if auto_start %}1{% else %}0{% endif %}
