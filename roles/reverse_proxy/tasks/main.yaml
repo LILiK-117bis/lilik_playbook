@@ -1,0 +1,9 @@
+---
+# possibili nome macchina
+# ansible_nodename
+# ansible_hostname
+- name: Upload reverse proxy configuration
+  template:
+    src: reverse_proxy.j2
+    dest: "/etc/nginx/nginx.conf.d/{{ nome_macchina }}.conf"
+
