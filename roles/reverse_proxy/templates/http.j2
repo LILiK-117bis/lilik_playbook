@@ -1,5 +1,5 @@
 server {
-    listen 80;
+    listen {{ public_ip }}:80;
 
     server_name {{ hostname }}.lilik.it www.{{ hostname }}.lilik.it;
 
