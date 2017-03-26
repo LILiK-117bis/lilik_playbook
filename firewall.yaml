@@ -1,0 +1,4 @@
+---
+- hosts: gandalf2
+  roles:
+      - role: openvpn

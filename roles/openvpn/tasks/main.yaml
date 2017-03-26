@@ -1,0 +1,105 @@
+- name: install openvpn-openssl package
+  opkg:
+    name: openvpn-openssl
+    state: present
+
+- name: create openvpn KEY
+  shell: 'openssl genrsa -out /etc/openvpn/openvpn.key 2048'
+  args:
+    creates: /etc/openvpn/openvpn.key
+  notify: reload openvpn
+
+
+- name: create openvpn dh2048
+  shell: 'openssl dhparam -out /etc/openvpn/dh2048.pem 2048'
+  args:
+    creates: /etc/openvpn/dh2048.pem
+  notify: reload openvpn
+
+
+- name: create CSR
+  shell: 'openssl req -new -sha256 -subj "/C=IT/ST=ITALY/L=TUSCANY/O=IT/CN={{ ansible_hostname }}.lilik.it" -key /etc/openvpn/openvpn.key -out /etc/openvpn/openvpn.csr'
+  args:
+    creates: /etc/openvpn/openvpn.csr
+  notify: reload openvpn
+
+- name: check if openvpn cert key exist
+  stat:
+    path: /etc/openvpn/openvpn.cert
+  register: openvpn_cert_key
+
+- block:
+    - name: get pub key
+      shell: "cat /etc/openvpn/openvpn.csr"
+      register: pub_key
+    - debug: var=pub_key verbosity=2
+    - name: generate host request
+      set_fact:
+        cert_request:
+          type: 'sign_request'
+          request:
+            keyType: 'ssl_host'
+            hostName: '{{ inventory_hostname }}'
+            keyData: '{{ pub_key.stdout }}'
+    - debug: var=cert_request verbosity=2
+    - name: start sign request
+      raw: "{{ cert_request | to_json }}"
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      with_items: "{{groups['cas']}}"
+      register: request_result
+    - debug: var=request_result verbosity=2
+
+    - set_fact:
+          request_output: "{{ request_result.results[0].stdout|string|from_json }}"
+    - debug: var=request_output
+
+    - name: generate get request
+      set_fact:
+        get_request:
+          type: 'get_certificate'
+          requestID: '{{ request_output.requestID }}'
+    - debug: var=get_request verbosity=2
+
+    - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
+
+    - name: wait for cert
+      raw: "{{ get_request | to_json }}"
+      delegate_to: "{{item}}"
+      delegate_facts: True
+      with_items: "{{groups['cas']}}"
+      register: cert_result
+
+    - debug: var=cert_result verbosity=2
+
+    - set_fact:
+          cert_key: "{{ cert_result.results[0].stdout|string|from_json }}"
+
+    - debug: var=request_output verbosity=2
+
+    - name: set pub key
+      shell: "echo '{{ cert_key.result }}' > /etc/openvpn/openvpn.cert"
+      register: set_pub_key
+  when: not openvpn_cert_key.stat.exists
+
+- name: copy vpn ca public key
+  copy:
+    src: test_vpn_ca.crt
+    dest: /etc/openvpn/ca.crt
+
+- name: write openvpn configuration
+  template:
+    dest=/etc/config/openvpn
+    src=openvpn.j2
+    owner=root
+    group=root
+    mode=0400
+  register: new_vpn_config
+  notify: reload openvpn
+
+- name: commit openvpn configuration to uci
+  shell: 'uci commit openvpn'
+  notify: reload openvpn
+  when: new_vpn_config.changed
+
+

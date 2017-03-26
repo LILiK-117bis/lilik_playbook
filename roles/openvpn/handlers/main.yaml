@@ -1,0 +1,3 @@
+---
+- name: reload openvpn
+  shell: '/etc/init.d/openvpn reload'
