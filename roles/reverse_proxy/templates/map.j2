@@ -1,14 +1,2 @@
-stream {
-	map $ssl_preread_server_name $name {
-		default original_dest;
-		{{ nome_macchina }}.lilik.it {{ nome_macchina }}_https;
-	}
-
-	upstream original_dest {
-		server 192.168.15.2:443;
-	}
-
-	upstream {{ nome_macchina }}_https {
-		server {{ hostvars[nome_macchina]['ansible_host'] }}:443;
-	}
-}
+{{ hostname }}.lilik.it {{ hostname }}_https;
+www.{{ hostname }}.lilik.it {{ hostname }}_https;

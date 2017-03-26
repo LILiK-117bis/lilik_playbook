@@ -1,0 +1,3 @@
+upstream {{ hostname }}_https {
+    server {{ hostvars[ansible_hostname]['ansible_host'] }}:443;
+}
