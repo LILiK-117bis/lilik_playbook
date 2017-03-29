@@ -5,3 +5,5 @@ ext_gateway: ""
 user_ca_key: ""
 # Put here the public ip for your organisation
 public_ip: 0.0.0.0
+# Put here the domain for your organisation
+domain: ""

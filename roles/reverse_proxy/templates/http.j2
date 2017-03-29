@@ -1,7 +1,7 @@
 server {
     listen {{ public_ip }}:80;
 
-    server_name {{ hostname }}.lilik.it www.{{ hostname }}.lilik.it;
+    server_name {{ hostname }}.{{ domain }} www.{{ hostname }}.{{ domain }};
 
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
