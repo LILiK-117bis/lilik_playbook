@@ -3,34 +3,34 @@
   file:
     state: directory
     dest: "/etc/nginx/http.conf.d"
-  delegate_to: gandalf2
+  delegate_to: reverse_proxy
 
 - name: Upload http to reverse proxy
   template:
     src: http.j2
     dest: "/etc/nginx/http.conf.d/http_{{ hostname }}.conf"
-  delegate_to: gandalf2
+  delegate_to: reverse_proxy
 
 - name: Create the map.conf directory for nginx
   file:
     state: directory
     dest: "/etc/nginx/map.conf.d"
-  delegate_to: gandalf2
+  delegate_to: reverse_proxy
 
 - name: Create the upstream.conf directory for nginx
   file:
     state: directory
     dest: "/etc/nginx/upstream.conf.d"
-  delegate_to: gandalf2
+  delegate_to: reverse_proxy
 
 - name: Upload mappings to reverse proxy
   template:
     src: map.j2
     dest: "/etc/nginx/map.conf.d/map_{{ hostname }}.conf"
-  delegate_to: gandalf2
+  delegate_to: reverse_proxy
 
 - name: Upload upstream to reverse proxy
   template:
     src: upstream.j2
     dest: "/etc/nginx/upstream.conf.d/upstream_{{ hostname }}.conf"
-  delegate_to: gandalf2
+  delegate_to: reverse_proxy
