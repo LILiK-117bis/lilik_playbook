@@ -1,48 +1,50 @@
 ---
-- name: check for lxc container dir
-  stat:
-    path: '/var/lib/lxc/{{ vm_name }}'
-  register: lxc_existance
-
-- name: check for lxc container existance
-  container_exists:
-    name: "{{ vm_name }}"
-  register: container_exists
-
-- name: Check debian release
-  assert:
-    that: distro in [ 'wheezy', 'jessie', 'stretch', 'sid', ]
-    msg: "release {{ distro }} not supported by debian template"
-
 - block:
-    - name: create the lxc container
-      lxc_container:
-          name: "{{ vm_name }}"
-          backing_store: lvm
-          fs_size: "{{ vm_size }}"
-          vg_name: "{{ inventory_hostname }}vg"
-          lv_name: "vm_{{ vm_name }}"
-          fs_type: xfs
-          container_log: true
-          template: debian
-          template_options: --release {{ distro }} --packages=ssh,python
-          state: stopped
-      # suppress messages related to file descriptors
-      # leaking when lvm is invoked
-      environment:
-        LVM_SUPPRESS_FD_WARNINGS: 1
-
-    - name: deploy container config
-      template:
-        src: config.j2
-        dest: "/var/lib/lxc/{{ vm_name }}/config"
-
-    - name: start container
-      lxc_container:
-          name: "{{ vm_name }}"
-          state: started
-      when: auto_start|bool
-  when: not (container_exists.exists and lxc_existance.stat.isdir)
+  - name: check for lxc container dir
+    stat:
+      path: '/var/lib/lxc/{{ vm_name }}'
+    register: lxc_existance
+  
+  - name: check for lxc container existance
+    container_exists:
+      name: "{{ vm_name }}"
+    register: container_exists
+  
+  - name: Check debian release
+    assert:
+      that: distro in [ 'wheezy', 'jessie', 'stretch', 'sid', ]
+      msg: "release {{ distro }} not supported by debian template"
+  
+  - block:
+      - name: create the lxc container
+        lxc_container:
+            name: "{{ vm_name }}"
+            backing_store: lvm
+            fs_size: "{{ vm_size }}"
+            vg_name: "{{ inventory_hostname }}vg"
+            lv_name: "vm_{{ vm_name }}"
+            fs_type: xfs
+            container_log: true
+            template: debian
+            template_options: --release {{ distro }} --packages=ssh,python
+            state: stopped
+        # suppress messages related to file descriptors
+        # leaking when lvm is invoked
+        environment:
+          LVM_SUPPRESS_FD_WARNINGS: 1
+  
+      - name: deploy container config
+        template:
+          src: config.j2
+          dest: "/var/lib/lxc/{{ vm_name }}/config"
+  
+      - name: start container
+        lxc_container:
+            name: "{{ vm_name }}"
+            state: started
+        when: auto_start|bool
+    when: not (container_exists.exists and lxc_existance.stat.isdir)
+  tags: create
 
 - name: update container config
   template:
@@ -73,94 +75,95 @@
   changed_when: "container_dns_configuration.stdout != 'nameserver {{ hostvars[ext_gateway].ansible_host }}'"
 
 
-- name: Check if host certificate exists
-  container_file_exists:
-    name: "{{ vm_name }}"
-    path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
-  register: vm_ssh_certificate_exists
-
-- debug:
-    var: vm_ssh_certificate_exists
-    verbosity: 2
-
 - block:
-    - name: Read host public key
-      container_file_read:
-        name: "{{ vm_name }}"
-        path: "/etc/ssh/ssh_host_ed25519_key.pub"
-      register: vm_public_key
-
-    - debug:
-        var: vm_public_key
-        verbosity: 2
-
-    - name: generate host request
-      set_fact:
-        cert_request:
-          type: 'sign_request'
-          request:
-            keyType: 'ssh_host'
-            hostName: '{{ vm_name }}'
-            keyData: '{{ vm_public_key.text }}'
-
-    - debug:
-        var: cert_request
-        verbosity: 2
-
-    - name: start sign request
-      raw: "{{ cert_request | to_json }}"
-      delegate_to: ca_request
-      delegate_facts: True
-      register: request_result
-      failed_when: "( request_result.stdout | from_json ).failed"
-
-    - debug:
-        var: request_result
-        verbosity: 2
-
-    - set_fact:
-        request_output: "{{ request_result.results[0].stdout | from_json }}"
-
-    - debug:
-        var: request_output
-        verbosity: 2
-
-    - name: generate get request
-      set_fact:
-        get_request:
-          type: 'get_certificate'
-          requestID: '{{ request_output.requestID }}'
-
-    - debug:
-        var: get_request
-        verbosity: 2
-
-    - debug:
-        msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
-
-    - name: wait for cert
-      raw: "{{ get_request | to_json }}"
-      delegate_to: ca_request
-      delegate_facts: True
-      register: cert_result
-      failed_when: "(cert_result.stdout | from_json).failed"
-
-    - debug:
-        var: cert_result
-        verbosity: 2
-
-    - set_fact:
-          cert_key: "{{ cert_result.results[0].stdout | string | from_json }}"
-
-    - name: Write certificate to container
-      container_file_write:
-        name: "{{ vm_name }}"
-        path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
-        text: "{{ cert_key.result }}"
-      register: set_pub_key
-      notify: restart container
-  when: "not vm_ssh_certificate_exists.exists"
-
+  - name: Check if host certificate exists
+    container_file_exists:
+      name: "{{ vm_name }}"
+      path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
+    register: vm_ssh_certificate_exists
+  
+  - debug:
+      var: vm_ssh_certificate_exists
+      verbosity: 2
+  
+  - block:
+      - name: Read host public key
+        container_file_read:
+          name: "{{ vm_name }}"
+          path: "/etc/ssh/ssh_host_ed25519_key.pub"
+        register: vm_public_key
+  
+      - debug:
+          var: vm_public_key
+          verbosity: 2
+  
+      - name: generate host request
+        set_fact:
+          cert_request:
+            type: 'sign_request'
+            request:
+              keyType: 'ssh_host'
+              hostName: '{{ vm_name }}'
+              keyData: '{{ vm_public_key.text }}'
+  
+      - debug:
+          var: cert_request
+          verbosity: 2
+  
+      - name: start sign request
+        raw: "{{ cert_request | to_json }}"
+        delegate_to: ca_request
+        delegate_facts: True
+        register: request_result
+        failed_when: "( request_result.stdout | from_json ).failed"
+  
+      - debug:
+          var: request_result
+          verbosity: 2
+  
+      - set_fact:
+          request_output: "{{ request_result.results[0].stdout | from_json }}"
+  
+      - debug:
+          var: request_output
+          verbosity: 2
+  
+      - name: generate get request
+        set_fact:
+          get_request:
+            type: 'get_certificate'
+            requestID: '{{ request_output.requestID }}'
+  
+      - debug:
+          var: get_request
+          verbosity: 2
+  
+      - debug:
+          msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
+  
+      - name: wait for cert
+        raw: "{{ get_request | to_json }}"
+        delegate_to: ca_request
+        delegate_facts: True
+        register: cert_result
+        failed_when: "(cert_result.stdout | from_json).failed"
+  
+      - debug:
+          var: cert_result
+          verbosity: 2
+  
+      - set_fact:
+            cert_key: "{{ cert_result.results[0].stdout | string | from_json }}"
+  
+      - name: Write certificate to container
+        container_file_write:
+          name: "{{ vm_name }}"
+          path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
+          text: "{{ cert_key.result }}"
+        register: set_pub_key
+        notify: restart container
+    when: "not vm_ssh_certificate_exists.exists"
+  tags: certificate
 
 - name: update container network configuration
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'iface eth0 inet manual' /etc/network/interfaces || sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces"
