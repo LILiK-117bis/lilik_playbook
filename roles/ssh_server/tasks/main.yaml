@@ -35,7 +35,7 @@
           type: 'sign_request'
           request:
             keyType: 'ssh_host'
-            hostName: '{{ hostname_result.stdout }}'
+            hostName: '{{ hostname_result.stdout }}.lilik.it'
             keyData: "{{ vm_public_key['content'] | b64decode | replace('\n', '')}}"
 
     - debug:
