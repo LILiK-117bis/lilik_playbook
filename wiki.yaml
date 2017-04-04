@@ -3,6 +3,9 @@
   roles:
     - role: lxc_guest
       vm_name: wiki
+    - role: ssh_server
+      connection: lxc_ssh
+      ansible_docker_extra_args: wiki
 - hosts: wiki
   roles:
     - role: dokuwiki

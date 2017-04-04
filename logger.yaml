@@ -3,6 +3,9 @@
   roles:
     - role: lxc_guest
       vm_name: logger
+    - role: ssh_server
+      connection: lxc_ssh
+      ansible_docker_extra_args: logger
 
 - hosts: all
   tasks:
@@ -35,7 +38,7 @@
 
 - hosts: all
   vars:
-    - log_destination: 
+    - log_destination:
   tasks:
     - name: Configure rsyslog client
       template:

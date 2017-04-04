@@ -1,8 +1,11 @@
 ---
 - hosts: biff
   roles:
-      - role: lxc_guest
-        vm_name: webmail
+    - role: lxc_guest
+      vm_name: webmail
+    - role: ssh_server
+      connection: lxc_ssh
+      ansible_docker_extra_args: webmail
 - hosts: webmail
   roles:
       - role: roundcube

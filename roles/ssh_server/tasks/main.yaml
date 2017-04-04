@@ -1,0 +1,132 @@
+- include: service.yaml
+  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
+  vars:
+    service_name: ssh
+    service_packages:
+        - openssh-server
+
+- name: Check if host certificate exists
+  stat:
+    path: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
+  register: vm_ssh_certificate_exists
+
+- debug:
+    var: vm_ssh_certificate_exists
+    verbosity: 2
+
+- block:
+    - name: Read host public key
+      slurp:
+        src: "/etc/ssh/ssh_host_ed25519_key.pub"
+      register: vm_public_key
+
+    - debug:
+        var: vm_public_key['content']
+        verbosity: 2
+
+    - name: read hostname
+      shell: /bin/hostname
+      register: hostname_result
+      changed_when: false
+
+    - name: generate host request
+      set_fact:
+        cert_request:
+          type: 'sign_request'
+          request:
+            keyType: 'ssh_host'
+            hostName: '{{ hostname_result.stdout }}'
+            keyData: "{{ vm_public_key['content'] | b64decode | replace('\n', '')}}"
+
+    - debug:
+        var: cert_request | to_json
+        verbosity: 2
+
+    - name: start sign request
+      raw: "{{ cert_request | to_json }}"
+      delegate_to: ca_request
+      delegate_facts: True
+      connection: ssh
+      register: request_result
+      failed_when: "( request_result.stdout | from_json ).failed"
+
+    - debug:
+        var: request_result
+        verbosity: 2
+
+    - set_fact:
+        request_output: "{{ request_result.stdout | from_json }}"
+
+    - debug:
+        var: request_output
+        verbosity: 2
+
+    - name: generate get request
+      set_fact:
+        get_request:
+          type: 'get_certificate'
+          requestID: '{{ request_output.requestID }}'
+
+    - debug:
+        var: get_request
+        verbosity: 2
+
+    - debug:
+        msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
+
+    - name: wait for cert
+      raw: "{{ get_request | to_json }}"
+      delegate_to: ca_request
+      delegate_facts: True
+      connection: ssh
+      register: cert_result
+      failed_when: "(cert_result.stdout | from_json).failed"
+
+    - debug:
+        var: cert_result
+        verbosity: 2
+
+    - set_fact:
+          cert_key: "{{ cert_result.stdout | string | from_json }}"
+
+    - name: Write certificate to container
+      copy:
+        content: "{{ cert_key.result }}"
+        dest: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
+      register: set_pub_key
+      notify: restart ssh
+  when: "not vm_ssh_certificate_exists.stat.exists"
+
+
+- name: lookup user ca key
+  set_fact:
+    user_ca_key: "{{ lookup('file', 'test_ssh_ca.pub') }}"
+
+- name: Update container user CA key
+  copy:
+    content: "ssh-rsa {{ user_ca_key }}"
+    dest: "/etc/ssh/user_ca.pub"
+
+- name: add certificate to sshd config
+  lineinfile:
+    line: 'HostCertificate /etc/ssh/ssh_host_ed25519_key-cert.pub'
+    dest: '/etc/ssh/sshd_config'
+    regexp: '^HostCertificate *'
+  notify: restart ssh
+
+- name: trust user ca key
+  lineinfile:
+    line: 'TrustedUserCAKeys /etc/ssh/user_ca.pub'
+    dest: '/etc/ssh/sshd_config'
+    regexp: '^TrustedUserCAKeys *'
+  notify: restart ssh
+
+- meta: flush_handlers
+
+- name: "waiting for ssh on {{ inventory_hostname }} vm to start"
+  wait_for:
+    host: "{{ hostvars[inventory_hostname]['ansible_host'] }}"
+    port: 22
+    timeout: 30
+  delegate_to: "{{ inventory_hostname }}"
+  delegate_facts: True

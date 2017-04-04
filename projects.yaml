@@ -1,9 +1,12 @@
 ---
 - hosts: biff
   roles:
-      - role: lxc_guest
-        vm_name: projects
-        # distro: sid
+    - role: lxc_guest
+      vm_name: projects
+      # distro: sid
+    - role: ssh_server
+      connection: lxc_ssh
+      ansible_docker_extra_args: projects
 - hosts: projects
   roles:
       - role: gitlab

@@ -1,4 +1,5 @@
 ---
 - hosts: gandalf2
   roles:
-      - role: openvpn
+    - role: openvpn
+    - role: ssh_server

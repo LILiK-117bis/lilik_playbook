@@ -1,8 +1,11 @@
 ---
 - hosts: lilikhost
   roles:
-      - role: lxc_guest
-        vm_name: team
+    - role: lxc_guest
+      vm_name: team
+    - role: ssh_server
+      connection: lxc_ssh
+      ansible_docker_extra_args: team
 - hosts: team
   roles:
       - role: mattermost

@@ -1,8 +1,11 @@
 ---
 - hosts: biff
   roles:
-      - role: lxc_guest
-        vm_name: lists
+    - role: lxc_guest
+      vm_name: lists
+    - role: ssh_server
+      connection: lxc_ssh
+      ansible_docker_extra_args: lists
 - hosts: lists
   roles:
       - role: sympa
