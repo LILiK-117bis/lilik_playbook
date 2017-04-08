@@ -24,18 +24,13 @@
         var: vm_public_key['content']
         verbosity: 2
 
-    - name: read hostname
-      shell: /bin/hostname
-      register: hostname_result
-      changed_when: false
-
     - name: generate host request
       set_fact:
         cert_request:
           type: 'sign_request'
           request:
             keyType: 'ssh_host'
-            hostName: '{{ hostname_result.stdout }}.lilik.it'
+            hostName: '{{ ansible_docker_extra_args | default(ansible_hostname) }}.lilik.it'
             keyData: "{{ vm_public_key['content'] | b64decode | replace('\n', '')}}"
 
     - debug:
