@@ -14,7 +14,8 @@
           - lxc
           - python
           - python-lxc
-    - name: install bridge utilities
+
+    - name: install network bridge utilities
       apt:
         name: "{{ item }}"
         state: present
@@ -22,17 +23,16 @@
         cache_valid_time: 3600
       with_items:
         - bridge-utils
+        - vlan
       notify: restart networking
-    - name: install vlan module
-      apt:
-        name: vlan
     # We should fix this bug. We really should. It's a bug.
     # Bridge-utils requires a complete system reboot to enable the new bridge.
-    - name: configure bridge
+    - name: configure network bridge with vlans
       template:
           src: templates/interfaces.j2
           dest: /etc/network/interfaces
       notify: restart networking
+
     - name: install utilities
       apt:
         name: "{{ item }}"
@@ -42,10 +42,12 @@
       with_items:
           - vim
           - htop
+
     - name: add ca pub key
       copy:
         content: "ssh-rsa {{ user_ca_key }}"
         dest: /etc/ssh/user_ca.pub
+
     - name: trust ca pub key
       lineinfile:
         dest: /etc/ssh/sshd_config
