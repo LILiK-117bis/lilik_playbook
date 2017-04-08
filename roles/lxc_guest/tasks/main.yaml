@@ -79,7 +79,7 @@
   notify: restart container
 
 - name: install packages
-  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "apt-get install python ssh -y"
+  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "apt-get update && apt-get install python ssh -y"
   register: install_packages
   changed_when: "install_packages.stdout.find('0 newly installed') == -1"
   notify: restart container
