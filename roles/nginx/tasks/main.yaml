@@ -27,10 +27,9 @@
 - name: upload nginx proxy configuration
   template:
       src: proxy_nginx.j2
-      dest: "/etc/nginx/sites-available/{{ config_name }}"
+      dest: "/etc/nginx/sites-available/{{ config_name }}.conf"
   when: is_proxy | bool
   notify:
-      - enable nginx configuration
       - restart nginx
 
 - name: add nginx configurations
@@ -38,6 +37,11 @@
       src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
       dest: /etc/nginx/sites-available/{{ item }}.conf
   with_items: "{{ config_names }}"
+
+- name: add proxy to config_names
+  set_fact:
+    config_names: "{{ config_names | union( [config_name])}}"
+  when: is_proxy | bool
 
 - name: enable nginx configurations
   file:
