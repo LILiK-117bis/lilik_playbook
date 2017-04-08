@@ -1,13 +1,40 @@
 ---
-- name: install {{ service_name }}
-  apt:
-    name: "{{ item }}"
-    state: present
-    update_cache: yes
-    cache_valid_time: 3600
-    install_recommends: '{{ install_recommends | default("no") }}'
-  with_items: "{{ service_packages }}"
-- name: start {{ service_name }} at boot
-  service:
-    name: "{{ service_name }}"
-    enabled: yes
+- block:
+  - name: install {{ service_name }}
+    apt:
+      name: "{{ item }}"
+      state: present
+      update_cache: yes
+      cache_valid_time: 3600
+      install_recommends: '{{ install_recommends | default("no") }}'
+    with_items: "{{ service_packages }}"
+
+  - name: start {{ service_name }} at boot
+    service:
+      name: "{{ service_name }}"
+      enabled: yes
+  when: ansible_distribution != 'openwrt'
+
+- block:
+  - name: install {{ service_name }}
+    opkg:
+      name: "{{ item }}"
+      state: present
+    with_items: "{{ service_packages }}"
+
+# remove this in ansible 2.3 (see next comment)
+  - name: link /etc/init.d/sshd init script to /etc/init.d/ssh
+    file:
+      src: "/etc/init.d/sshd"
+      dest: "/etc/init.d/ssh"
+      state: link
+    when: service_name == 'ssh'
+
+# waithing for ansible 2.3 (https://docs.ansible.com/ansible/openwrt_init_module.html)
+#  - openwrt_init:
+#      name: "{{ service_name }}"
+#      enabled: yes
+  - name: start {{ service_name }} at boot
+    shell: "/etc/init.d/{{ service_name }} enable"
+    changed_when: false
+  when: ansible_distribution == 'openwrt'

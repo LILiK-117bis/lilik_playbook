@@ -1,9 +1,36 @@
 ---
 - name: restart {{ service_name }}
-  service:
-    name: "{{ service_name }}"
-    state: restarted
+  debug: msg="notify restart on all os"
+  changed_when: true
+  notify:
+    - restart {{ service_name }} on all distro
+    - restart {{ service_name }} on openwrt
+
 - name: reload {{ service_name }}
-  service:
-    name: "{{ service_name }}"
-    state: reloaded
+  debug: msg="notify reload on all os"
+  changed_when: true
+  notify:
+    - reload {{ service_name }} on all distro
+    - reload {{ service_name }} on openwrt
+
+- block:
+  - name: restart {{ service_name }} on all distro
+    service:
+      name: "{{ service_name }}"
+      state: restarted
+  - name: reload {{ service_name }} on all distro
+    service:
+      name: "{{ service_name }}"
+      state: reloaded
+  when: ansible_distribution != 'openwrt'
+
+- block:
+# waithing for ansible 2.3 (https://docs.ansible.com/ansible/openwrt_init_module.html)
+#  - openwrt_init:
+#      name: "{{ service_name }}"
+#      state: reloaded
+  - name: restart {{ service_name }} on openwrt
+    shell: "/etc/init.d/{{ service_name }} restart"
+  - name: reload {{ service_name }} on openwrt
+    shell: /etc/init.d/"{{ service_name }} reload"
+  when: ansible_distribution == 'openwrt'
