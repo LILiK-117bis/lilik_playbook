@@ -15,7 +15,7 @@ Usage
         - role: lxc_guest
           vm_name: virtual_machine_name
 
-        Additional parameter can be specified, the defaults are documented into the `lxc_guest` default folder
+Additional parameter can be specified, the defaults are documented into the `lxc_guest` default folder
 
 .. code-block:: yaml
 
