@@ -30,7 +30,7 @@
           type: 'sign_request'
           request:
             keyType: 'ssh_host'
-            hostName: '{{ ansible_docker_extra_args | default(ansible_hostname) }}.lilik.it'
+            hostName: '{{ ansible_docker_extra_args | default(inventory_hostname) }}.lilik.it'
             keyData: "{{ vm_public_key['content'] | b64decode | replace('\n', '')}}"
 
     - debug:
