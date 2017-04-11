@@ -1,0 +1,68 @@
+- hosts: biff
+  roles:
+    - role: ssh_server
+      tags: ssh
+    - role: lxc_guest
+      vm_name: rtfm
+      tags: container
+    - role: ssh_server
+      connection: lxc_ssh
+      ansible_docker_extra_args: rtfm
+      tags: ssh
+
+- hosts: rtfm
+  tasks:
+    - name: Install python things
+      apt:
+        name: "{{ item }}"
+      with_items:
+        - python-setuptools
+        - build-essential
+        - python-dev
+        - libevent-dev
+        - python-pip
+        - python-sphinx
+    
+    - name: Install git
+      apt:
+        name: git
+
+    - name: Install sphinx
+      pip:
+        name: sphinx
+
+    - name: Install nginx
+      apt:
+        name: nginx
+
+    - name: Create user for app
+      user:
+        name: doc
+        state: present
+
+    - name: Clone application
+      git:
+        dest: /home/doc/readthedocs.org
+        repo: https://github.com/rtfd/readthedocs.org.git
+
+    - name: Install system deps
+      apt:
+        name: "{{ item }}"
+      with_items:
+        - python2.7-dev
+        - tk8.5
+        - tcl8.5
+        - tk8.5-dev
+        - tcl8.5-dev
+        - libxml2-dev
+        - libxslt-dev
+
+    - name: Install readthedocs deps
+      pip:
+        chdir: /home/doc/readthedocs.org
+        requirements: requirements.txt
+
+    - name: django-migrate
+      django_manage:
+        command: migrate
+        app_path: /home/doc/readthedocs.org
