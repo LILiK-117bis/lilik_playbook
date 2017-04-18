@@ -63,6 +63,12 @@
   become_method: sudo
   become_user: openldap
   notify: restart slapd
+
+- name: fix missing memberOf module load
+  lineinfile:
+    dest: /etc/ldap/slapd.d/cn=config/cn=module{0}.ldif
+    line: "olcModuleLoad: {1}memberof"
+  notify: restart slapd
 - name: upload default tree
   template:
     dest=/etc/ldap/default_tree.ldif
