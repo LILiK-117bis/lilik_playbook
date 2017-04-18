@@ -1,6 +1,7 @@
 ---
 # include tasks from task/service.yaml
-- include: service.yaml
+- include_role:
+    name: service
   vars:
     service_name: postgresql
     service_packages:

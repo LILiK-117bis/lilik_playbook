@@ -8,7 +8,3 @@
 - name: update libnss-ldap configuration
   shell: rm /etc/libnss_ldap.conf || true; dpkg-reconfigure libnss-ldap -f noninteractive
   notify: restart nscd
-
-- include: service.yaml
-  vars:
-    service_name: nscd

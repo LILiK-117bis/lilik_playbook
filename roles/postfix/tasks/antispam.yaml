@@ -1,11 +1,13 @@
-- include: service.yaml
+- include_role:
+    name: service
   vars:
     service_name: clamav-daemon
     service_packages:
            - clamav-daemon
     install_recommends: yes
 
-- include: service.yaml
+- include_role:
+    name: service
   vars:
     service_name: amavisd-milter
     service_packages:
@@ -41,7 +43,8 @@
     regexp: '^non_smtpd_milters='
   notify: restart postfix
 
-- include: service.yaml
+- include_role:
+    name: service
   vars:
     service_name: postgrey
     service_packages:

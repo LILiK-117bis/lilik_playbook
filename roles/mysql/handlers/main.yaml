@@ -1,4 +1,0 @@
----
-- include: service.yaml
-  vars:
-    service_name: mysql

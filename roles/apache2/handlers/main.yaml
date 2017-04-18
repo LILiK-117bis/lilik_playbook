@@ -1,5 +1,0 @@
----
-- include: service.yaml
-  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
-  vars:
-    service_name: apache2

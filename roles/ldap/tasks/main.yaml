@@ -37,7 +37,8 @@
       question: 'phamm-ldap/init_base_ldap'
       vtype: 'boolean'
       value: false
-- include: service.yaml
+- include_role:
+    name: service
   vars:
     service_name: slapd
     service_packages:

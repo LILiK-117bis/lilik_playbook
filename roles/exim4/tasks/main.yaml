@@ -53,7 +53,8 @@
     - restart exim4
 
 - block:
-  - include: service.yaml
+  - include_role:
+      name: service
     # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
     vars:
       service_name: exim4

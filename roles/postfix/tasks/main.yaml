@@ -11,7 +11,8 @@
       vtype: 'string'
       value: 'lilik.it'
 
-- include: service.yaml
+- include_role:
+    name: service
   vars:
     service_name: postfix
     service_packages:
@@ -20,7 +21,7 @@
       # TODO: log, add a centralized log server
       - rsyslog
 
-- name: configure ldap-aliases for postfix 
+- name: configure ldap-aliases for postfix
   template:
      src: ldap-aliases.cf.j2
      dest: "/etc/postfix/ldap-aliases.cf"
