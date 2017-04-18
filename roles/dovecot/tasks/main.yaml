@@ -95,7 +95,8 @@
 
 - block:
     - name: get pub key
-      shell: "cat /etc/dovecot/private/dovecot.csr"
+      slurp:
+        src: "/etc/dovecot/private/dovecot.csr"
       register: pub_key
     - debug: var=pub_key verbosity=2
     - name: generate host request
@@ -105,7 +106,7 @@
           request:
             keyType: 'ssl_host'
             hostName: '{{ inventory_hostname }}.lilik.it'
-            keyData: '{{ pub_key.stdout }}'
+            keyData: "{{ pub_key.content| b64decode}}"
     - debug: var=ca_request verbosity=2
 
     - name: start sign request
@@ -119,12 +120,12 @@
 
     - name: generate get request
       set_fact:
-        get_request:
+        ca_request:
           type: 'get_certificate'
-          requestID: '{{ request_result.requestID }}'
-    - debug: var=get_request verbosity=2
+          requestID: '{{ request_output.requestID }}'
+    - debug: var=ca_request verbosity=2
 
-    - debug: msg="Please manualy confirm sign request with id {{ request_result.requestID }}"
+    - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
 
     - name: wait for cert
       include: ca-dialog.yaml
@@ -132,13 +133,16 @@
     - debug: var=request_result verbosity=2
 
     - set_fact:
-          cert_key: "{{ request_result.results[0].stdout|string|from_json }}"
+          cert_key: "{{ request_result.stdout|string|from_json }}"
 
     - debug: var=request_result verbosity=2
 
     - name: set pub key
-      shell: "echo '{{ cert_key.result }}' > /etc/dovecot/dovecot.cert"
+      copy:
+        content: "{{ cert_key.result }}"
+        dest: "/etc/dovecot/dovecot.cert"
       register: set_pub_key
+
   when: not dovecot_cert_key.stat.exists
 
 - template: src=dovecot-ldap.conf.ext.j2 dest=/etc/dovecot/dovecot-ldap.conf.ext
