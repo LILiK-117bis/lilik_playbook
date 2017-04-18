@@ -100,47 +100,41 @@
     - debug: var=pub_key verbosity=2
     - name: generate host request
       set_fact:
-        cert_request:
+        ca_request:
           type: 'sign_request'
           request:
             keyType: 'ssl_host'
-            hostName: '{{ inventory_hostname }}'
+            hostName: '{{ inventory_hostname }}.lilik.it'
             keyData: '{{ pub_key.stdout }}'
-    - debug: var=cert_request verbosity=2
+    - debug: var=ca_request verbosity=2
+
     - name: start sign request
-      raw: "{{ cert_request | to_json }}"
-      delegate_to: "{{item}}"
-      delegate_facts: True
-      with_items: "{{groups['cas']}}"
-      register: request_result
+      include: ca-dialog.yaml
+
     - debug: var=request_result verbosity=2
 
     - set_fact:
-          request_output: "{{ request_result.results[0].stdout|string|from_json }}"
-    - debug: var=request_output
+          request_output: "{{ request_result.stdout|string|from_json }}"
+    - debug: var=request_result
 
     - name: generate get request
       set_fact:
         get_request:
           type: 'get_certificate'
-          requestID: '{{ request_output.requestID }}'
+          requestID: '{{ request_result.requestID }}'
     - debug: var=get_request verbosity=2
 
-    - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
+    - debug: msg="Please manualy confirm sign request with id {{ request_result.requestID }}"
 
     - name: wait for cert
-      raw: "{{ get_request | to_json }}"
-      delegate_to: "{{item}}"
-      delegate_facts: True
-      with_items: "{{groups['cas']}}"
-      register: cert_result
+      include: ca-dialog.yaml
 
-    - debug: var=cert_result verbosity=2
+    - debug: var=request_result verbosity=2
 
     - set_fact:
-          cert_key: "{{ cert_result.results[0].stdout|string|from_json }}"
+          cert_key: "{{ request_result.results[0].stdout|string|from_json }}"
 
-    - debug: var=request_output verbosity=2
+    - debug: var=request_result verbosity=2
 
     - name: set pub key
       shell: "echo '{{ cert_key.result }}' > /etc/dovecot/dovecot.cert"
