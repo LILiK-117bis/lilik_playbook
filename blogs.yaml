@@ -8,6 +8,7 @@
       ansible_docker_extra_args: blogs
 - hosts: blogs
   roles:
+      - role: dns_record
       - role: wordpress
         site_names:
           - kaos

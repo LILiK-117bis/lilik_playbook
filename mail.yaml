@@ -8,6 +8,7 @@
       ansible_docker_extra_args: mail
 - hosts: mail
   roles:
+      - role: dns_record
       - role: postfix
         ldap_server: "{{ hostvars['ldap'].ansible_host }}"
         fqdn_domain: "mail.lilik.it"

@@ -8,6 +8,7 @@
       ansible_docker_extra_args: users
 - hosts: users
   roles:
+      - role: dns_record
       - role: fail2ban
       - role: pam-ldap
         ldap_server: "{{ hostvars['ldap'].ansible_host }}"

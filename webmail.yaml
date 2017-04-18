@@ -8,5 +8,6 @@
       ansible_docker_extra_args: webmail
 - hosts: webmail
   roles:
+      - role: dns_record
       - role: roundcube
         mail_server: "mail.lilik.it"

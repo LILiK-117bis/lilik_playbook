@@ -8,4 +8,5 @@
       ansible_docker_extra_args: lists
 - hosts: lists
   roles:
+      - role: dns_record
       - role: sympa

@@ -8,4 +8,5 @@
       ansible_docker_extra_args: wiki
 - hosts: wiki
   roles:
+    - role: dns_record
     - role: dokuwiki

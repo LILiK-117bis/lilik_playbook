@@ -9,4 +9,5 @@
       ansible_docker_extra_args: projects
 - hosts: projects
   roles:
+      - role: dns_record
       - role: gitlab
