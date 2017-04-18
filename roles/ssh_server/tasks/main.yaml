@@ -71,7 +71,6 @@
       include: ca-dialog.yaml
       vars:
         ansible_connection: ssh
-        request: get_request
 
     - debug:
         var: request_result
