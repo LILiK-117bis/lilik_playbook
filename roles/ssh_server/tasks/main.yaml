@@ -4,6 +4,7 @@
     service_name: ssh
     service_packages:
         - openssh-server
+        - openssh-sftp-server
 
 - name: Check if host certificate exists
   stat:
