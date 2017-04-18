@@ -1,5 +1,5 @@
-- include: service.yaml
-  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
+# We can not use include_role here since it not share thje connection with the current role
+- include: roles/service/tasks/main.yaml
   vars:
     service_name: ssh
     service_packages:
