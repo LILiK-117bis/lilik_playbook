@@ -19,13 +19,22 @@
   notify: restart postfix
 
 - name: create postman group
-  group: name=postman state=present
+  group:
+    name: postman
+    state: present
 
 - name: create postman user
-  user: name=postman state=present shell=/dev/null
+  user:
+    name: postman
+    state: present
+    shell: /dev/null
 
 - name: edit dovecot configuration
-  lineinfile: dest=/etc/dovecot/conf.d/10-master.conf line='    port = 143' insertafter='inet_listener imap {' state=present
+  lineinfile:
+    dest: /etc/dovecot/conf.d/10-master.conf
+    line: '    port = 143'
+    insertafter: 'inet_listener imap {'
+    state: present
   notify: restart dovecot
 
 - blockinfile:
@@ -47,25 +56,45 @@
         user = postman
   notify: restart dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_location = maildir:/home/postman/%d/%n' regexp='^mail_location = ' state=present
+- lineinfile:
+    dest: /etc/dovecot/conf.d/10-mail.conf
+    line: 'mail_location = maildir:/home/postman/%d/%n'
+    regexp: '^mail_location = '
+    state: present
   notify: restart dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_gid = postman' state=present
+- lineinfile:
+    dest: /etc/dovecot/conf.d/10-mail.conf
+    line: 'mail_gid :  postman'
+    state: present
   notify: restart dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-mail.conf line='mail_uid = postman' state=present
+- lineinfile:
+    dest: /etc/dovecot/conf.d/10-mail.conf
+    line: 'mail_uid :  postman'
+    state: present
   notify: restart dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-system.conf.ext" state=absent
+- lineinfile:
+    dest: /etc/dovecot/conf.d/10-auth.conf
+    line: "!include auth-system.conf.ext"
+    state: absent
   notify: restart dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="!include auth-ldap.conf.ext" state=present
+- lineinfile:
+    dest: /etc/dovecot/conf.d/10-auth.conf
+    line: "!include auth-ldap.conf.ext"
+    state: present
   notify: restart dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_default_realm = {{ domain }}"
+- lineinfile:
+    dest: /etc/dovecot/conf.d/10-auth.conf
+    line: "auth_default_realm :  {{ domain }}"
   notify: restart dovecot
 
-- lineinfile: dest=/etc/dovecot/conf.d/10-auth.conf line="auth_mechanisms = login plain"
+- lineinfile:
+    dest: /etc/dovecot/conf.d/10-auth.conf
+    line: "auth_mechanisms :  login plain"
   notify: restart dovecot
 
 - name: enable ssl key
@@ -98,7 +127,11 @@
       slurp:
         src: "/etc/dovecot/private/dovecot.csr"
       register: pub_key
-    - debug: var=pub_key verbosity=2
+
+    - debug:
+        var: pub_key
+        verbosity: 2
+
     - name: generate host request
       set_fact:
         ca_request:
@@ -107,35 +140,50 @@
             keyType: 'ssl_host'
             hostName: '{{ inventory_hostname }}.lilik.it'
             keyData: "{{ pub_key.content| b64decode}}"
-    - debug: var=ca_request verbosity=2
+
+    - debug:
+        var: ca_request
+        verbosity: 2
 
     - name: start sign request
       include: ca-dialog.yaml
 
-    - debug: var=request_result verbosity=2
+    - debug:
+        var: request_result
+        verbosity: 2
 
     - set_fact:
-          request_output: "{{ request_result.stdout|string|from_json }}"
-    - debug: var=request_result
+        request_output: "{{ request_result.stdout|string|from_json }}"
+
+    - debug:
+        var: request_result
 
     - name: generate get request
       set_fact:
         ca_request:
           type: 'get_certificate'
           requestID: '{{ request_output.requestID }}'
-    - debug: var=ca_request verbosity=2
 
-    - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
+    - debug:
+        var: ca_request
+        verbosity: 2
+
+    - debug:
+        msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
 
     - name: wait for cert
       include: ca-dialog.yaml
 
-    - debug: var=request_result verbosity=2
+    - debug:
+        var: request_result
+        verbosity: 2
 
     - set_fact:
-          cert_key: "{{ request_result.stdout|string|from_json }}"
+        cert_key: "{{ request_result.stdout|string|from_json }}"
 
-    - debug: var=request_result verbosity=2
+    - debug:
+        var: request_result
+        verbosity: 2
 
     - name: set pub key
       copy:
@@ -145,5 +193,7 @@
 
   when: not dovecot_cert_key.stat.exists
 
-- template: src=dovecot-ldap.conf.ext.j2 dest=/etc/dovecot/dovecot-ldap.conf.ext
+- template:
+    src: dovecot-ldap.conf.ext.j2
+    dest: /etc/dovecot/dovecot-ldap.conf.ext
   notify: restart dovecot
