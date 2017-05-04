@@ -1,7 +1,7 @@
 ..
 
 `prepare_host.yaml`
-============
+===================
 
 This playbook provides the necessary setup for a phisical server to become a server in the lilik architecture.
 
