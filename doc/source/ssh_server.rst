@@ -1,7 +1,7 @@
 .. highlight:: yaml
 
 ssh_server
-=========
+==========
 
 SSH Certificate
 ---------------
@@ -30,3 +30,5 @@ This is accomplished using ssh as a mean of transport, the specific task for a s
           failed_when: "( request_result.stdout | from_json ).failed"
 
 To sign this certificate an admin must log onto the ca manager machine with the user *sign* and follow the procedure to sign a request with an appropriate certification authority.
+
+Moreover this role will also copy the user certification authority to every host, reloading the configuration of the ssh server daemon.
