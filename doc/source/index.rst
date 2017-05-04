@@ -13,6 +13,7 @@ Welcome to lilik_playbook's documentation!
    quickstart
    prepare_host
    lxc_guest
+   lxc_ssh
    ssh_server
    reverse_proxy
 
