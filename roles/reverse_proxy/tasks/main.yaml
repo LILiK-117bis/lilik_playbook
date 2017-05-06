@@ -1,4 +1,37 @@
 ---
+- name: add https configs to nginx
+  blockinfile:
+    dest: /etc/nginx/nginx.conf
+    block: |
+            stream {
+
+                map $ssl_preread_server_name $name {
+                    include /etc/nginx/map.conf.d/*.conf;
+                }
+                include /etc/nginx/upstream.conf.d/*.conf;
+
+                log_format stream_routing '$remote_addr [$time_local] '
+                                      'with SNI name "$ssl_preread_server_name" '
+                                      'proxying to "$name" '
+                                      '$protocol $status $bytes_sent $bytes_received '
+                                      '$session_time';
+                server {
+                    listen 150.217.18.45:443;
+                    ssl_preread on;
+                    proxy_pass $name;
+                    access_log /var/log/nginx/stream_443.log stream_routing;
+                }
+
+            }
+  delegate_to: reverse_proxy
+
+- name: add http configs to nginx
+  lineinfile:
+    dest: /etc/nginx/nginx.conf
+    insertafter: '^http {'
+    line: 'include /etc/nginx/http.conf.d/*.conf;'
+  delegate_to: reverse_proxy
+
 - name: Create the http.conf directory for nginx
   file:
     state: directory
@@ -10,6 +43,7 @@
     src: http.j2
     dest: "/etc/nginx/http.conf.d/http_{{ hostname }}.conf"
   delegate_to: reverse_proxy
+  notify: reload nginx
 
 - name: Create the map.conf directory for nginx
   file:
@@ -28,9 +62,11 @@
     src: map.j2
     dest: "/etc/nginx/map.conf.d/map_{{ hostname }}.conf"
   delegate_to: reverse_proxy
+  notify: reload nginx
 
 - name: Upload upstream to reverse proxy
   template:
     src: upstream.j2
     dest: "/etc/nginx/upstream.conf.d/upstream_{{ hostname }}.conf"
   delegate_to: reverse_proxy
+  notify: reload nginx
