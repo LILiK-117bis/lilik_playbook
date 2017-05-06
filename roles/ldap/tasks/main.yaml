@@ -2,6 +2,7 @@
     name: service
   vars:
     service_name: nscd
+    service_packages: nscd
 
 - name: configure OpenLDAP (domain)
   debconf:
