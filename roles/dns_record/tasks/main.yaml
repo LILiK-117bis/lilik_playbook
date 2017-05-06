@@ -6,7 +6,7 @@
   delegate_to: gandalf2
   register: hosts
 
-- name: restart dnsmasq
-  shell: "/etc/init.d/dnsmasq restart"
+- name: dnsmasq force hosts reload
+  command: "killall -HUP dnsmasq"
   delegate_to: gandalf2
   when: hosts.changed
