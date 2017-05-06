@@ -1,0 +1,3 @@
+- name: reload nginx
+  command: '/usr/sbin/nginx -s reload'
+  delegate_to: reverse_proxy
