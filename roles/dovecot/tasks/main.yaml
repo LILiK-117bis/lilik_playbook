@@ -106,15 +106,24 @@
         ssl_key = </etc/dovecot/private/dovecot.key
 
 - name: generate the RSA key
-  shell: "openssl genrsa -out /etc/dovecot/private/dovecot.key 2048"
-  args:
-    creates: /etc/dovecot/private/dovecot.key
+  openssl_privatekey:
+    path: "/etc/dovecot/private/dovecot.key"
+    size: 2048
+    state: present
+    type: RSA
   notify: restart dovecot
 
-- name: create CSR
-  shell: 'openssl req -new -sha256 -subj "/C=IT/ST=ITALY/L=TUSCANY/O=IT/CN={{ fqdn_domain }}" -key /etc/dovecot/private/dovecot.key -out /etc/dovecot/private/dovecot.csr'
-  args:
-    creates: /etc/dovecot/private/dovecot.csr
+- name: generate CSR
+  openssl_csr:
+    commonName: "{{ fqdn_domain }}"
+    countryName: "IT"
+    digest: sha256
+    localityName: "TUSCANY"
+    organizationName: "IT"
+    path: "/etc/dovecot/private/dovecot.csr"
+    privatekey_path: "/etc/dovecot/private/dovecot.key"
+    state: present
+    stateOrProvinceName: "ITALY"
   notify: restart dovecot
 
 - name: check if dovecot cert key exist
