@@ -69,7 +69,7 @@
     verbosity: 2
 
 - name: update container DNS configuration
-  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -Pz1 'domain lilik.it\nnameserver {{ hostvars[ext_gateway].ansible_host }}' /etc/resolv.conf || echo -e 'domain lilik.it\nnameserver {{ hostvars[ext_gateway].ansible_host }}' > /etc/resolv.conf"
+  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -Pz1 'domain lilik.it\nnameserver {{ vm_gateway }}' /etc/resolv.conf || echo -e 'domain lilik.it\nnameserver {{ vm_gateway }}' > /etc/resolv.conf"
   register: container_dns_configuration
   changed_when: container_dns_configuration.stdout != "domain lilik.it\nnameserver {{ hostvars[ext_gateway].ansible_host }}\n\u0000"
 
