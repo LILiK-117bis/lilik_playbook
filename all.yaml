@@ -1,6 +1,7 @@
 - include: ldap.yaml
 - include: blogs.yaml
 - include: lists.yaml
+- include: login.yaml
 - include: mail.yaml
 - include: projects.yaml
 - include: users.yaml

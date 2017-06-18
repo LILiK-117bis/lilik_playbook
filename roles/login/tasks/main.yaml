@@ -1,0 +1,37 @@
+- name: install login packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+    install_recommends: '{{ install_recommends | default("no") }}'
+  with_items:
+    - git
+    - python3
+    - python3-ldap3
+    - python3-flask
+
+- name: clone login repository
+  git:
+    repo: http://projects.lilik.it/lilik/lilik_users3.git
+    dest: /srv/login
+  notify:
+    - restart login
+
+- name: add login init script
+  template: src=login.j2 dest=/etc/init.d/login mode=755
+  register: add_login_startup_script
+  notify:
+    - restart login
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+    name: login
+  when: add_login_startup_script.changed
+
+- include_role:
+    name: service
+  vars:
+    service_name: login
+    service_packages: null

@@ -1,0 +1,15 @@
+---
+- hosts: biff
+  roles:
+      - role: lxc_guest
+        vm_name: login
+        distro: stretch
+      - role: ssh_server
+        ansible_connection: lxc_ssh
+        ansible_docker_extra_args: login
+- hosts: login
+  roles:
+      - role: dns_record
+      - role: login
+      - role: reverse_proxy
+        hostname: login3
