@@ -1,0 +1,62 @@
+- include_role:
+    name: service
+  vars:
+    service_name: opendkim
+    service_packages:
+           - opendkim
+           - opendkim-tools
+
+- name: adding existing user postfix to group opendkim
+  user: name=postfix
+        groups=opendkim
+        append=yes
+  notify: restart postfix
+
+- name: create opendkim folder
+  file:
+    path: /etc/opendkim/
+    state: directory
+    mode: 0700
+    owner: opendkim
+    group: opendkim
+
+- name: 'enable opendkim socket on 127.0.0.1:12345'
+  lineinfile:
+    dest: /etc/default/opendkim
+    line: 'SOCKET="inet:12345@127.0.0.1"'
+    regexp: "^SOCKET="
+  notify: restart opendkim
+
+- name: create opendkim key for lilik.it
+  command: opendkim-genkey -D /etc/opendkim/ -d lilik.it -s mail
+  args:
+    creates:
+      - /etc/opendkim/mail.private
+      - /etc/opendkim/mail.txt
+
+- name: check /etc/opendkim/mail.private permissions
+  file:
+    path: /etc/opendkim/mail.private
+    owner: opendkim
+    group: opendkim
+    mode: 0600
+
+- name: check /etc/opendkim/mail.txt permissions
+  file:
+    path: /etc/opendkim/mail.txt
+    owner: opendkim
+    group: opendkim
+    mode: 0660
+
+- name: configure opendkim
+  blockinfile:
+    dest: '/etc/opendkim.conf'
+    block: |
+      Domain                  lilik.it
+      KeyFile         /etc/opendkim/mail.private
+      Selector                mail
+  notify: restart opendkim
+
+- name: add opendkim milter
+  set_fact:
+    postfix_milters: '{{["inet:127.0.0.1:12345"] + postfix_milters}}'

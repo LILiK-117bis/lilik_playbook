@@ -29,19 +29,9 @@
       MILTERSOCKET=inet:60001@127.0.0.1
   notify: restart amavisd-milter
 
-- name: add amavis milter for smtp to postfix
-  lineinfile:
-    dest: '/etc/postfix/main.cf'
-    line: 'smtpd_milters=inet:127.0.0.1:60001'
-    regexp: '^smtpd_milters='
-  notify: restart postfix
-
-- name: add amavis milter for non smtp to postfix
-  lineinfile:
-    dest: '/etc/postfix/main.cf'
-    line: 'non_smtpd_milters=inet:127.0.0.1:60001'
-    regexp: '^non_smtpd_milters='
-  notify: restart postfix
+- name: add opendkim milter
+  set_fact:
+    postfix_milters: '{{postfix_milters + ["inet:127.0.0.1:60001"]}}'
 
 - include_role:
     name: service

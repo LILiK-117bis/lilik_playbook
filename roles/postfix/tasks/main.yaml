@@ -73,6 +73,14 @@
     state: present
   notify: restart postfix
 
+- name: enable tls for outgoing mail
+  lineinfile:
+    dest: /etc/postfix/main.cf
+    line: "smtp_tls_security_level = encrypt"
+    regexp: 'smtp_tls_security_level ='
+    state: present
+  notify: restart postfix
+
 - name: create transport map
   lineinfile:
     dest: /etc/postfix/transport
@@ -105,3 +113,20 @@
 
 - name: install antivirus and anti spam services
   include: antispam.yaml
+
+- name: install opendkim service
+  include: dkim.yaml
+
+- name: add milters for smtp to postfix
+  lineinfile:
+    dest: '/etc/postfix/main.cf'
+    line: 'smtpd_milters={{ postfix_milters|join(",") }}'
+    regexp: '^smtpd_milters='
+  notify: restart postfix
+
+- name: add milters for non smtp to postfix
+  lineinfile:
+    dest: '/etc/postfix/main.cf'
+    line: 'non_smtpd_milters={{ postfix_milters|join(",") }}'
+    regexp: '^non_smtpd_milters='
+  notify: restart postfix
