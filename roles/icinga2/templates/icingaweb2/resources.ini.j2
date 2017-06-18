@@ -1,0 +1,19 @@
+[icingaweb_ldap]
+type = "ldap"
+hostname = "ldap.lilik.dmz"
+port = "389"
+encryption = "none"
+root_dn = "dc=lilik,dc=it"
+bind_dn = ""
+bind_pw = ""
+
+[icinga_ido]
+type = "db"
+db = "pgsql"
+host = "localhost"
+port = "5432"
+dbname = "icinga2"
+username = "icinga2"
+password = "{{ icinga2_password.stdout}}"
+charset = ""
+persistent = "0"

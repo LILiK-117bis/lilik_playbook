@@ -1,0 +1,92 @@
+- name: configure icinga2-ido-pgsql (host)
+  debconf:
+      name: 'icinga2-ido-pgsql'
+      question: 'icinga2-ido-pgsql/remote/host'
+      vtype: 'string'
+      value: 'localhost'
+
+- name: configure icinga2-ido-pgsql (enable)
+  debconf:
+      name: 'icinga2-ido-pgsql'
+      question: 'icinga2-ido-pgsql/enable'
+      vtype: 'boolean'
+      value: true
+
+- name: configure icinga2-ido-pgsql (dbconfig-install)
+  debconf:
+      name: 'icinga2-ido-pgsql'
+      question: 'icinga2-ido-pgsql/dbconfig-install'
+      vtype: 'boolean'
+      value: true
+
+- name: configure icinga2-ido-pgsql (dbconfig-reinstall)
+  debconf:
+      name: 'icinga2-ido-pgsql'
+      question: 'icinga2-ido-pgsql/dbconfig-reinstall'
+      vtype: 'boolean'
+      value: true
+
+
+# - name: nasty dpkg-reconfigure
+#   command: "dpkg-reconfigure --frontend noninteractive icinga2-ido-pgsql"
+#
+# - name: configure icinga2-ido-pgsql (dbconfig-reinstall)
+#   debconf:
+#       name: 'icinga2-ido-pgsql'
+#       question: 'icinga2-ido-pgsql/dbconfig-reinstall'
+#       vtype: 'boolean'
+#       value: false
+
+
+- include_role:
+    name: service
+  vars:
+    service_name: icinga2
+    service_packages:
+      - icinga2-ido-pgsql
+      - monitoring-plugins
+      - nagios-plugins-contrib
+      - icinga2
+      - icingacli
+      - php-ldap
+      - php-pgsql
+      - php-intl
+      - php-imagick
+      - icingaweb2-module-monitoring
+      - icingaweb2
+      # TODO: log, add a centralized log server
+      - rsyslog
+      - rsync
+
+- name: enable ido-pgsql and command features
+  command: "icinga2 feature enable ido-pgsql command"
+  register: icinga2_features
+  changed_when: "'Enabling' in icinga2_features.stdout"
+  notify: restart icinga2
+
+- name: copy icingaweb2 configuration
+  synchronize:
+    src: icingaweb2
+    dest: /etc
+    rsync_opts:
+        - "--chmod Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo= "
+        - "--chown root:icingaweb2"
+
+- name: enable icingaweb2 monitoring plugin
+  file:
+    src: '/usr/share/icingaweb2/modules/monitoring'
+    dest: '/etc/icingaweb2/enabledModules/monitoring'
+    state: link
+
+- name:
+  command: grep -Po 'password = "\K.*?(?=")' /etc/icinga2/features-available/ido-pgsql.conf
+  register: icinga2_password
+  changed_when: false
+
+- name: configure icingaweb2 resources
+  template:
+    src: icingaweb2/resources.ini.j2
+    dest: /etc/icingaweb2/resources.ini
+    owner: root
+    group: icingaweb2
+    mode: 0640

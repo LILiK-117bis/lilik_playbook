@@ -1,0 +1,6 @@
+dependencies:
+  - role: nginx
+    php: true
+    parent_role_path: "icinga2"
+    config_names: "icinga2"
+  - role: postgresql

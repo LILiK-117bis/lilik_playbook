@@ -4,6 +4,7 @@
 - include: login.yaml
 - include: mail.yaml
 - include: projects.yaml
+- include: status.yaml
 - include: users.yaml
 - include: webmail.yaml
 - include: wiki.yaml
