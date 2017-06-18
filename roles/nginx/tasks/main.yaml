@@ -13,14 +13,23 @@
     state: absent
   notify: restart nginx
 
-- name: install php5-fpm
+- name: install php-fpm
   apt:
     name: "{{ item }}"
     state: present
     update_cache: yes
     cache_valid_time: 3600
   with_items:
-      - php5-fpm
+      - php-fpm
+  when: php | bool
+  notify:
+      - restart nginx
+
+- name: add timezone to php.ini
+  lineinfile:
+    dest: /etc/php/7.0/fpm/php.ini
+    regexp: '^;?date.timezone ='
+    line: 'date.timezone = Europe/Berlin'
   when: php | bool
   notify:
       - restart nginx
@@ -38,6 +47,8 @@
       src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
       dest: /etc/nginx/sites-available/{{ item }}.conf
   with_items: "{{ config_names }}"
+  notify:
+      - restart nginx
 
 - name: add proxy to config_names
   set_fact:
