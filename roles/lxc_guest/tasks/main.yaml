@@ -71,7 +71,7 @@
 - name: update container DNS configuration
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -Pz1 'domain lilik.it\nnameserver {{ vm_gateway }}' /etc/resolv.conf || echo -e 'domain lilik.it\nnameserver {{ vm_gateway }}' > /etc/resolv.conf"
   register: container_dns_configuration
-  changed_when: container_dns_configuration.stdout != "domain lilik.it\nnameserver {{ hostvars[ext_gateway].ansible_host }}\n\u0000"
+  changed_when: container_dns_configuration.stdout != "domain lilik.it\nnameserver {{ vm_gateway }}\n\u0000"
 
 - name: update container network configuration
   shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'iface eth0 inet manual' /etc/network/interfaces || sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces"
