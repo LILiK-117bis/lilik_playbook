@@ -1,0 +1,22 @@
+- name: install certbot
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+    - certbot
+    - sendmail-bin
+    - cron
+
+- name: request certificate
+  command: certbot certonly -a standalone --preferred-challenges http -d login3.lilik.it -n
+  args:
+    creates: /etc/letsencrypt/live/login3.lilik.it/cert.pem
+
+- name: add certbot cron
+  cron:
+    name: "certbot cron"
+    minute: "30"
+    hour: "2"
+    job: '/usr/bin/certbot renew -n --renew-hook "/bin/systemctl reload nginx"'

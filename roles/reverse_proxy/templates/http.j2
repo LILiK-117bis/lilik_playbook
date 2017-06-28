@@ -3,13 +3,17 @@ server {
 
     server_name {{ hostname }}.{{ domain }} www.{{ hostname }}.{{ domain }};
 
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header Host $host;
-    proxy_set_header X-NginX-Proxy true;
-
+    location /.well-known/acme-challenge/ {
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $host;
+      proxy_set_header X-NginX-Proxy true;
+      proxy_pass http://{{ hostvars[ansible_hostname]['ansible_host'] }};
+    }
     location / {
-        proxy_pass http://{{ hostvars[ansible_hostname]['ansible_host'] }};
+      if ($request_method = POST) {
+        return 307 https://$server_name$request_uri;
+      }
+      return 301 https://$server_name$request_uri;
     }
 }
-
