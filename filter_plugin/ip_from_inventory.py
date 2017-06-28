@@ -1,14 +1,12 @@
-from ansible.hostvars import HostVars
-
-def ip_from_inventory(hostname):
+def ip_from_inventory(hostvars, hostname):
     """
     replace this ``{{ hostvars[hostname]['ansible_host'] }}``
-    with something nicer such as `` {{ hostname | ip_from_inventory }}``
+    with something nicer such as `` {{ hostvars | ip_from_inventory(hostname) }}``
     """
-    return HostVars[hostname]['ansible_host']
+    return hostvars[hostname]['ansible_host']
 
 class FilterModule(object):
-    def filter(self):
+    def filters(self):
         return {
                 'ip_from_inventory': ip_from_inventory,
         }
