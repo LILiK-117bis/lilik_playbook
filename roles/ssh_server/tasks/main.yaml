@@ -115,7 +115,7 @@
 
 - name: "waiting for ssh on {{ ansible_docker_extra_args | default(inventory_hostname) }} to start"
   wait_for:
-    host: "{{ hostvars[inventory_hostname]['ansible_host'] }}"
+    host: "{{ hostvars | ip_from_inventory(inventory_hostname) }}"
     port: 22
     timeout: 30
   delegate_to: "{{ inventory_hostname }}"

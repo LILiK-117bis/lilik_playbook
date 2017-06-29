@@ -38,7 +38,7 @@
 - name: '(FIX REMOVE THIS ACTION) add temporary host record'
   lineinfile:
     dest: /etc/hosts
-    line: "{{ hostvars['mail'].ansible_host }}  {{ mail_server }}"
+    line: "{{ hostvars | ip_from_inventory('mail') }}  {{ mail_server }}"
     regexp: "{{ mail_server }}$"
 
 - name: include my-roundcube.php
