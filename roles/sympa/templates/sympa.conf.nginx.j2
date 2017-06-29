@@ -1,12 +1,5 @@
-# based on https://gist.github.com/bjacint/7862912
-
-server {
-    listen       80;
-
-    server_name  *.*;
+    # based on https://gist.github.com/bjacint/7862912
     root         /usr/lib/cgi-bin/sympa;
-    access_log   /var/log/nginx/sympa.access.log;
-    error_log    /var/log/nginx/sympa.error.log;
     error_page   403 500 502 503 504 /50x.html;
 
     rewrite ^/$ /wws permanent;
@@ -62,4 +55,3 @@ server {
         fastcgi_param  HTTP_HOST           $http_host;
         fastcgi_intercept_errors on;
     }
-}

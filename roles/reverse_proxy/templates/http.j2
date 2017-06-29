@@ -10,6 +10,7 @@ server {
       proxy_set_header X-NginX-Proxy true;
       proxy_pass http://{{ hostvars[ansible_hostname]['ansible_host'] }};
     }
+
     location / {
       if ($request_method = POST) {
         return 307 https://$server_name$request_uri;

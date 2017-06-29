@@ -1,6 +1,8 @@
 ---
 dependencies:
   - role: nginx
+    config_name: "sympa"
+    server_fqdn: "lists.lilik.it"
     parent_role_path: "sympa"
   - role: exim4
     stmp_relay: "{{ hostvars['mail'].ansible_host }}"

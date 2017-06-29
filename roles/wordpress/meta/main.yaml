@@ -1,6 +1,8 @@
 ---
 dependencies:
-    - role: apache2
+    - role: nginx
       php: true
       parent_role_path: "wordpress"
+      config_name: "wordpress"
+      server_fqdn: "blog.lilik.it"
     - role: mysql

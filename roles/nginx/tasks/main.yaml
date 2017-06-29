@@ -34,31 +34,36 @@
   notify:
       - restart nginx
 
-- name: upload nginx proxy configuration
+- name: upload nginx configuration
   template:
-      src: proxy_nginx.j2
-      dest: "/etc/nginx/sites-available/{{ config_name }}.conf"
-  when: is_proxy | bool
+      src: base.j2
+      dest: "/etc/nginx/sites-available/{{ config_name|default('proxy') }}.conf"
   notify:
       - restart nginx
 
-- name: add nginx configurations
-  template:
-      src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
-      dest: /etc/nginx/sites-available/{{ item }}.conf
-  with_items: "{{ config_names }}"
-  notify:
-      - restart nginx
+# - name: add nginx configurations
+#   template:
+#       src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
+#       dest: /etc/nginx/sites-available/{{ item }}.conf
+#   with_items: "{{ config_names }}"
+#   notify:
+#       - restart nginx
 
-- name: add proxy to config_names
-  set_fact:
-    config_names: "{{ config_names | union( [config_name])}}"
-  when: is_proxy | bool
+# - name: add proxy to config_names
+#   set_fact:
+#     config_names: "{{ config_names | union( [config_name])}}"
+#   when: is_proxy | bool
+
+- name: create Diffie Hellman exchange parameters
+  command: openssl dhparam -out /etc/nginx/dhparam.pem 2048
+  args:
+    creates: /etc/nginx/dhparam.pem
+  notify: restart nginx
 
 - name: enable nginx configurations
   file:
-      src: "/etc/nginx/sites-available/{{ item }}.conf"
-      dest: "/etc/nginx/sites-enabled/{{ item }}.conf"
+      src: "/etc/nginx/sites-available/{{ config_name|default('proxy') }}.conf"
+      dest: "/etc/nginx/sites-enabled/{{ config_name|default('proxy') }}.conf"
       state: link
-  with_items: "{{ config_names }}"
+  # with_items: "{{ config_names }}"
   notify: restart nginx
