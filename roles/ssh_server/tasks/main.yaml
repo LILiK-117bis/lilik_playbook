@@ -111,6 +111,13 @@
     regexp: '^TrustedUserCAKeys *'
   notify: restart ssh
 
+- name: permit root login only with certificate
+  lineinfile:
+    line: 'PermitRootLogin without-password'
+    dest: '/etc/ssh/sshd_config'
+    regexp: '^PermitRootLogin *'
+  notify: restart ssh
+
 - meta: flush_handlers
 
 - name: "waiting for ssh on {{ ansible_docker_extra_args | default(inventory_hostname) }} to start"
