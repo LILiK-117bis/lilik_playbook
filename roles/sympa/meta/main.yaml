@@ -5,5 +5,5 @@ dependencies:
     server_fqdn: "lists.lilik.it"
     parent_role_path: "sympa"
   - role: exim4
-    stmp_relay: "{{ hostvars['mail'].ansible_host }}"
+    stmp_relay: "{{ hostvars | ip_from_inventory('mail') }}"
     sympa_transport: true
