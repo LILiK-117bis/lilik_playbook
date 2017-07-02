@@ -8,7 +8,7 @@ server {
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
       proxy_set_header Host $host;
       proxy_set_header X-NginX-Proxy true;
-      proxy_pass http://{{ hostvars[ansible_hostname]['ansible_host'] }};
+      proxy_pass http://{{ hostvars | ip_from_inventory(ansible_hostname) }};
     }
 
     location / {
