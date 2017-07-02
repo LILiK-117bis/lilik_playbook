@@ -2,3 +2,5 @@
   is_proxy: false
   php: false
   config_name: null
+  # max body size in Mb
+  max_body_size: 8
