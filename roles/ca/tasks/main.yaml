@@ -1,0 +1,71 @@
+- name: create sign user
+  user:
+    name: sign
+    shell: /srv/ca/manager.py
+
+- name: create request user
+  user:
+    name: request
+    shell: /srv/ca/request_server.py
+
+- name: install ca packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+    install_recommends: '{{ install_recommends | default("no") }}'
+  with_items:
+    - git
+    - python3
+    - python3-pip
+
+- name: install peewee with pip
+  pip:
+    name: peewee
+    executable: pip3
+
+- name: clone ca repository
+  git:
+    repo: https://github.com/LILiK-117bis/ca_manager.git
+    dest: /srv/ca
+
+- name: create /var/lib/ca_manager
+  file:
+    path: /var/lib/ca_manager
+    owner: sign
+    group: sign
+    mode: 0751
+    state: directory
+
+- name: set outputs permissions
+  file:
+    path: /var/lib/ca_manager/outputs
+    owner: sign
+    group: sign
+    mode: 0751
+    state: directory
+
+- name: set private permissions
+  file:
+    path: /var/lib/ca_manager/private
+    owner: sign
+    group: sign
+    mode: 0700
+    state: directory
+
+- name: set requests permissions
+  file:
+    path: /var/lib/ca_manager/requests
+    owner: sign
+    group: request
+    mode: 0730
+    state: directory
+
+- name: set results permissions
+  file:
+    path: /var/lib/ca_manager/results
+    owner: sign
+    group: sign
+    mode: 0751
+    state: directory

@@ -1,0 +1,6 @@
+---
+- hosts: autorities
+  roles:
+    - role: ssh_server
+    - role: dns_record
+    - role: ca
