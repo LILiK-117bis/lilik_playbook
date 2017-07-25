@@ -11,7 +11,7 @@
 
 - name: Check debian release
   assert:
-    that: distro in [ 'wheezy', 'jessie', 'stretch', 'sid', ]
+    that: distro in [ 'stretch', 'sid', 'buster' ]
     msg: "release {{ distro }} not supported by debian template"
 
 - block:

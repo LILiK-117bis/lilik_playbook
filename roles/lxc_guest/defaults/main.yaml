@@ -1,5 +1,5 @@
 ---
 auto_start: true
 container_state: started
-distro: jessie
+distro: stretch
 vm_size: 5G
