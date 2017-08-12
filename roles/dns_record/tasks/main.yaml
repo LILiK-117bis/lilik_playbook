@@ -3,10 +3,10 @@
     dest: '/etc/hosts'
     line: '{{ ansible_default_ipv4.address }} {{ ansible_hostname }}'
     regexp: '^\s*\S* {{ ansible_hostname }}'
-  delegate_to: gandalf2
+  delegate_to: gandalf
   register: hosts
 
 - name: dnsmasq force hosts reload
   command: "killall -HUP dnsmasq"
-  delegate_to: gandalf2
+  delegate_to: gandalf
   when: hosts.changed

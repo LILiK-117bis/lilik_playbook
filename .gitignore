@@ -1,5 +1,4 @@
 group_vars/all.yaml
-inventory
 *.retry
 *.swp
 *.swo

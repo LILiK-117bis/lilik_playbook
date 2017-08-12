@@ -93,7 +93,7 @@
 
 - name: create icinga2 hosts directory
   file:
-    path: {{ item }}
+    path: "{{ item }}"
     state: directory
     owner: icinga2
     group: icinga2

@@ -1,5 +1,5 @@
 ---
-- hosts: local
+- hosts: localhost
   tasks:
     - fail:
         msg: "please define a vm name with --extra-vars vm=vm_name"
@@ -16,7 +16,7 @@
 
     - debug:
         msg: "{{ ansible_hostname }} cointains a vm named {{ vm }}"
-      when: '"exists" in container_exists'
+      when: '"exists" in container_exists and container_exists.exists'
 
 - hosts: '{{ lxc_host }}'
   vars_prompt:
