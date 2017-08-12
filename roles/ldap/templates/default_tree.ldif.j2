@@ -106,7 +106,7 @@ subschemasubentry: cn=Subschema
 
 dn: uid=test_user,o=People,dc=lilik,dc=it
 accountactive: TRUE
-cn: Test User
+cn: Test
 delete: FALSE
 gidnumber: 100
 givenname: Test
@@ -123,7 +123,7 @@ othertransport: phamm:
 quota: 1024000
 shadowlastchange: 14281
 smtpauth: FALSE
-sn: Visconti
+sn: User
 structuralobjectclass: VirtualMailAccount
 subschemasubentry: cn=Subschema
 uid: test_user
@@ -137,6 +137,48 @@ mailbox: undefined
 # Entry 12: cn=admin,o=Group,dc=lilik,dc=it
 dn: cn=admin,o=Group,dc=lilik,dc=it
 cn: admin
+objectClass: groupOfNames
+objectClass: top
+structuralObjectClass: groupOfNames
+member: cn=admin,dc=lilik,dc=it
+
+dn: cn=wiki,o=Group,dc=lilik,dc=it
+cn: wiki
+objectClass: groupOfNames
+objectClass: top
+structuralObjectClass: groupOfNames
+member: cn=admin,dc=lilik,dc=it
+
+dn: cn=lilik.it,o=Group,dc=lilik,dc=it
+cn: lilik.it
+objectClass: groupOfNames
+objectClass: top
+structuralObjectClass: groupOfNames
+member: cn=admin,dc=lilik,dc=it
+
+dn: cn=cloud,o=Group,dc=lilik,dc=it
+cn: cloud
+objectClass: groupOfNames
+objectClass: top
+structuralObjectClass: groupOfNames
+member: cn=admin,dc=lilik,dc=it
+
+dn: cn=projects,o=Group,dc=lilik,dc=it
+cn: projects
+objectClass: groupOfNames
+objectClass: top
+structuralObjectClass: groupOfNames
+member: cn=admin,dc=lilik,dc=it
+
+dn: cn=teambox,o=Group,dc=lilik,dc=it
+cn: teambox
+objectClass: groupOfNames
+objectClass: top
+structuralObjectClass: groupOfNames
+member: cn=admin,dc=lilik,dc=it
+
+dn: cn=im,o=Group,dc=lilik,dc=it
+cn: im
 objectClass: groupOfNames
 objectClass: top
 structuralObjectClass: groupOfNames
