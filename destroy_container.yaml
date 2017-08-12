@@ -1,28 +1,58 @@
 ---
-- hosts: vm_hosts
-  vars_prompt:
-      - name: container_name
-        prompt: 'what container should be destroyed?'
-        private: no
-      - name: confirm1
-        prompt: 'are you sure you want to delete the container (NO/yes)?'
-        private: no
-      - name: confirm2
-        prompt: 'if you really are sure, enter the container name again'
-        private: no
+- hosts: local
   tasks:
-      - fail:
-          msg: "Task aborted by the user."
-        when: "confirm1 != 'yes' or confirm2 != '{{ container_name }}'"
-      - block:
-          - name: shutdown lxc container
-            lxc_container:
-                name: "{{ container_name }}"
-                state: stopped
-          - name: clean LVM volume
-            command: "dd if=/dev/zero of=/dev/{{ inventory_hostname }}vg/vm_{{ container_name }} bs=1M count=128"
-          - name: delete lxc container
-            lxc_container:
-                name: "{{ container_name }}"
-                state: absent
-        when: "confirm1 == 'yes' and confirm2 == '{{ container_name }}'"
+    - fail:
+        msg: "please define a vm name with --extra-vars vm=vm_name"
+      when: vm is undefined
+      failed_when: True
+
+- hosts: vm_hosts
+  tasks:
+    - name: check for lxc container existance
+      container_exists:
+        name: "{{ vm }}"
+      register: container_exists
+      failed_when: false
+
+    - debug:
+        msg: "{{ ansible_hostname }} cointains a vm named {{ vm }}"
+      when: '"exists" in container_exists'
+
+- hosts: '{{ lxc_host }}'
+  vars_prompt:
+    - name: lxc_host
+      prompt: 'what lxc host?'
+      private: no
+
+    - name: confirm1
+      prompt: 'are you sure you want to delete the container (NO/yes)?'
+      private: no
+
+    - name: confirm2
+      prompt: 'if you really are sure, enter the container name again'
+      private: no
+  tasks:
+    - name: check for lxc container existance
+      container_exists:
+        name: "{{ vm }}"
+      register: container_exists
+      when: container_exists
+
+    - fail:
+        msg: "Task aborted by the user."
+      when: "confirm1 != 'yes' or confirm2 != '{{ vm }}'"
+
+    - block:
+        - name: shutdown lxc container
+          lxc_container:
+              name: "{{ vm }}"
+              state: stopped
+
+        - name: clean LVM volume
+          command: "dd if=/dev/zero of=/dev/{{ inventory_hostname }}vg/vm_{{ vm }} bs=1M count=128"
+
+        - name: delete lxc container
+          lxc_container:
+              name: "{{ vm }}"
+              state: absent
+      when: "confirm1 == 'yes' and confirm2 == '{{ vm }}'"
