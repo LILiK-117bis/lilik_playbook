@@ -1,0 +1,6 @@
+---
+dependencies:
+  - role: nginx
+    config_name: "webdav"
+    parent_role_path: "webdav"
+    server_fqdn: '{{ webdav_fqdn }}'

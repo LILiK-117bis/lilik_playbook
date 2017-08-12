@@ -1,0 +1,3 @@
+server_path: /srv/webdav
+webdav_folders: []
+webdav_fqdn: '{{ ansible_hostname }}.lilik.it'

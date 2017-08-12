@@ -1,0 +1,20 @@
+- name: create directories to serve
+  file:
+    path: '{{ server_path }}/{{ item }}'
+    state: directory
+    mode: 0755
+    owner: www-data
+    group: www-data
+    recurse: yes
+  with_items: '{{ webdav_folders }} + ["temp"]'
+
+- name: touch htpasswd file
+  file:
+    path: '{{ item }}'
+    state: touch
+    mode: 0640
+    owner: www-data
+    group: www-data
+  with_items:
+    - /etc/nginx/media_htpasswd
+  changed_when: False
