@@ -18,6 +18,35 @@
   notify:
     - restart login
 
+- name: add login user
+  user:
+    name: login
+    system: yes
+    home: /srv/login
+
+- name: slurp slap secret file
+  slurp:
+    src: /etc/slapd.secret
+  register: slapdsecret
+  failed_when: false
+  changed_when: false
+  delegate_to: ldap
+
+- set_fact:
+    ldap_password: "{{ slapdsecret['content'] | b64decode }}"
+
+- name: add login config
+  template:
+    src: config.py.j2
+    dest: /srv/login/config.py
+    mode: 440
+    owner: login
+    group: login
+
+  register: add_login_startup_script
+  notify:
+    - restart login
+
 - name: add login init script
   template: src=login.j2 dest=/etc/init.d/login mode=755
   register: add_login_startup_script

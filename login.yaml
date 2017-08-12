@@ -10,9 +10,9 @@
 - hosts: login
   roles:
       - role: dns_record
-      - role: login
       - role: reverse_proxy
-        hostname: login3
+        hostname: login
+      - role: login
 - hosts: status
   roles:
     - role: icinga2-monitoring
