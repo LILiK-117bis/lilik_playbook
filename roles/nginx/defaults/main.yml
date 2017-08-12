@@ -4,4 +4,4 @@
   config_name: null
   # max body size in Mb
   max_body_size: 8
-  server_fqdn: "{{ ansible_host }}.lilik.it"
+  server_fqdn: "{{ ansible_hostname }}.lilik.it"
