@@ -96,6 +96,7 @@
   copy:
     content: "ssh-rsa {{ user_ca_key }}"
     dest: "/etc/ssh/user_ca.pub"
+  notify: restart ssh
 
 - name: add certificate to sshd config
   lineinfile:
