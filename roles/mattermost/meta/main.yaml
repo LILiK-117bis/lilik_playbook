@@ -1,0 +1,8 @@
+---
+dependencies:
+  - role: postgresql
+  - role: nginx
+    is_proxy: true
+    server_name: "team.lilik.it"
+    config_name: "mattermost"
+    remote_host: "http://127.0.0.1:8065"
