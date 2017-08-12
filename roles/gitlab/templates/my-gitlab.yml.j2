@@ -1,0 +1,24 @@
+gitlab_rails['gitlab_shell_ssh_port'] = 8082
+gitlab_rails['smtp_enable'] = true
+gitlab_rails['smtp_address'] = "mail.lilik.it"
+gitlab_rails['smtp_port'] = 25
+
+ldap:
+  enabled: false
+  servers:
+    main:
+      label: 'LDAP'
+      host: 'ldap2.lilik.it'
+      port: 389
+      uid: 'mail'
+      method: 'plain'
+      base: 'vd=lilik.it,o=hosting,dc=lilik,dc=it'
+      user_filter: '(memberOf=cn=projects,o=Group,dc=lilik,dc=it)'
+      attributes:
+        username: ['uid', 'userid', 'sAMAccountName']
+        email:    ['mail', 'email', 'userPrincipalName']
+        name:       'cn'
+        first_name: 'givenName'
+        last_name:  'sn'
+      group_base: 'cn=projects,o=Group,dc=lilik,dc=it'
+      admin_group: 'admin'

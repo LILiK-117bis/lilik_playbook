@@ -1,65 +1,27 @@
-- name: install apt-transport-https package
-  apt:
-    name: "{{ item }}"
-    state: present
-    update_cache: yes
-    cache_valid_time: 3600
-  with_items:
-      - apt-transport-https
+# see /usr/share/doc/gitlab/README.Debian.gz
+# for instruction on how to migrate and reset root password
 
-- name: add gitlab omnibus apt key
-  apt_key:
-    url: https://packages.gitlab.com/gitlab/gitlab-ce/gpgkey
-    state: present
+- name: configure gitlab (fqdn)
+  debconf:
+      name: 'gitlab'
+      question: 'gitlab/fqdn'
+      vtype: 'string'
+      value: '{{ fqdn }}'
 
-- name: add gitlab omnibus repository
-  apt_repository:
-    repo: 'deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ jessie main'
-    state: present
+- include_role:
+    name: service
+  vars:
+    service_name: gitlab
+    service_packages:
+      - gitlab
 
-- name: install gitlab package
-  apt:
-    name: "{{ item }}"
-    state: present
-    update_cache: yes
-    cache_valid_time: 3600
-  with_items:
-      - gitlab-ce
+- name: remove debian nginx configuration
+  file:
+    path: '/etc/nginx/sites-enabled/{{ fqdn }}'
+    state: absent
 
-- block:
-    - name: create gitlab DB
-      postgresql_db:
-        name: gitlabhq_production
-    - name: create gitlab DB user
-      postgresql_user:
-        name: gitlab-psql
-        # password: "{{ password }}"
-        db: gitlabhq_production
-        priv: ALL
-        role_attr_flags: SUPERUSER
-  become: true
-  become_method: su
-  become_user: postgres
-
-# - name: copy lilik-150x54.png
-#   copy:
-#     src: lilik-150x54.png
-#     dest: /usr/share/roundcube/skins/classic/images/
-
-- name: copy my-gitlab.rb
+- name: copy my-gitlab.yml
   template:
-      src: "my-gitlab.rb.j2"
-      dest: "/etc/gitlab/my-gitlab.rb"
-      mode: 0600
-  notify: restart gitlab-ce
-
-- name: include my-gitlab.rb
-  lineinfile:
-    dest: /etc/gitlab/gitlab.rb
-    insertafter: EOF
-    line: eval File.open('/etc/gitlab/my-gitlab.rb').read
-  notify: restart gitlab-ce
-
-- name: reconfigure gitlab-ce
-  shell: gitlab-ctl reconfigure
-  notify: restart gitlab-ce
+      src: "gitlab.yml.j2"
+      dest: "/etc/gitlab/gitlab.yml"
+  notify: restart gitlab

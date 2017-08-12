@@ -1,2 +1,0 @@
-- name: restart gitlab-ce
-  shell: gitlab-ctl restart

@@ -2,4 +2,6 @@
 dependencies:
   - role: postgresql
   - role: nginx
-    parent_role_path: "gitlab"
+    is_proxy: true
+    remote_host: "http://unix:/run/gitlab/gitlab-workhorse.socket"
+    server_fqdn: '{{ fqdn }}'
