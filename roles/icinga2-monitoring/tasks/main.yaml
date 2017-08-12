@@ -1,0 +1,15 @@
+- include_role:
+    name: service
+  vars:
+    service_name: icinga2
+
+- debug:
+    var: monitoring_host
+
+- name: add host monitoring
+  template:
+    src: host.conf.j2
+    dest: "/etc/icinga2/conf.d/hosts/{{ item }}.conf"
+  with_items:
+    - "{{ monitoring_host }}"
+  notify: reload icinga2

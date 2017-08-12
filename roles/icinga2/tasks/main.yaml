@@ -90,3 +90,13 @@
     owner: root
     group: icingaweb2
     mode: 0640
+
+- name: create icinga2 hosts directory
+  file:
+    path: /home/git/{{ item }}
+    state: directory
+    owner: icinga2
+    group: icinga2
+    mode: 0770
+  with_items:
+    - /etc/icinga2/conf.d/hosts/

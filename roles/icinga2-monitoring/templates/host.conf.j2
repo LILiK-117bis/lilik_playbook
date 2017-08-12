@@ -1,0 +1,7 @@
+object Host "{{ item }}" {
+  import "generic-host"
+
+  vars.os = "Linux"
+  vars.address = "{{ hostvars | ip_from_inventory(item) }}"
+  vars.sla = "24x7"
+}

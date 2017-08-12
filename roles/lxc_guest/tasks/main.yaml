@@ -92,3 +92,9 @@
   # - container_network
   # is changed by executing handlers now
 - meta: flush_handlers
+
+- name: add monitoring facts
+  set_fact:
+    monitoring_host: "{{monitoring_host| default([]) }} + [ '{{ vm_name }}' ]"
+  delegate_facts: True
+  delegate_to: status

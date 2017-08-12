@@ -1,10 +1,10 @@
+- include: status.yaml
 - include: ldap.yaml
 - include: blogs.yaml
 - include: lists.yaml
 - include: login.yaml
 - include: mail.yaml
 - include: projects.yaml
-- include: status.yaml
 - include: users.yaml
 - include: webmail.yaml
 - include: wiki.yaml
