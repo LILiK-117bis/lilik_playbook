@@ -37,7 +37,7 @@
 - name: upload nginx configuration
   template:
       src: base.j2
-      dest: "/etc/nginx/sites-available/{{ config_name|default('proxy') }}.conf"
+      dest: "/etc/nginx/sites-available/{{ config_name or 'proxy' }}.conf"
   notify:
       - restart nginx
 
@@ -62,8 +62,8 @@
 
 - name: enable nginx configurations
   file:
-      src: "/etc/nginx/sites-available/{{ config_name|default('proxy') }}.conf"
-      dest: "/etc/nginx/sites-enabled/{{ config_name|default('proxy') }}.conf"
+      src: "/etc/nginx/sites-available/{{ config_name or 'proxy' }}.conf"
+      dest: "/etc/nginx/sites-enabled/{{ config_name or 'proxy' }}.conf"
       state: link
   # with_items: "{{ config_names }}"
   notify: restart nginx
