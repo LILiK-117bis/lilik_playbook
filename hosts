@@ -1,0 +1,37 @@
+gandalf              ansible_host=10.150.42.1         ansible_user=root
+biff                 ansible_host=10.150.40.4         ansible_user=root
+emmett               ansible_host=10.150.40.5         ansible_user=root
+bakulilik            ansible_host=10.150.40.6         ansible_user=root
+mcfly                ansible_host=10.150.40.7         ansible_user=root
+authorities          ansible_host=10.150.40.8         ansible_user=root
+
+ca                   ansible_host=10.150.42.11        ansible_user=root
+ca_request           ansible_host=10.150.42.11        ansible_user=request
+
+blogs                ansible_host=10.150.42.17        ansible_user=root
+ldap                 ansible_host=10.150.42.10        ansible_user=root
+lists                ansible_host=10.150.42.15        ansible_user=root
+login                ansible_host=10.150.42.100       ansible_user=root
+mail                 ansible_host=10.150.42.36        ansible_user=root
+matrix               ansible_host=10.150.42.26        ansible_user=root
+media                ansible_host=10.150.42.104       ansible_user=root
+projects             ansible_host=10.150.42.12        ansible_user=root
+users                ansible_host=10.150.42.18        ansible_user=root
+webmail              ansible_host=10.150.42.14        ansible_user=root
+wiki                 ansible_host=10.150.42.16        ansible_user=root
+
+enis                 ansible_host=192.168.0.101       ansible_user=root
+kilil                ansible_host=10.150.42.38        ansible_user=root
+netjson              ansible_host=10.150.42.40        ansible_user=root
+prosody              ansible_host=10.150.42.27        ansible_user=root
+rtfm                 ansible_host=10.150.42.35        ansible_user=root
+seafile              ansible_host=10.150.42.25        ansible_user=root
+
+management_gateway   ansible_host=10.150.40.1         ansible_user=root
+vm_gateway           ansible_host=10.150.42.1         ansible_user=root
+reverse_proxy        ansible_host=10.150.42.1         ansible_user=root
+
+[vm_hosts]
+biff
+emmett
+mcfly
