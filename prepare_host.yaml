@@ -1,5 +1,7 @@
 ---
 - hosts: vm_hosts
+  roles:
+    - role: ssh_server
   vars:
     management_vlan: 9
     virtual_machine_vlan: 13
@@ -54,10 +56,6 @@
       - name: restart networking
         service:
           name: networking
-          state: reloaded
+          state: restarted
       - name: restart lvm
         shell: /etc/init.d/lvm2 reload
-      - name: restart sshd
-        service:
-          name: networking
-          state: reloaded
