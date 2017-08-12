@@ -22,21 +22,44 @@
       question: 'shared/organization'
       vtype: 'string'
       value: '{{ ldap_organization }}'
-- name: generate admin password
-  gen_passwd: length=20
-  register: new_passwd
+
+- name: slurp slap secret file
+  slurp:
+    src: /etc/slapd.secret
+  register: slapdsecret
+  failed_when: false
+  changed_when: false
+
+- set_fact:
+    slapd_passwd: "{{ slapdsecret['content'] | b64decode }}"
+  when: '"content" in slapdsecret'
+
+- block:
+  - name: generate admin password
+    gen_passwd: length=20
+    register: new_passwd
+
+  - name: store slapd secret
+    copy:
+      content : "{{ new_passwd.passwd }}"
+      dest: /etc/slapd.secret
+
+  - set_fact:
+      slapd_passwd: "{{ new_passwd.passwd }}"
+  when: 'not "content" in slapdsecret'
+
 - name: configure OpenLDAP (password1)
   debconf:
       name: 'slapd'
       question: 'slapd/password1'
       vtype: 'string'
-      value: '{{ new_passwd.passwd }}'
+      value: '{{ slapd_passwd }}'
 - name: configure OpenLDAP (password2)
   debconf:
       name: 'slapd'
       question: 'slapd/password2'
       vtype: 'string'
-      value: '{{ new_passwd.passwd }}'
+      value: '{{ slapd_passwd }}'
 - name: configure phamm-ldap
   debconf:
       name: 'phamm-ldap'
