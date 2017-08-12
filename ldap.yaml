@@ -12,3 +12,6 @@
       - role: ldap
         ldap_domain: 'lilik.it'
         ldap_organization: 'LILiK'
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

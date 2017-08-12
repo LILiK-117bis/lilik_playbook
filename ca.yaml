@@ -4,3 +4,6 @@
     - role: ssh_server
     - role: dns_record
     - role: ca
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

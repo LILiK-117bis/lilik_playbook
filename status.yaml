@@ -11,3 +11,6 @@
       - role: dns_record
       - role: icinga2
       - role: reverse_proxy
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

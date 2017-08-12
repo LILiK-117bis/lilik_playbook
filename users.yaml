@@ -14,3 +14,6 @@
         ldap_server: "{{ hostvars['ldap'].ansible_host }}"
       - role: apache2
         user_dir: true
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

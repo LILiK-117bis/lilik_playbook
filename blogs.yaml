@@ -12,3 +12,6 @@
       - role: wordpress
         site_names:
           - kaos
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

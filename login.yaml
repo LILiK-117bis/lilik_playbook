@@ -13,3 +13,6 @@
       - role: login
       - role: reverse_proxy
         hostname: login3
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

@@ -13,3 +13,6 @@
         webdav_folders:
           - Movies
           - Series
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

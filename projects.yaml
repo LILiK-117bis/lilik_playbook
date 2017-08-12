@@ -12,3 +12,6 @@
     - role: reverse_proxy
       hostname: projects2
     - role: gitlab
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

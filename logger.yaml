@@ -50,3 +50,6 @@
         name: rsyslog
         enabled: yes
         state: started
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

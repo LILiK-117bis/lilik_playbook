@@ -10,3 +10,6 @@
   roles:
     - role: dns_record
     - role: dokuwiki
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

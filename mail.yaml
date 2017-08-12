@@ -17,3 +17,6 @@
         domain: "lilik.it"
         fqdn_domain: "mail.lilik.it"
         ldap_server: "{{ hostvars['ldap'].ansible_host }}"
+- hosts: status
+  roles:
+    - role: icinga2-monitoring
