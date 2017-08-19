@@ -106,30 +106,48 @@
         ssl_key = </etc/dovecot/private/dovecot.key
 
 - name: generate the RSA key
-  openssl_privatekey:
-    path: "/etc/dovecot/private/dovecot.key"
-    size: 2048
-    state: present
-    type: RSA
+# TODO: reenable openssl_privatekey when moving to ansible 2.3
+# openssl_privatekey:
+#   path: "/etc/dovecot/private/dovecot.key"
+#   size: 2048
+#   state: present
+#   type: RSA
+  shell: "openssl genrsa -out /etc/dovecot/private/dovecot.key 2048"
+  args:
+    creates: /etc/dovecot/private/dovecot.key
   notify: restart dovecot
 
 - name: generate CSR
-  openssl_csr:
-    commonName: "{{ fqdn_domain }}"
-    countryName: "IT"
-    digest: sha256
-    localityName: "TUSCANY"
-    organizationName: "IT"
-    path: "/etc/dovecot/private/dovecot.csr"
-    privatekey_path: "/etc/dovecot/private/dovecot.key"
-    state: present
-    stateOrProvinceName: "ITALY"
+  # TODO: reenable openssl_csr when moving to ansible 2.3
+  # openssl_csr:
+  #   commonName: "{{ fqdn_domain }}"
+  #   countryName: "IT"
+  #   digest: sha256
+  #   localityName: "TUSCANY"
+  #   organizationName: "IT"
+  #   path: "/etc/dovecot/private/dovecot.csr"
+  #   privatekey_path: "/etc/dovecot/private/dovecot.key"
+  #   state: present
+  #   stateOrProvinceName: "ITALY"
+  shell: 'openssl req -new -sha256 -subj "/C=IT/ST=ITALY/L=TUSCANY/O=IT/CN={{ fqdn_domain }}" -key /etc/dovecot/private/dovecot.key -out /etc/dovecot/private/dovecot.csr'
+  args:
+    creates: /etc/dovecot/private/dovecot.csr
   notify: restart dovecot
 
-- name: check if dovecot cert key exist
-  stat:
-    path: /etc/dovecot/dovecot.cert
-  register: dovecot_cert_key
+- name: lookup ssl ca key
+  set_fact:
+    ssl_ca_key: "{{ lookup('file', 'test_ssl_ca.crt') }}"
+
+- name: Update ssl CA key
+  copy:
+    content: "{{ ssl_ca_key }}"
+    dest: "/etc/dovecot/ssl_ca.crt"
+
+- name: check if dovecot cert is valid
+  command: 'openssl verify -CAfile /etc/dovecot/ssl_ca.crt /etc/dovecot/dovecot.cert'
+  register: dovecot_cert_is_valid
+  changed_when: false
+  failed_when: false
 
 - block:
     - name: get pub key
@@ -200,7 +218,7 @@
         dest: "/etc/dovecot/dovecot.cert"
       register: set_pub_key
 
-  when: not dovecot_cert_key.stat.exists
+  when: 'dovecot_cert_is_valid.rc != 0'
 
 - template:
     src: dovecot-ldap.conf.ext.j2
