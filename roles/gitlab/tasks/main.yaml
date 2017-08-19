@@ -25,3 +25,13 @@
       src: "gitlab.yml.j2"
       dest: "/etc/gitlab/gitlab.yml"
   notify: restart gitlab
+
+- name: patch gitlab source to add domain to email ldap field
+  blockinfile:
+    block: |
+        if key.to_s == "email"
+          value = value.nil? ? value : value + "@lilik.it"
+        end
+    dest: /usr/share/gitlab/lib/gitlab/ldap/auth_hash.rb
+    insertbefore: "return super unless value"
+  notify: restart gitlab
