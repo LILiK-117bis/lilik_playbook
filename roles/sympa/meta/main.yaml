@@ -5,5 +5,5 @@ dependencies:
     server_fqdn: "lists.lilik.it"
     parent_role_path: "sympa"
   - role: exim4
-    stmp_relay: "{{ hostvars | ip_from_inventory('mail') }}"
+    stmp_relay: "mail.dmz.lilik"
     sympa_transport: true

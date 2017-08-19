@@ -11,7 +11,7 @@
       - role: dns_record
       - role: fail2ban
       - role: pam-ldap
-        ldap_server: "{{ hostvars['ldap'].ansible_host }}"
+        ldap_server: "ldap.dmz.lilik"
       - role: apache2
         user_dir: true
 - hosts: status

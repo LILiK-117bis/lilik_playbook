@@ -10,7 +10,7 @@
   roles:
       - role: dns_record
       - role: roundcube
-        mail_server: "mail.lilik.it"
+        mail_server: "mail.dmz.lilik"
 - hosts: status
   roles:
     - role: icinga2-monitoring

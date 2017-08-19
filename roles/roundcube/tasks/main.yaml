@@ -34,13 +34,6 @@
       mode: 0444
   notify: update-ca-certificates
 
-#TODO: remove when dovecot will use a valid dns record
-- name: '(FIX REMOVE THIS ACTION) add temporary host record'
-  lineinfile:
-    dest: /etc/hosts
-    line: "{{ hostvars | ip_from_inventory('mail') }}  {{ mail_server }}"
-    regexp: "{{ mail_server }}$"
-
 - name: include my-roundcube.php
   lineinfile:
     dest: /etc/roundcube/config.inc.php
