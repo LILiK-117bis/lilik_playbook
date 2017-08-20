@@ -1,5 +1,5 @@
 ---
-- hosts: autorities
+- hosts: authorities
   roles:
     - role: ssh_server
     - role: dns_record
