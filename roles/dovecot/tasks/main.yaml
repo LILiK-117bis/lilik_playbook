@@ -58,43 +58,26 @@
 
 - lineinfile:
     dest: /etc/dovecot/conf.d/10-mail.conf
-    line: 'mail_location = maildir:/home/postman/%d/%n'
-    regexp: '^mail_location = '
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
     state: present
-  notify: restart dovecot
-
-- lineinfile:
-    dest: /etc/dovecot/conf.d/10-mail.conf
-    line: 'mail_gid :  postman'
-    state: present
-  notify: restart dovecot
-
-- lineinfile:
-    dest: /etc/dovecot/conf.d/10-mail.conf
-    line: 'mail_uid :  postman'
-    state: present
+  with_items:
+    - { regexp: '^mail_location = ', line: 'mail_location = maildir:/home/postman/%d/%n' }
+    - { regexp: 'mail_gid = ', line: 'mail_gid = postman' }
+    - { regexp: 'mail_uid = ', line: 'mail_uid = postman' }
   notify: restart dovecot
 
 - lineinfile:
     dest: /etc/dovecot/conf.d/10-auth.conf
-    line: "!include auth-system.conf.ext"
-    state: absent
-  notify: restart dovecot
-
-- lineinfile:
-    dest: /etc/dovecot/conf.d/10-auth.conf
-    line: "!include auth-ldap.conf.ext"
-    state: present
-  notify: restart dovecot
-
-- lineinfile:
-    dest: /etc/dovecot/conf.d/10-auth.conf
-    line: "auth_default_realm :  {{ domain }}"
-  notify: restart dovecot
-
-- lineinfile:
-    dest: /etc/dovecot/conf.d/10-auth.conf
-    line: "auth_mechanisms :  login plain"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: "{{ item.state }}"
+  with_items:
+    - { regexp: None, line: 'mail_location = maildir:/home/postman/%d/%n', state: 'absent'}
+    - { regexp: None, line: '!include auth-ldap.conf.ext', state: 'present'}
+    - { regexp: 'auth_default_realm =', line: 'auth_default_realm =  {{ domain }}', state: 'present'}
+    - { regexp: 'auth_mechanisms =', line: 'auth_mechanisms =  login plain', state: 'present'}
+    - { regexp: None, line: '!include auth-ldap.conf.ext', state: 'present'}
   notify: restart dovecot
 
 - name: enable ssl key
