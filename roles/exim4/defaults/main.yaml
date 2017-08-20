@@ -1,2 +1,3 @@
 ---
 sympa_transport: false
+fqdn_domain: "{{ ansible_hostname }}.lilik.it"

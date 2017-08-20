@@ -61,11 +61,120 @@
       service_packages:
         - exim4
 
-- name: generate the TLS key
-  shell: "/usr/share/doc/exim4-base/examples/exim-gencert"
+- name: generate the RSA key
+# TODO: reenable openssl_privatekey when moving to ansible 2.3
+# openssl_privatekey:
+#   path: "/etc/exim4/exim.key"
+#   size: 2048
+#   state: present
+#   type: RSA
+  shell: "openssl genrsa -out /etc/exim4/exim.key 2048"
   args:
     creates: /etc/exim4/exim.key
   notify: restart exim4
+
+- name: generate CSR
+  # TODO: reenable openssl_csr when moving to ansible 2.3
+  # openssl_csr:
+  #   commonName: "{{ fqdn_domain }}"
+  #   countryName: "IT"
+  #   digest: sha256
+  #   localityName: "TUSCANY"
+  #   organizationName: "IT"
+  #   path: "/etc/exim4/exim.csr"
+  #   privatekey_path: "/etc/exim4/exim.key"
+  #   state: present
+  #   stateOrProvinceName: "ITALY"
+  shell: 'openssl req -new -sha256 -subj "/C=IT/ST=ITALY/L=TUSCANY/O=IT/CN={{ fqdn_domain }}" -key /etc/exim4/exim.key -out /etc/exim4/exim.csr'
+  args:
+    creates: /etc/exim4/exim.csr
+  notify: restart exim4
+
+- name: lookup ssl ca key
+  set_fact:
+    ssl_ca_key: "{{ lookup('file', 'test_ssl_ca.crt') }}"
+
+- name: Update ssl CA key
+  copy:
+    content: "{{ ssl_ca_key }}"
+    dest: "/etc/exim4/ssl_ca.crt"
+
+- name: check if exim4 cert is valid
+  command: 'openssl verify -CAfile /etc/exim4/ssl_ca.crt /etc/exim4/exim.crt'
+  register: exim4_cert_is_valid
+  changed_when: false
+  failed_when: false
+
+- block:
+    - name: get pub key
+      slurp:
+        src: "/etc/exim4/exim.csr"
+      register: pub_key
+
+    - debug:
+        var: pub_key
+        verbosity: 2
+
+    - name: generate host request
+      set_fact:
+        ca_request:
+          type: 'sign_request'
+          request:
+            keyType: 'ssl_host'
+            hostName: '{{ inventory_hostname }}.lilik.it'
+            keyData: "{{ pub_key.content| b64decode}}"
+
+    - debug:
+        var: ca_request
+        verbosity: 2
+
+    - name: start sign request
+      include: ca-dialog.yaml
+
+    - debug:
+        var: request_result
+        verbosity: 2
+
+    - set_fact:
+        request_output: "{{ request_result.stdout|string|from_json }}"
+
+    - debug:
+        var: request_result
+
+    - name: generate get request
+      set_fact:
+        ca_request:
+          type: 'get_certificate'
+          requestID: '{{ request_output.requestID }}'
+
+    - debug:
+        var: ca_request
+        verbosity: 2
+
+    - debug:
+        msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
+
+    - name: wait for cert
+      include: ca-dialog.yaml
+
+    - debug:
+        var: request_result
+        verbosity: 2
+
+    - set_fact:
+        cert_key: "{{ request_result.stdout|string|from_json }}"
+
+    - debug:
+        var: request_result
+        verbosity: 2
+
+    - name: set pub key
+      copy:
+        content: "{{ cert_key.result }}"
+        dest: "/etc/exim4/exim.crt"
+      register: set_pub_key
+
+  when: 'exim4_cert_is_valid.rc != 0'
 
 - include_role:
     name: service
@@ -84,29 +193,39 @@
     group: Debian-exim
 
 - name: create opendkim key for lilik.it
-  command: opendkim-genkey -D /etc/opendkim/ -d lists.lilik.it -s lists
+  command: "opendkim-genkey -D /etc/opendkim/ -d {{ fqdn_domain }} -s {{ ansible_hostname }}"
   args:
-    creates:
-      - /etc/opendkim/mail.private
-      - /etc/opendkim/mail.txt
+    creates: '/etc/opendkim/{{ ansible_hostname }}.private'
 
-- name: check /etc/opendkim/mail.private permissions
+- name: check /etc/opendkim/{{ ansible_hostname }}.private permissions
   file:
-    path: /etc/opendkim/mail.private
+    path: '/etc/opendkim/{{ ansible_hostname }}.private'
     owner: root
     group: Debian-exim
     mode: 0640
 
-  - name: exim4 macro for TLS, DKIM and sympa aliases
+- name: exim4 macro for TLS, DKIM
+  blockinfile:
+    dest: /etc/exim4/exim4.conf.localmacros
+    block: |
+            MAIN_TLS_ENABLE = yes
+
+            DKIM_CANON = relaxed
+            DKIM_SELECTOR = {{ ansible_hostname}}
+            DKIM_DOMAIN = {{ fqdn_domain }}
+            DKIM_PRIVATE_KEY = /etc/opendkim/{{ ansible_hostname }}.private
+    create: yes
+    marker: 	"# {mark} ANSIBLE MANAGED BLOCK 1"
+  notify:
+    - update exim4 configuration
+    - restart exim4
+
+- block:
+  - name: exim4 macro for sympa aliases
     blockinfile:
       dest: /etc/exim4/exim4.conf.localmacros
       block: |
-              MAIN_TLS_ENABLE = yes
 
-              DKIM_CANON = relaxed
-              DKIM_SELECTOR = lists
-              DKIM_DOMAIN = lists.lilik.it
-              DKIM_PRIVATE_KEY = /etc/opendkim/lists.private
 
               #--------------
               # Activating pipe transport in system_aliases router (pipes in /etc/aliases)
@@ -121,6 +240,7 @@
               .endif
               #--------------
       create: yes
+      marker: 	"# {mark} ANSIBLE MANAGED BLOCK 2"
     notify:
       - update exim4 configuration
       - restart exim4

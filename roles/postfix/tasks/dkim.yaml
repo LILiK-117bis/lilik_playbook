@@ -28,22 +28,20 @@
   notify: restart opendkim
 
 - name: create opendkim key for lilik.it
-  command: opendkim-genkey -D /etc/opendkim/ -d lilik.it -s mail
+  command: opendkim-genkey -D /etc/opendkim/ -d lilik.it -s {{ ansible_hostname }}
   args:
-    creates:
-      - /etc/opendkim/mail.private
-      - /etc/opendkim/mail.txt
+    creates: '/etc/opendkim/{{ ansible_hostname }}.private'
 
-- name: check /etc/opendkim/mail.private permissions
+- name: check /etc/opendkim/{{ ansible_hostname }}.private permissions
   file:
-    path: /etc/opendkim/mail.private
+    path: '/etc/opendkim/{{ ansible_hostname }}.private'
     owner: opendkim
     group: opendkim
     mode: 0600
 
-- name: check /etc/opendkim/mail.txt permissions
+- name: check /etc/opendkim/{{ ansible_hostname }}.txt permissions
   file:
-    path: /etc/opendkim/mail.txt
+    path: '/etc/opendkim/{{ ansible_hostname }}.txt'
     owner: opendkim
     group: opendkim
     mode: 0660
@@ -53,7 +51,7 @@
     dest: '/etc/opendkim.conf'
     block: |
       Domain                  lilik.it
-      KeyFile         /etc/opendkim/mail.private
+      KeyFile         /etc/opendkim/{{ ansible_hostname }}.private
       Selector                mail
   notify: restart opendkim
 
