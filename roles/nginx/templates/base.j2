@@ -28,11 +28,6 @@ server {
     ## verify chain of trust of OCSP response using Root CA and Intermediate certs
     ssl_trusted_certificate /etc/letsencrypt/live/{{ server_fqdn }}/chain.pem;
 
-{% if config_name is not none %}
-{% include "roles/%s/templates/%s.conf.nginx.j2" % (parent_role_path, config_name) %}
-{% endif %}
-{% if is_proxy %}
-{% include "proxy.conf.nginx.j2" %}
-{% endif %}
+    include     /etc/nginx/locations/{{ server_fqdn }}/*.conf;
 
 }

@@ -5,3 +5,4 @@
   # max body size in Mb
   max_body_size: 8
   server_fqdn: "{{ ansible_hostname }}.lilik.it"
+  proxy_location_path: ''

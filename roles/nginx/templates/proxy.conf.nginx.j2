@@ -1,4 +1,4 @@
-    location / {
+    location /{{ proxy_location_path }} {
         client_max_body_size {{ max_body_size }}M;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

@@ -34,10 +34,19 @@
   notify:
       - restart nginx
 
+- name: create nginx location configuration directory
+  file:
+    path: '/etc/nginx/locations/{{ server_fqdn }}/'
+    state: directory
+    mode: 0755
+    owner: www-data
+    group: www-data
+    recurse: yes
+
 - name: upload nginx configuration
   template:
       src: base.j2
-      dest: "/etc/nginx/sites-available/{{ config_name or 'proxy' }}.conf"
+      dest: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
   notify:
       - restart nginx
 
@@ -62,8 +71,24 @@
 
 - name: enable nginx configurations
   file:
-      src: "/etc/nginx/sites-available/{{ config_name or 'proxy' }}.conf"
-      dest: "/etc/nginx/sites-enabled/{{ config_name or 'proxy' }}.conf"
+      src: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
+      dest: "/etc/nginx/sites-enabled/{{ server_fqdn }}.conf"
       state: link
   # with_items: "{{ config_names }}"
   notify: restart nginx
+
+- name: upload nginx location configuration from parent role
+  template:
+      src: "roles/{{ parent_role_path }}/templates/{{ config_name }}.conf.nginx.j2"
+      dest: "/etc/nginx/locations/{{ server_fqdn }}/{{ config_name }}.conf"
+  notify:
+      - restart nginx
+  when: 'config_name is not none'
+
+- name: upload nginx location configuration for proxy
+  template:
+      src: proxy.conf.nginx.j2
+      dest: "/etc/nginx/locations/{{ server_fqdn }}/{{ parent_role_path or 'proxy' }}.conf"
+  notify:
+      - restart nginx
+  when: 'is_proxy'
