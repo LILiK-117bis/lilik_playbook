@@ -1,9 +1,14 @@
+from ansible.errors import AnsibleError, AnsibleParserError
+
 def ip_from_inventory(hostvars, hostname):
     """
     replace this ``{{ hostvars[hostname]['ansible_host'] }}``
     with something nicer such as `` {{ hostvars | ip_from_inventory(hostname) }}``
     """
-    return hostvars[hostname]['ansible_host']
+    try:
+        return hostvars[hostname]['ansible_host']
+    except KeyError:
+        raise AnsibleError('hostname "{hostname}" not found in inventory'.format(hostname=hostname))
 
 class FilterModule(object):
     def filters(self):
