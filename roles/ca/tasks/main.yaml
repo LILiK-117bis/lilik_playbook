@@ -1,12 +1,12 @@
 - name: create sign user
   user:
     name: sign
-    shell: /usr/bin/ca-shell
+    shell: /usr/local/bin/ca-shell
 
 - name: create request user
   user:
     name: request
-    shell: /usr/bin/ca-server
+    shell: /usr/local/bin/ca-server
 
 - name: install ca packages
   apt:
@@ -18,6 +18,7 @@
   with_items:
     - python3
     - python3-pip
+    - python3-setuptools
 
 - name: install from release
   pip:
