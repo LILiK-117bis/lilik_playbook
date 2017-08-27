@@ -6,3 +6,33 @@
   max_body_size: 8
   server_fqdn: "{{ ansible_hostname }}.lilik.it"
   proxy_location_path: ''
+
+# Same example usages:
+#
+#   Redirect trakt folder to a proxy on fqdn_domain,
+#   create a location file in /etc/nginx/locations/media.lilik.it/trakt.conf
+#     dependencies:
+#       - role: nginx
+#         is_proxy: true
+#         proxy_location_path: "trakt"
+#         remote_host: "http://localhost:5000"
+#         server_fqdn: "media.lilik.it"
+#         parent_role_path: "trakt"
+#
+#   Serve a location based on role template 'kodi-repository.conf.nginx.j2' on fqdn_domain,
+#   create a location file in /etc/nginx/locations/media.lilik.it/kodi-repository.conf
+#     dependencies:
+#       - role: nginx
+#         config_name: "kodi-repository"
+#         server_fqdn: "{{ fqdn_domain }}"
+#         parent_role_path: "kodi-repository"
+#
+#   Serve a location based on role template 'roundcube.conf.nginx.j2' on fqdn_domain,
+#   create a location file in /etc/nginx/locations/media.lilik.it/roundcube.conf,
+#   serve php file using php pfm
+#     dependencies:
+#       - role: nginx
+#         php: true
+#         config_name: "roundcube"
+#         server_fqdn: "webmail.lilik.it"
+#         parent_role_path: "roundcube"
