@@ -1,0 +1,4 @@
+---
+fqdn_domain: "{{ ansible_hostname }}.lilik.it"
+repository_folder: "kodi-repository"
+repository_url: "https://{{ fqdn_domain }}/{{ repository_folder }}/"

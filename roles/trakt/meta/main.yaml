@@ -1,0 +1,9 @@
+---
+dependencies:
+  - role: nginx
+    is_proxy: true
+    config_name: "trakt"
+    proxy_location_path: "trakt"
+    remote_host: "http://localhost:5000"
+    server_fqdn: "media.lilik.it"
+    parent_role_path: "trakt"

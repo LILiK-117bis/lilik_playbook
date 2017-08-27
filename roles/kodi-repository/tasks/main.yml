@@ -1,0 +1,49 @@
+- name: install kodi-repository packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+    install_recommends: '{{ install_recommends | default("no") }}'
+  with_items:
+    - python-git
+
+- name: download create_repository script
+  get_url:
+    url: https://raw.githubusercontent.com/chadparry/kodi-repository.chad.parry.org/master/tools/create_repository.py
+    dest: /root/create_repository.py
+    mode: 0540
+
+- name: create kodi-repository directory
+  file:
+    path: '/srv/{{ repository_folder }}/{{ item }}'
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: 0755
+  with_items:
+    - ''
+    - 'repository-addon'
+
+- stat:
+    path: '/srv/kodi-repository/addons.xml'
+    checksum_algorithm: sha256
+  register: repository_folder_md5
+
+- name: upload repository addon xml
+  template:
+      src: addon.xml.j2
+      dest: "/srv/{{ repository_folder }}/repository-addon/addon.xml"
+
+- name: generate kodi repository
+  command: '/root/create_repository.py http://projects.lilik.it/kaos.lilik.it/kodi-trakt-plugin.git /srv/{{ repository_folder }}/repository-addon'
+  args:
+    chdir: "/srv/{{ repository_folder }}"
+  changed_when: False
+
+- name: check if repository has been changed
+  stat:
+    path: '/srv/kodi-repository/addons.xml'
+    checksum_algorithm: sha256
+  register: repository_folder_md5_2
+  changed_when: "'checksum' not in repository_folder_md5['stat'] or repository_folder_md5['stat']['checksum'] != repository_folder_md5_2['stat']['checksum']"

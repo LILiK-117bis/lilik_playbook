@@ -1,0 +1,6 @@
+---
+dependencies:
+   - role: nginx
+     config_name: "kodi-repository"
+     server_fqdn: "{{ fqdn_domain }}"
+     parent_role_path: "kodi-repository"

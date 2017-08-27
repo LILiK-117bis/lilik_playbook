@@ -1,0 +1,55 @@
+- name: install trakt packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+    install_recommends: '{{ install_recommends | default("no") }}'
+  with_items:
+    - git
+    - python3
+    - python3-flask-sqlalchemy
+    - python3-flask
+
+- name: clone trakt repository
+  git:
+    repo: http://projects.lilik.it/kaos.lilik.it/trakt-server.git
+    dest: /srv/trakt
+  notify:
+    - restart trakt
+
+- name: add trakt user
+  user:
+    name: trakt
+    system: yes
+    home: /srv/trakt
+
+- name: add trakt config
+  template:
+    src: config.py.j2
+    dest: /srv/trakt/config.py
+    mode: 440
+    owner: trakt
+    group: trakt
+
+  register: add_trakt_startup_script
+  notify:
+    - restart trakt
+
+- name: add trakt init script
+  template: src=trakt.j2 dest=/etc/init.d/trakt mode=755
+  register: add_trakt_startup_script
+  notify:
+    - restart trakt
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+    name: trakt
+  when: add_trakt_startup_script.changed
+
+- include_role:
+    name: service
+  vars:
+    service_name: trakt
+    service_packages: null

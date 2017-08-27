@@ -13,6 +13,8 @@
         webdav_folders:
           - Movies
           - Series
+      - role: kodi-repository
+      - role: trakt
 - hosts: status
   roles:
     - role: icinga2-monitoring
