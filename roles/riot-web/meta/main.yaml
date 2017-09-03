@@ -1,0 +1,6 @@
+---
+dependencies:
+  - role: nginx
+    config_name: "riot"
+    server_fqdn: "{{ ansible_hostname }}.lilik.it"
+    parent_role_path: riot-web

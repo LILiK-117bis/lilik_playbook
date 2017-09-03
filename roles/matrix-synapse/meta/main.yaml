@@ -1,0 +1,8 @@
+---
+dependencies:
+  - role: nginx
+    is_proxy: true
+    parent_role_path: "matrix-synapse"
+    remote_host: "http://127.0.0.1:8008/_matrix"
+    proxy_location_path: "_matrix"
+    server_fqdn: "{{ ansible_hostname }}.lilik.it"

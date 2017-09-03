@@ -1,0 +1,31 @@
+- name: set synapse server name
+  debconf:
+      name: 'matrix-synapse'
+      question: 'matrix-synapse/server-name'
+      vtype: 'string'
+      value: '{{ ansible_hostname }}'
+
+- name: install synapse
+  include_role:
+    name: service
+  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
+  vars:
+    service_name: matrix-synapse
+    service_packages:
+      - matrix-synapse
+
+- name: fix synapse folders permissions
+  file:
+    path: "{{ item }}"
+    owner: matrix-synapse
+    group: nogroup
+    mode: 0750
+    state: directory
+  with_items:
+    - /etc/matrix-synapse
+    - /etc/matrix-synapse/conf.d
+
+- template:
+    src: homeserver.yaml.j2
+    dest: /etc/matrix-synapse/homeserver.yaml
+  notify: "restart matrix-synapse"

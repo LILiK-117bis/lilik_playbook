@@ -11,12 +11,8 @@
   roles:
     - role: dns_record
     - role: reverse_proxy
-  tasks:
-    - name: Install synapse
-      apt:
-        name: "{{ item }}"
-      with_items:
-        - matrix-synapse
+    - role: matrix-synapse
+    - role: riot-web
 - hosts: status
   roles:
     - role: icinga2-monitoring
