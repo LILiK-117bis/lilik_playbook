@@ -1,12 +1,12 @@
 - name: create sign user
   user:
     name: sign
-    shell: /srv/ca/manager.py
+    shell: /usr/local/bin/ca-shell
 
 - name: create request user
   user:
     name: request
-    shell: /srv/ca/request_server.py
+    shell: /usr/local/bin/ca-server
 
 - name: install ca packages
   apt:
@@ -16,19 +16,14 @@
     cache_valid_time: 3600
     install_recommends: '{{ install_recommends | default("no") }}'
   with_items:
-    - git
     - python3
     - python3-pip
+    - python3-setuptools
 
-- name: install peewee with pip
+- name: install from release
   pip:
-    name: peewee
+    name: https://github.com/LILiK-117bis/ca_manager/tarball/v0.2
     executable: pip3
-
-- name: clone ca repository
-  git:
-    repo: https://github.com/LILiK-117bis/ca_manager.git
-    dest: /srv/ca
 
 - name: create /var/lib/ca_manager
   file:
