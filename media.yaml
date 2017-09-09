@@ -1,4 +1,4 @@
-- hosts: biff
+- hosts: emmett
   roles:
     - role: lxc_guest
       vm_name: media

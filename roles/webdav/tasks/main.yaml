@@ -1,3 +1,12 @@
+- name: install utilities
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+    - apache2-utils
+
 - name: create directories to serve
   file:
     path: '{{ server_path }}/{{ item }}'

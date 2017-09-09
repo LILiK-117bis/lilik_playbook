@@ -36,12 +36,14 @@
 
 - name: create nginx location configuration directory
   file:
-    path: '/etc/nginx/locations/{{ server_fqdn }}/'
+    path: '{{ item }}'
     state: directory
     mode: 0755
     owner: www-data
     group: www-data
-    recurse: yes
+  with_items:
+    - /etc/nginx/locations/
+    - '/etc/nginx/locations/{{ server_fqdn }}/'
 
 - name: upload nginx configuration
   template:
