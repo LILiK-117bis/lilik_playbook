@@ -13,9 +13,14 @@
         update_cache: yes
         cache_valid_time: 3600
       with_items:
-          - lxc
-          - python
-          - python-lxc
+        - lxc
+        - python
+        - python-lxc
+
+    - name: install common lxc filesystem support
+      apt:
+        name: xfsprogs
+        state: present
 
     - name: install network bridge utilities
       apt:
@@ -31,9 +36,10 @@
     # Bridge-utils requires a complete system reboot to enable the new bridge.
     - name: configure network bridge with vlans
       template:
-          src: templates/interfaces.j2
-          dest: /etc/network/interfaces
+        src: templates/interfaces.j2
+        dest: /etc/network/interfaces
       notify: restart networking
+
 
     - name: install utilities
       apt:
@@ -42,8 +48,8 @@
         update_cache: yes
         cache_valid_time: 3600
       with_items:
-          - vim
-          - htop
+        - vim
+        - htop
 
     - name: enable lvm wipe signature
       lineinfile:
@@ -53,12 +59,13 @@
         regexp: '^\s*.+wipe_signatures_when_zeroing_new_lvs = '
       notify: restart lvm
   handlers:
-      - name: restart networking
-        service:
-          name: networking
-          state: restarted
-      - name: restart lvm
-        shell: /etc/init.d/lvm2 reload
+    - name: restart networking
+      service:
+        name: networking
+        state: restarted
+    - name: restart lvm
+      shell: /etc/init.d/lvm2 reload
+
 - hosts: status
   roles:
     - role: icinga2-monitoring
