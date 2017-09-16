@@ -88,10 +88,12 @@
   become_user: openldap
   notify: restart slapd
 
-- name: fix missing memberOf module load
-  lineinfile:
+- name: fix missing memberOf and pw-sha2 module load
+  blockinfile:
     dest: /etc/ldap/slapd.d/cn=config/cn=module{0}.ldif
-    line: "olcModuleLoad: {1}memberof"
+    content: |
+      olcModuleLoad: {1}memberof
+      olcModuleLoad: {2}pw-sha2
   notify: restart slapd
 - name: upload default tree
   template:
