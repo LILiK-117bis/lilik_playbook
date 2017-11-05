@@ -53,6 +53,14 @@
   notify:
     - restart login
 
+- name: create /var/log/login.log
+  file:
+    path: /var/log/login.log
+    owner: login
+    group: login
+    mode: 0664
+    state: file
+
 - name: reload systemd
   systemd:
     daemon_reload: yes
