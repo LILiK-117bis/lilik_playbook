@@ -25,7 +25,7 @@ This is accomplished using ssh as a mean of transport, the specific task for a s
 
         - name: start sign request
           raw: "{{ cert_request | to_json }}"
-          delegate_to: ca_request
+          delegate_to: authorities_request
           register: request_result
           failed_when: "( request_result.stdout | from_json ).failed"
 

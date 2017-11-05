@@ -27,10 +27,10 @@
       owner: root
       group: www-data
 
-- name: copy test_ssl_ca.crt
+- name: copy lilik_ca_w1.pub
   copy:
-      src: "test_ssl_ca.crt"
-      dest: "/usr/local/share/ca-certificates/test_ssl_ca.crt"
+      src: "lilik_ca_w1.pub"
+      dest: "/usr/local/share/ca-certificates/lilik_ca_w1.pub"
       mode: 0444
   notify: update-ca-certificates
 

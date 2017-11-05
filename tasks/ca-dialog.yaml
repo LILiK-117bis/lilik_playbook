@@ -1,5 +1,5 @@
 - raw: "{{ ca_request | to_json }}"
-  delegate_to: ca_request
+  delegate_to: authorities_request
   delegate_facts: True
   register: request_result
   failed_when: "( request_result.stdout | from_json ).failed"

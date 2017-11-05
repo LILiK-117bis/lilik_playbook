@@ -6,6 +6,7 @@ emmett               ansible_host=10.150.40.5         ansible_user=root
 bakulilik            ansible_host=10.150.40.6         ansible_user=root
 mcfly                ansible_host=10.150.40.7         ansible_user=root
 authorities          ansible_host=10.150.40.8         ansible_user=root
+authorities_request  ansible_host=10.150.40.8         ansible_user=request
 
 ca                   ansible_host=10.150.42.11        ansible_user=root
 ca_request           ansible_host=10.150.42.11        ansible_user=request

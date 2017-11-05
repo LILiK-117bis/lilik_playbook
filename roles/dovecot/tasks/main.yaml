@@ -119,7 +119,7 @@
 
 - name: lookup ssl ca key
   set_fact:
-    ssl_ca_key: "{{ lookup('file', 'test_ssl_ca.crt') }}"
+    ssl_ca_key: "{{ lookup('file', 'lilik_ca_w1.pub') }}"
 
 - name: Update ssl CA key
   copy:
@@ -152,7 +152,7 @@
             keyData: "{{ pub_key.content| b64decode}}"
 
     - debug:
-        var: ca_request
+        var: authorities_request
         verbosity: 2
 
     - name: start sign request
@@ -175,7 +175,7 @@
           requestID: '{{ request_output.requestID }}'
 
     - debug:
-        var: ca_request
+        var: authorities_request
         verbosity: 2
 
     - debug:
