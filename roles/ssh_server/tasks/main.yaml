@@ -48,7 +48,7 @@
             keyData: "{{ vm_public_key['content'] | b64decode | replace('\n', '')}}"
 
     - debug:
-        var: authorities_request | to_json
+        var: ca_request | to_json
         verbosity: 2
 
     - name: start sign request
@@ -74,7 +74,7 @@
           requestID: '{{ request_output.requestID }}'
 
     - debug:
-        var: authorities_request
+        var: ca_request
         verbosity: 2
 
     - debug:
