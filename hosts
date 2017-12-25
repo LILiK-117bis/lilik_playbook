@@ -8,8 +8,8 @@ mcfly                ansible_host=10.150.40.7         ansible_user=root
 authorities          ansible_host=10.150.40.8         ansible_user=root
 authorities_request  ansible_host=10.150.40.8         ansible_user=request
 
-ca                   ansible_host=10.150.42.11        ansible_user=root
-ca_request           ansible_host=10.150.42.11        ansible_user=request
+buildbot             ansible_host=10.150.42.41        ansible_user=root
+ca                   ansible_host=10.150.42.40        ansible_user=root
 
 blogs                ansible_host=10.150.42.17        ansible_user=root
 ldap                 ansible_host=10.150.42.10        ansible_user=root
