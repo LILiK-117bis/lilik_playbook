@@ -1,0 +1,4 @@
+---
+- hosts: bakulilik
+  roles:
+    - role: ssh_server
