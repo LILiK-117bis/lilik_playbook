@@ -1,3 +1,6 @@
+- debug:
+    msg: "Sending certificate request to {{ hostvars | ip_from_inventory('authorities_request') }}"
+
 - raw: "{{ ca_request | to_json }}"
   delegate_to: authorities_request
   delegate_facts: True
