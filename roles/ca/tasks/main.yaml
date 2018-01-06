@@ -22,7 +22,7 @@
 
 - name: install from release
   pip:
-    name: https://github.com/LILiK-117bis/ca_manager/tarball/v0.2
+    name: https://github.com/LILiK-117bis/ca_manager/tarball/v0.3
     executable: pip3
 
 - name: create /var/lib/ca_manager
