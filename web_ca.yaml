@@ -12,6 +12,9 @@
   roles:
     - role: dns_record
     - role: reverse_proxy
+    - role: nginx
+      config_name: "ca"
+      server_fqdn: "ca.lilik.it"
 - hosts: status
   roles:
     - role: icinga2-monitoring
