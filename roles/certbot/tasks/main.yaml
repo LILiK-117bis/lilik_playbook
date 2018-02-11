@@ -16,7 +16,16 @@
     state: stopped
 
 - name: request certificate
-  command: certbot certonly -a standalone --agree-tos --email roots@lists.lilik.it --preferred-challenges http -d {{ server_fqdn }} -d www.{{ server_fqdn }} -n
+  command: >
+    certbot
+        certonly
+        -a standalone
+        --agree-tos
+        --email roots@lists.lilik.it
+        --preferred-challenges http
+        -d {{ server_fqdn }}
+        -d www.{{ server_fqdn }}
+        -n
   args:
     creates: /etc/letsencrypt/live/{{ server_fqdn }}/cert.pem
 
