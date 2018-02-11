@@ -16,7 +16,7 @@
                                       '$protocol $status $bytes_sent $bytes_received '
                                       '$session_time';
                 server {
-                    listen 150.217.18.45:443;
+                    listen {{ public_ip }}:443;
                     ssl_preread on;
                     proxy_pass $name;
                     access_log /var/log/nginx/stream_443.log stream_routing;
