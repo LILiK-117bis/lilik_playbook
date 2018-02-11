@@ -10,6 +10,11 @@
     - sendmail-bin
     - cron
 
+- name: Shutdown webservers
+  service:
+    name: "{{ webserver_name }}"
+    state: stopped
+
 - name: request certificate
   command: certbot certonly -a standalone --agree-tos --email roots@lists.lilik.it --preferred-challenges http -d {{ server_fqdn }} -d www.{{ server_fqdn }} -n
   args:
@@ -21,3 +26,8 @@
 #     minute: "30"
 #     hour: "2"
 #     job: '/usr/bin/certbot renew -n --renew-hook "/bin/systemctl reload {{ webserver_name }}"'
+
+- name: Restart webservers
+  service:
+    name: "{{ webserver_name }}"
+    state: started
