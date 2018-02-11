@@ -1,11 +1,11 @@
 ---
-  is_proxy: false
-  php: false
-  config_name: null
-  # max body size in Mb
-  max_body_size: 8
-  server_fqdn: "{{ ansible_hostname }}.lilik.it"
-  proxy_location_path: ''
+is_proxy: false
+php: false
+config_name: null
+# max body size in Mb
+max_body_size: 8
+server_fqdn: "{{ ansible_hostname }}.lilik.it"
+proxy_location_path: ''
 
 # Same example usages:
 #
