@@ -13,3 +13,24 @@
   with_items:
     - "{{ monitoring_host }}"
   notify: reload icinga2
+
+- debug:
+    var: monitoring_services
+
+- name: create icinga2 host directory
+  file:
+    path: "/etc/icinga2/conf.d/hosts/{{ item['host'] }}"
+    state: directory
+    owner: nagios
+    group: nagios
+    mode: 0770
+  with_items:
+   - "{{ monitoring_services }}"
+
+- name: add service monitoring
+  template:
+    src: "{{item['service']}}.conf.j2"
+    dest: "/etc/icinga2/conf.d/hosts/{{ item['host'] }}/{{item['name']}}.conf"
+  with_items:
+    - "{{ monitoring_services }}"
+  notify: reload icinga2

@@ -1,0 +1,19 @@
+object Service "{{ item['name'] }}" {
+  import "generic-service"
+
+  host_name = "{{ item['host'] }}"
+  check_command = "http"
+{% if 'port' in item %}
+  vars.http_port = "{{ item['port'] }}"
+{% endif %}
+{% if 'vhost' in item %}
+  vars.http_vhost = "{{ item['vhost'] }}"
+{% endif %}
+{% if 'body_regexp' in item %}
+  vars.http_expect_body_regex = "{{ item['body_regexp'] }}"
+{% endif %}
+{% if 'https' in item and item.https%}
+  vars.http_ssl = "1"
+{% endif %}
+}
+

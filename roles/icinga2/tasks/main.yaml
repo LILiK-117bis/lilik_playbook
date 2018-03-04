@@ -100,3 +100,20 @@
     mode: 0770
   with_items:
     - /etc/icinga2/conf.d/hosts/
+
+- set_fact:
+    service:
+      name: status_http
+      service: http
+      port: 443
+      https: true
+      host: "{{ ansible_hostname }}"
+
+- name: add monitoring facts
+  set_fact:
+    monitoring_services: "{{monitoring_services| default([]) }} + [{{ service }}]"
+  delegate_facts: True
+  delegate_to: status
+
+
+
