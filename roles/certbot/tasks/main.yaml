@@ -29,14 +29,24 @@
   args:
     creates: /etc/letsencrypt/live/{{ server_fqdn }}/cert.pem
 
-# - name: add certbot cron
-#   cron:
-#     name: "certbot cron"
-#     minute: "30"
-#     hour: "2"
-#     job: '/usr/bin/certbot renew -n --renew-hook "/bin/systemctl reload {{ webserver_name }}"'
-
 - name: Restart webservers
   service:
     name: "{{ webserver_name }}"
     state: started
+
+- name: Add systemd timer for cert renewal
+  template:
+    src: certbot.timer
+    dest: /etc/systemd/system/certbot.timer
+
+- name: Add systemd service for cert renewal
+  template:
+    src: certbot.service
+    dest: /etc/systemd/system/certbot.service
+
+- name: Enable timer
+  systemd:
+    name: certbot.timer
+    state: started
+    enabled: true
+    daemon_reaload: true

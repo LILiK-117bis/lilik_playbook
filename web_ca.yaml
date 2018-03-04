@@ -13,7 +13,7 @@
     - role: dns_record
     - role: reverse_proxy
     - role: nginx
-      config_name: "ca"
+      config_name: "ca-webpage"
       server_fqdn: "ca.lilik.it"
 - hosts: status
   roles:
