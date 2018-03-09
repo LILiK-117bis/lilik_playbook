@@ -74,6 +74,7 @@
         - slapd
         - ldap-utils
         - phamm-ldap
+        - libpam-ldap
         - sudo
 - name: upload slapd config
   template:
