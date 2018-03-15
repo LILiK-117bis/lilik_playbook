@@ -14,12 +14,12 @@
       - role: reverse_proxy
         hostname: nablapolo
       - role: nginx
-      	is_proxy: true
+        is_proxy: true
         config_name: "tg_webhook"
         remote_host: "http://localhost:9120/"
         server_fqdn: "nablapolo.lilik.it"
         parent_role_path: "tg_webhook"
-	
+
 - hosts: status
   roles:
       - role: icinga2-monitoring
