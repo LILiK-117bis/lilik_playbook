@@ -23,13 +23,18 @@
     dest: "/etc/ssh/user_ca.pub"
   notify: restart ssh
 
-- name: Check if host certificate is valid
-  shell: '[[ $(ssh-keygen -f /etc/ssh/ssh_host_ed25519_key-cert.pub -L |grep "$(ssh-keygen -f /etc/ssh/user_ca.pub -l|cut -d " " -f 2)" -A 3 |grep Valid |cut -d " " -f 13) > $(date +%Y-%m-%dT%H:%M:%S --date "+1 month") ]]'
-  args:
-    executable: /bin/bash
+  #- name: Check if host certificate is valid
+  #  shell: '[[ $(ssh-keygen -f /etc/ssh/ssh_host_ed25519_key-cert.pub -L |grep "$(ssh-keygen -f /etc/ssh/user_ca.pub -l|cut -d " " -f 2)" -A 3 |grep Valid |cut -d " " -f 13) > $(date +%Y-%m-%dT%H:%M:%S --date "+1 month") ]]'
+  #  args:
+  #    executable: /bin/bash
+  #  register: vm_has_valid_ssh_certificate
+  #  changed_when: false
+  #  failed_when: false
+
+- name: Validate host certificate if any
+  ssh_cert:
   register: vm_has_valid_ssh_certificate
-  changed_when: false
-  failed_when: false
+
 
 - debug:
     var: vm_has_valid_ssh_certificate
