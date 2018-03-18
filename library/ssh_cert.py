@@ -32,6 +32,16 @@ def still_valid(cert_timestamps):
     return t < cert_timestamps['valid']['to'] and t > cert_timestamps['valid']['from']
 
 
+def expired(cert_timestamps):
+    t = datetime.datetime.today()
+    return t > cert_timestamps['valid']['to']
+
+
+def not_valid(cert_timestamps):
+    t = datetime.datetime.today()
+    return t < cert_timestamps['valid']['from']
+
+
 def cert_type(lines):
     for l in lines:
         if l.startswith('Type'):
@@ -56,6 +66,7 @@ def main():
                 supports_check_mode=False,
             )
     result = {}
+    result['rc'] = 0
     result['ca'] = {}
     result['ca']['path'] = '/etc/ssh/user_ca.pub'
     result['certificate'] = {}
@@ -87,14 +98,18 @@ def main():
     if not still_valid(result['certificate']):
         result['failed'] = True
         result['msg'] = 'The certificate is not valid now'
+        if not_valid(result['certificate']):
+            result['rc'] = 2
+        if expired(result['certificate']):
+            result['rc'] = 3
 
     result['certificate']['serial'] = serial(cert_lines)
     result['certificate']['type'] = cert_type(cert_lines)
 
-
     if not result['certificate']['signin_ca'] == result['ca']['fingerprint']:
         result['failed'] = True
         result['msg'] = 'The provided CA did not sign the certificate specified'
+        result['rc'] = 1
 
     module.exit_json(**result)
 
