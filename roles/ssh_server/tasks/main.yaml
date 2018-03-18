@@ -1,10 +1,17 @@
-# We can not use include_role here since it not share the connection with the current role
+# We can not use include_role here since it not
+# share the connection with the current role
+---
 - include: roles/service/tasks/main.yaml
   vars:
     service_name: ssh
     service_packages:
-        - openssh-server
-        - openssh-sftp-server
+      - openssh-server
+      - openssh-sftp-server
+
+- name: Add last logins to MOTD
+  file:
+    dest: /etc/update-motd.d/11-last-ssh-login
+    src: last_ssh_login
 
 - name: lookup user ca key
   set_fact:
