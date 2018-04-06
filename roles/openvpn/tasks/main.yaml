@@ -33,7 +33,11 @@
     - name: get pub key
       shell: "cat /etc/openvpn/openvpn.csr"
       register: pub_key
-    - debug: var=pub_key verbosity=2
+
+    - debug:
+        var: pub_key
+        verbosity: 2
+
     - name: generate host request
       set_fact:
         ca_request:
@@ -42,7 +46,11 @@
             keyType: 'ssl_host'
             hostName: '{{ inventory_hostname }}'
             keyData: '{{ pub_key.stdout }}'
-    - debug: var=cert_request verbosity=2
+
+    - debug:
+        var: cert_request
+        verbosity: 2
+
     - name: start sign request
       include: ca-dialog.yaml
 
