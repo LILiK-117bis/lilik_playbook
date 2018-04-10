@@ -31,13 +31,12 @@
   #  changed_when: false
   #  failed_when: false
 
-- name: Validate host certificate if any
+- name: Validate SSH host certificate if any
   ssh_cert:
-  register: vm_has_valid_ssh_certificate
-
+  register: ssh_verification
 
 - debug:
-    var: vm_has_valid_ssh_certificate
+    var: ssh_verification
     verbosity: 2
 
 - block:
@@ -110,7 +109,7 @@
         dest: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
       register: set_pub_key
       notify: restart ssh
-  when: "vm_has_valid_ssh_certificate.rc != 0"
+  when: not ssh_verification
 
 - name: add certificate to sshd config
   lineinfile:

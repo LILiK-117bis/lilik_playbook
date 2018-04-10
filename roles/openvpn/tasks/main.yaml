@@ -44,7 +44,7 @@
           type: 'sign_request'
           request:
             keyType: 'ssl_host'
-            hostName: '{{ inventory_hostname }}'
+            hostName: '{{ inventory_hostname }}.lilik.it'
             keyData: '{{ pub_key.stdout }}'
 
     - debug:
@@ -54,30 +54,42 @@
     - name: start sign request
       include: ca-dialog.yaml
 
-    - debug: var=request_result verbosity=2
+    - debug:
+        var: request_result
+        verbosity: 2
 
     - set_fact:
-          request_output: "{{ request_result.results[0].stdout|string|from_json }}"
-    - debug: var=request_output
+        request_output: "{{ request_result.stdout | string | from_json }}"
+
+    - debug:
+        var: request_output
 
     - name: generate get request
       set_fact:
         ca_request:
           type: 'get_certificate'
           requestID: '{{ request_output.requestID }}'
-    - debug: var=get_request verbosity=2
 
-    - debug: msg="Please manualy confirm sign request with id {{ request_output.requestID }}"
+    - debug:
+        var: get_request
+        verbosity: 2
+
+    - debug:
+        msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
 
     - name: wait for cert
       include: ca-dialog.yaml
 
-    - debug: var=cert_result verbosity=2
+    - debug:
+        var: request_result
+        verbosity: 2
 
     - set_fact:
-          cert_key: "{{ request_result.results[0].stdout|string|from_json }}"
+          cert_key: "{{ request_result.stdout | string | from_json }}"
 
-    - debug: var=request_output verbosity=2
+    - debug:
+        var: request_result
+        verbosity: 2
 
     - name: set pub key
       shell: "echo '{{ cert_key.result }}' > /etc/openvpn/openvpn.cert"
@@ -91,11 +103,11 @@
 
 - name: write openvpn configuration
   template:
-    dest=/etc/config/openvpn
-    src=openvpn.j2
-    owner=root
-    group=root
-    mode=0400
+    dest: /etc/config/openvpn
+    src: openvpn.j2
+    owner: root
+    group: root
+    mode: 0400
   register: new_vpn_config
   notify: reload openvpn
 
@@ -103,5 +115,3 @@
   shell: 'uci commit openvpn'
   notify: reload openvpn
   when: new_vpn_config.changed
-
-
