@@ -79,3 +79,8 @@
       - libnss-ldap
       # TODO: log, add a centralized log server
       - rsyslog
+
+- name: allowing logins on a per-host basis
+  lineinfile:
+    dest: /etc/pam_ldap.conf
+    line: 'pam_check_host_attr yes'
