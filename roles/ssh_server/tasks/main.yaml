@@ -121,6 +121,12 @@
     regexp: '^PermitRootLogin *'
   notify: restart ssh
 
+- name: set hostname in /etc/hosts
+  lineinfile:
+    dest: /etc/hosts
+    regexp: ^127.0.0.1
+    line: '127.0.0.1 localhost {{ ansible_docker_extra_args or inventory_hostname }}'
+
 - meta: flush_handlers
 
 - name: "waiting for ssh on {{ ansible_docker_extra_args | default(inventory_hostname) }} to start"
