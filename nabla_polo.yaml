@@ -15,10 +15,22 @@
         hostname: nablapolo
       - role: nginx
         is_proxy: true
-        config_name: "tg_webhook"
-        remote_host: "http://localhost:9120/"
-        server_fqdn: "nablapolo.lilik.it"
         parent_role_path: "tg_webhook"
+        proxy_location_path: "tg_webhook"
+        remote_host: "http://localhost:9120"
+        server_fqdn: "nablapolo.lilik.it"
+
+  tasks:
+      - name: install dependencies
+        apt:
+          state: present
+          name: "{{ item }}"
+        with_items:
+          - python-virtualenv
+          - python-pip
+          - wget
+          - git
+          - screen
 
 - hosts: status
   roles:
