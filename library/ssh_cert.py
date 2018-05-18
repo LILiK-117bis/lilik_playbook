@@ -67,6 +67,7 @@ def main():
             )
     result = {}
     result['rc'] = 0
+    result['failed'] = False
     result['ca'] = {}
     result['ca']['path'] = '/etc/ssh/user_ca.pub'
     result['certificate'] = {}
