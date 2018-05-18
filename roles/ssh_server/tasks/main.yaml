@@ -34,6 +34,7 @@
 - name: Validate SSH host certificate if any
   ssh_cert:
   register: ssh_verification
+  ignore_errors: yes
 
 - debug:
     var: ssh_verification
@@ -109,7 +110,7 @@
         dest: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
       register: set_pub_key
       notify: restart ssh
-  when: not ssh_verification
+  when: ssh_verification.failed
 
 - name: add certificate to sshd config
   lineinfile:
