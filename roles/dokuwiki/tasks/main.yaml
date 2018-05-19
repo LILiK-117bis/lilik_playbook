@@ -1,15 +1,23 @@
 ---
 - name: install dokuwiki and associated packages
   apt:
-      name: "{{ item }}"
-      state: present
-      update_cache: yes
-      cache_valid_time: 3600
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
   with_items:
-      - dokuwiki
+    - dokuwiki
+
+- name: add nginx configurations
+  template:
+    src: dokuwiki.conf
+    dest: "/etc/nginx/locations/{{ server_fqdn }}/dokuwiki.conf"
+  notify:
+    - restart nginx
+
 - name: Write dokuwiki configuration to local.php
   copy:
     src: dokuwiki.php
     dest: /etc/dokuwiki/local.php
   notify:
-      - restart nginx
+    - restart nginx

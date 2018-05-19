@@ -1,38 +1,16 @@
 ---
 - include_role:
     name: service
-  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
   vars:
     service_name: nginx
     service_packages:
-        - nginx
+      - nginx
 
 - name: disable nginx default configuration
   file:
     path: /etc/nginx/sites-enabled/default
     state: absent
   notify: restart nginx
-
-- name: install php-fpm
-  apt:
-    name: "{{ item }}"
-    state: present
-    update_cache: yes
-    cache_valid_time: 3600
-  with_items:
-      - php-fpm
-  when: php | bool
-  notify:
-      - restart nginx
-
-- name: add timezone to php.ini
-  lineinfile:
-    dest: /etc/php/7.0/fpm/php.ini
-    regexp: '^;?date.timezone ='
-    line: 'date.timezone = Europe/Berlin'
-  when: php | bool
-  notify:
-      - restart nginx
 
 - name: create nginx location configuration directory
   file:
@@ -47,23 +25,10 @@
 
 - name: upload nginx configuration
   template:
-      src: base.j2
-      dest: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
+    src: base.j2
+    dest: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
   notify:
-      - restart nginx
-
-# - name: add nginx configurations
-#   template:
-#       src: "roles/{{ parent_role_path }}/templates/{{ item }}.conf.nginx.j2"
-#       dest: /etc/nginx/sites-available/{{ item }}.conf
-#   with_items: "{{ config_names }}"
-#   notify:
-#       - restart nginx
-
-# - name: add proxy to config_names
-#   set_fact:
-#     config_names: "{{ config_names | union( [config_name])}}"
-#   when: is_proxy | bool
+    - restart nginx
 
 - name: create Diffie Hellman exchange parameters
   command: openssl dhparam -out /etc/nginx/dhparam.pem 2048
@@ -73,24 +38,7 @@
 
 - name: enable nginx configurations
   file:
-      src: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
-      dest: "/etc/nginx/sites-enabled/{{ server_fqdn }}.conf"
-      state: link
-  # with_items: "{{ config_names }}"
+    src: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ server_fqdn }}.conf"
+    state: link
   notify: restart nginx
-
-- name: upload nginx location configuration from parent role
-  template:
-      src: "roles/{{ parent_role_path }}/templates/{{ config_name }}.conf.nginx.j2"
-      dest: "/etc/nginx/locations/{{ server_fqdn }}/{{ config_name }}.conf"
-  notify:
-      - restart nginx
-  when: 'config_name is not none'
-
-- name: upload nginx location configuration for proxy
-  template:
-      src: proxy.conf.nginx.j2
-      dest: "/etc/nginx/locations/{{ server_fqdn }}/{{ parent_role_path or 'proxy' }}.conf"
-  notify:
-      - restart nginx
-  when: 'is_proxy'
