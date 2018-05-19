@@ -14,6 +14,7 @@
   service:
     name: "{{ webserver_name }}"
     state: stopped
+  ignore_errors: yes
 
 - name: request certificate
   command: >
@@ -33,6 +34,7 @@
   service:
     name: "{{ webserver_name }}"
     state: started
+  ignore_errors: yes
 
 - name: Add systemd timer for cert renewal
   template:
@@ -49,4 +51,4 @@
     name: certbot.timer
     state: started
     enabled: true
-    daemon_reaload: true
+    daemon_reload: true
