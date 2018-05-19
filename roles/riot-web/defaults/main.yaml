@@ -1,2 +1,4 @@
 # Based on https://github.com/vector-im/riot-web/releases
-riot_web_version: "v0.12.2"
+---
+riot_web_version: "v0.15.4"
+server_fqdn: "{{ ansible_hostname }}.lilik.it"

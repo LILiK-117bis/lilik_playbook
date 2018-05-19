@@ -19,5 +19,12 @@
     group: www-data
 
 - template:
+    src: riot.conf
+    dest: "/etc/nginx/locations/{{ server_fqdn }}/riot.conf"
+
+  notify:
+    - restart nginx
+
+- template:
     src: config.json.j2
     dest: "/srv/riot-web/riot-{{ riot_web_version }}/config.json"

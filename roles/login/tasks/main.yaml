@@ -61,6 +61,13 @@
     mode: 0664
     state: file
 
+- name: add nginx configurations
+  template:
+    src: login.conf
+    dest: "/etc/nginx/locations/{{ server_fqdn }}/login.conf"
+  notify:
+    - restart nginx
+
 - name: reload systemd
   systemd:
     daemon_reload: yes

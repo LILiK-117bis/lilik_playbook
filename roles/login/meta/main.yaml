@@ -1,8 +1,4 @@
 ---
 dependencies:
   - role: nginx
-    is_proxy: true
-    config_name: "login"
-    remote_host: "http://localhost:5000"
     server_fqdn: "login.lilik.it"
-    parent_role_path: "login"

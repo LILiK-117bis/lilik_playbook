@@ -1,6 +1,4 @@
 ---
 dependencies:
   - role: nginx
-    php: true
-    config_name: "dokuwiki"
-    parent_role_path: "dokuwiki"
+    server_fqdn: "wiki.lilik.it"

@@ -1,9 +1,10 @@
+---
 - name: set synapse server name
   debconf:
-      name: 'matrix-synapse'
-      question: 'matrix-synapse/server-name'
-      vtype: 'string'
-      value: '{{ ansible_hostname }}'
+    name: 'matrix-synapse'
+    question: 'matrix-synapse/server-name'
+    vtype: 'string'
+    value: '{{ ansible_hostname }}'
 
 - name: install synapse
   include_role:
@@ -25,7 +26,15 @@
     - /etc/matrix-synapse
     - /etc/matrix-synapse/conf.d
 
-- template:
+- name: upload synapse reverse proxy conf
+  template:
+    src: synapse.conf
+    dest: "/etc/nginx/locations/{{ server_fqdn }}/synapse.conf"
+  notify:
+    - restart nginx
+
+- name: upload synapse conf
+  template:
     src: homeserver.yaml.j2
     dest: /etc/matrix-synapse/homeserver.yaml
   notify: "restart matrix-synapse"

@@ -1,3 +1,4 @@
+---
 - name: configure icinga2-ido-pgsql (host)
   debconf:
       name: 'icinga2-ido-pgsql'
@@ -100,3 +101,10 @@
     mode: 0770
   with_items:
     - /etc/icinga2/conf.d/hosts/
+
+- name: add nginx configurations
+  template:
+    src: icinga.conf
+    dest: "/etc/nginx/locations/{{ server_fqdn }}/service.conf"
+  notify:
+    - restart nginx

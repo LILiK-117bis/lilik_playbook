@@ -1,1 +1,5 @@
+---
 ldap_server: ldap.dmz.lilik
+proxy_location_path: api
+remote_host: "http://localhost:5000"
+server_fqdn: "login.lilik.it"
