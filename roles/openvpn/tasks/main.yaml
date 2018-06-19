@@ -98,8 +98,16 @@
 
 - name: copy vpn ca public key
   copy:
+    src: lilik_ca_x1.pem
+    dest: /etc/openvpn/lilik_ca_x1.pem
+
+- name: copy vpn ca public key
+  copy:
     src: lilik_ca_v1.pem
-    dest: /etc/openvpn/ca.crt
+    dest: /etc/openvpn/lilik_ca_v1.pem
+
+- name: create fullchain
+  command: "cat /etc/openvpn/lilik_ca_x1.pem /etc/openvpn/lilik_ca_v1.pem > /etc/openvpn/ca.crt"
 
 - name: write openvpn configuration
   template:
