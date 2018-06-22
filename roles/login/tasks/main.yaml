@@ -47,11 +47,10 @@
   notify:
     - restart login
 
-- name: add login init script
-  template: src=login.j2 dest=/etc/init.d/login mode=755
-  register: add_login_startup_script
-  notify:
-    - restart login
+- name: add systemd service for api server
+  template:
+    src: login.service
+    dest: /etc/systemd/system/login.service
 
 - name: create /var/log/login.log
   file:
@@ -72,10 +71,5 @@
   systemd:
     daemon_reload: yes
     name: login
-  when: add_login_startup_script.changed
-
-- include_role:
-    name: service
-  vars:
-    service_name: login
-    service_packages: null
+    state: started
+    enabled: yes

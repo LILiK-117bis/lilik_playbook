@@ -1,0 +1,13 @@
+[Unit]
+Description=Login Web Service
+After=network.target
+
+[Service]
+Type=simple
+User=login
+Group=login
+WorkingDirectory=/srv/login
+ExecStart=/srv/login/server.py
+
+[Install]
+WantedBy=multi-user.target
