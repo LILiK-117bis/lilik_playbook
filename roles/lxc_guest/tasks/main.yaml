@@ -31,7 +31,6 @@
       # leaking when lvm is invoked
       environment:
         LVM_SUPPRESS_FD_WARNINGS: 1
-        MIRROR: http://mi.mirror.garr.it/mirrors/debian/
 
     - name: deploy container config
       template:
