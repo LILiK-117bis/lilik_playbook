@@ -1,0 +1,4 @@
+---
+server_fqdn: "matrix.lilik.it"
+proxy_location_path: "_matrix"
+remote_host: "http://127.0.0.1:8008/_matrix"
