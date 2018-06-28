@@ -106,27 +106,12 @@
   failed_when: false
 
 - block:
-    - name: get pub key
-      slurp:
-        src: "/etc/exim4/exim.csr"
-      register: pub_key
-
-    - debug:
-        var: pub_key
-        verbosity: 2
-
     - name: generate host request
-      set_fact:
-        ca_request:
-          type: 'sign_request'
-          request:
-            keyType: 'ssl_host'
-            hostName: '{{ inventory_hostname }}.lilik.it'
-            keyData: "{{ pub_key.content| b64decode}}"
-
-    - debug:
-        var: authorities_request
-        verbosity: 2
+      cert_request:
+        proto: 'ssl'
+        host: '{{ inventory_hostname }}.lilik.it'
+        path: "/etc/exim4/exim.csr"
+      register: ca_request
 
     - name: start sign request
       include: ca-dialog.yaml
