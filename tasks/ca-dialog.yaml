@@ -1,8 +1,16 @@
 - debug:
     msg: "Sending certificate request to {{ hostvars | ip_from_inventory('authorities_request') }}"
 
+- debug:
+    var: ca_request
+    verbosity: 2
+
 - raw: "{{ ca_request | to_json }}"
   delegate_to: authorities_request
   delegate_facts: True
   register: request_result
   failed_when: "( request_result.stdout | from_json ).failed"
+
+- debug:
+    var: request_result
+    verbosity: 2

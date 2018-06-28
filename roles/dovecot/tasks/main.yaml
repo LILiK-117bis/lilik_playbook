@@ -143,10 +143,6 @@
     - name: start sign request
       include: ca-dialog.yaml
 
-    - debug:
-        var: request_result
-        verbosity: 2
-
     - set_fact:
         request_output: "{{ request_result.stdout|string|from_json }}"
 
@@ -160,18 +156,10 @@
           requestID: '{{ request_output.requestID }}'
 
     - debug:
-        var: authorities_request
-        verbosity: 2
-
-    - debug:
         msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
 
     - name: wait for cert
       include: ca-dialog.yaml
-
-    - debug:
-        var: request_result
-        verbosity: 2
 
     - set_fact:
         cert_key: "{{ request_result.stdout|string|from_json }}"
