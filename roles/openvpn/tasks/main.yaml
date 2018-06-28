@@ -5,9 +5,9 @@
     state: present
 
 - name: create openvpn KEY
-  shell: 'openssl genrsa -out /etc/openvpn/openvpn.key 2048'
+  shell: 'openssl genrsa -out {{ openvpn_key }} 2047'
   args:
-    creates: /etc/openvpn/openvpn.key
+    creates: "{{ openvpn_key }}"
   notify: reload openvpn
 
 
@@ -21,12 +21,12 @@
 - name: create CSR
   shell: 'openssl req -new -sha256 -subj "/C=IT/ST=ITALY/L=TUSCANY/O=IT/CN={{ ansible_hostname }}.lilik.it" -key /etc/openvpn/openvpn.key -out /etc/openvpn/openvpn.csr'
   args:
-    creates: /etc/openvpn/openvpn.csr
+    creates: "{{ openvpn_csr }}"
   notify: reload openvpn
 
 - name: check if openvpn cert key exist
   stat:
-    path: /etc/openvpn/openvpn.cert
+    path: "{{ openvpn_crt }}"
   register: openvpn_cert_key
 
 - block:
@@ -92,7 +92,9 @@
         verbosity: 2
 
     - name: set pub key
-      shell: "echo '{{ cert_key.result }}' > /etc/openvpn/openvpn.cert"
+      copy:
+        content: "{{ cert_key.result }}"
+        dest: "{{ openvpn_crt }}"
       register: set_pub_key
   when: not openvpn_cert_key.stat.exists
 
