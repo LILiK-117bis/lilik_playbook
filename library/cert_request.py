@@ -88,7 +88,7 @@ def main():
             'request': {
                 'keyType': '{}_host'.format(proto),
                 'hostName': host,
-                'keyDat': src.read().replace('\n', ''),
+                'keyData': src.read().replace('\n', ''),
             },
         }
         module.exit_json(**result)
