@@ -34,7 +34,7 @@
 
 - block:
     - name: Generate host request
-      host_request:
+      cert_request:
         host: "{{ server_fqdn }}"
         path: "/etc/ssh/ssh_host_ed25519_key.pub"
         proto: "ssh"
