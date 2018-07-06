@@ -1,0 +1,7 @@
+#! /usr/bin/env bash
+
+LOGINS=5
+echo ""
+echo "Last $LOGINS SSH accepted logins"
+
+grep Accepted /var/log/auth.log | tail -n $LOGINS | cut -f 1,2,3,11,15,16,17,18,19,20,21,22 -d " "
