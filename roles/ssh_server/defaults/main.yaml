@@ -1,0 +1,2 @@
+---
+server_fqdn: "{{ ansible_docker_extra_args or inventory_hostname }}.lilik.it"
