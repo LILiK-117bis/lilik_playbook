@@ -1,0 +1,22 @@
+---
+- hosts: biff
+  vars:
+    - server_fqdn: "shadow.lists.lilik.it"
+  roles:
+    - role: lxc_guest
+      vm_name: shadow_list
+      distro: stretch
+    - role: ssh_server
+      ansible_connection: lxc_ssh
+      ansible_docker_extra_args: shadow_list
+- hosts: shadow_list
+  roles:
+    - role: dns_record
+    - role: reverse_proxy
+      hostname: shadow.list
+  tasks:
+    - apt:
+        name: "{{ item }}"
+      with_items:
+        - nginx
+        - python-django-hyperkitty
