@@ -8,11 +8,6 @@
       - openssh-server
       - openssh-sftp-server
 
-- name: Add last logins to MOTD
-  file:
-    dest: /etc/update-motd.d/11-last-ssh-login
-    src: last_ssh_login
-
 - name: lookup user ca key
   set_fact:
     user_ca_key: "{{ lookup('file', 'lilik_ca_s1.pub') }}"
