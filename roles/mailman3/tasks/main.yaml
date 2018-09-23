@@ -1,0 +1,17 @@
+---
+- name: install mailman and associated packages
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+  with_items:
+    - mailman3-full
+    - python3-django-hyperkitty
+
+- name: add nginx configurations
+  template:
+    src: mailman3.conf
+    dest: "/etc/nginx/locations/{{ server_fqdn }}/mailman3.conf"
+  notify:
+    - restart nginx

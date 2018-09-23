@@ -1,0 +1,4 @@
+---
+server_fqdn: "lists2.lilik.it"
+remote_host: "unix:/run/mailman3-web/uwsgi.sock"
+proxy_type: "uwsgi_pass"
