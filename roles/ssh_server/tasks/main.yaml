@@ -12,10 +12,12 @@
   set_fact:
     user_ca_key: "{{ lookup('file', 'lilik_ca_s1.pub') }}"
 
-- name: Update container user CA key
-  copy:
-    content: "{{ user_ca_key }}"
+- name: Update container user CA cert
+  lineinfile:
+    line: "{{ user_ca_key }} +AnsibleManaged_CA_cert"
+    regexp: " \+AnsibleManaged_CA_cert"
     dest: "/etc/ssh/user_ca.pub"
+    create: yes
   notify: restart ssh
 
 - name: Validate SSH host certificate if any
