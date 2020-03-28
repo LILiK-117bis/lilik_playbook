@@ -26,7 +26,7 @@ import shlex
 import subprocess
 
 from ansible import constants as C
-from ansible.compat.six import text_type, binary_type
+from six import text_type, binary_type
 from ansible.plugins.connection import ConnectionBase
 from ansible.utils.path import unfrackpath, makedirs_safe
 from ansible.module_utils._text import to_bytes, to_text
