@@ -1,2 +1,2 @@
 ---
-server_fqdn: "{{ ansible_docker_extra_args or inventory_hostname }}.lilik.it"
+server_fqdn: "{{ ansible_ssh_lxc_name | default(inventory_hostname) }}.lilik.it"
