@@ -23,7 +23,7 @@ On the hosts:
 |`roles/service`     | **YES**   | **YES**  | NO          | Changes in Ansible built-in `apt` module.                                                |
 |`roles/ssh_server`  | **YES**   | **YES**  | NO          | `lxc_ssh.py` --> `ssh_lxc.py`.                                                           |
 |`roles/ca`          | **YES**   | ReadNote | NO          | Changes in Ansible built-in `apt` module. Needs update of `ca_manager` to [1] to work.   |
-|`prepare_host.yaml` | **YES**   | NO       | NO          | Install `python3` and `python3-lxc` instead of version 2.                                |
+|`prepare_host.yaml` | **YES**   | **YES**  | NO          | Debian stretch --> buster and Python 2 --> 3                                             |
 |`roles/ldap`        | NO        | NO       | NO          |                                                                                          |
 |`roles/nginx`       | NO        | NO       | NO          |                                                                                          |
 |`roles/projects`    | NO        | NO       | NO          |                                                                                          |

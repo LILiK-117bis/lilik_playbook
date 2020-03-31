@@ -8,14 +8,13 @@
   tasks:
     - name: install lxc related packages
       apt:
-        name: "{{ item }}"
+        pkg:
+          - lxc
+          - python3
+          - python3-lxc
         state: present
         update_cache: yes
         cache_valid_time: 3600
-      with_items:
-        - lxc
-        - python3
-        - python3-lxc
 
     - name: install common lxc filesystem support
       apt:
@@ -24,13 +23,12 @@
 
     - name: install network bridge utilities
       apt:
-        name: "{{ item }}"
+        pkg:
+          - bridge-utils
+          - vlan
         state: present
         update_cache: yes
         cache_valid_time: 3600
-      with_items:
-        - bridge-utils
-        - vlan
       notify: restart networking
     # We should fix this bug. We really should. It's a bug.
     # Bridge-utils requires a complete system reboot to enable the new bridge.
@@ -43,19 +41,18 @@
 
     - name: install utilities
       apt:
-        name: "{{ item }}"
+        pkg:
+          - vim
+          - htop
         state: present
         update_cache: yes
         cache_valid_time: 3600
-      with_items:
-        - vim
-        - htop
 
     - name: enable lvm wipe signature
       lineinfile:
         dest: /etc/lvm/lvm.conf
         state: present
-        line: "        wipe_signatures_when_zeroing_new_lvs = 0"
+        line: "	wipe_signatures_when_zeroing_new_lvs = 0"
         regexp: '^\s*.+wipe_signatures_when_zeroing_new_lvs = '
       notify: restart lvm
   handlers:
