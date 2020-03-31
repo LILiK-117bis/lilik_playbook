@@ -2,12 +2,11 @@
 - block:
   - name: install {{ service_name }}
     apt:
-      name: "{{ item }}"
+      pkg: "{{ service_packages }}"
       state: present
       update_cache: yes
       cache_valid_time: 3600
       install_recommends: '{{ install_recommends | default("no") }}'
-    with_items: "{{ service_packages }}"
 
   - name: start {{ service_name }} at boot
     service:
