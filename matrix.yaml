@@ -5,8 +5,8 @@
       vm_name: matrix
       distro: sid
     - role: ssh_server
-      ansible_connection: lxc_ssh
-      ansible_docker_extra_args: matrix
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: matrix
 - hosts: matrix
   roles:
     - role: dns_record

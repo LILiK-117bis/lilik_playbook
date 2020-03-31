@@ -5,8 +5,8 @@
       vm_name: ca
       distro: sid
     - role: ssh_server
-      ansible_connection: lxc_ssh
-      ansible_docker_extra_args: ca
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: ca
 
 - hosts: ca
   roles:

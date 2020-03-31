@@ -4,8 +4,8 @@
     - role: lxc_guest
       vm_name: ldap
     - role: ssh_server
-      ansible_connection: lxc_ssh
-      ansible_docker_extra_args: ldap
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: ldap
 - hosts: ldap
   roles:
       - role: dns_record
