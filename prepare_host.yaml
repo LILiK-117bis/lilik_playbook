@@ -14,8 +14,8 @@
         cache_valid_time: 3600
       with_items:
         - lxc
-        - python
-        - python-lxc
+        - python3
+        - python3-lxc
 
     - name: install common lxc filesystem support
       apt:
