@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 
 from datetime import datetime
 import string
@@ -45,7 +45,7 @@ def not_valid(cert_timestamps):
 def cert_type(lines):
     for l in lines:
         if l.startswith('Type'):
-            return string.split(l, maxsplit=2)[1:]
+            return l.split(maxsplit=2)[1:]
 
 
 def valid_from(lines):
@@ -79,7 +79,7 @@ def main():
             '-f', result['ca']['path'],
         ])
 
-    ca_lines = string.split(ca_output, maxsplit=2)
+    ca_lines = ca_output.decode().split(maxsplit=2)
     result['ca']['fingerprint'] = ca_lines[1]
     result['ca']['comment'] = ca_lines[2]
 
@@ -88,7 +88,7 @@ def main():
                                            '-L',
                                            '-f', result['certificate']['path'],
                                           ])
-    cert_lines = [line.strip() for line in cert_output.split('\n')]
+    cert_lines = [line.strip() for line in cert_output.decode().split('\n')]
 
     result['certificate']['signin_ca'] = signin_ca(cert_lines)
     result['certificate']['valid'] = {
