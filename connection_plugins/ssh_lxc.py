@@ -2,21 +2,23 @@
 # Copyright 2015 Abhijit Menon-Sen <ams@2ndQuadrant.com>
 # Copyright 2017 Toshio Kuratomi <tkuratomi@ansible.com>
 # Copyright (c) 2017 Ansible Project
+# Copyright 2020 Lorenzo Zolfanelli <lorenzo.zolfanelli@gmail.com>
+#
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 DOCUMENTATION = '''
-    connection: ssh
-    short_description: connect via ssh client binary
+    connection: ssh_lxc
+    short_description: connect via ssh client binary and then to a container with lxc-attach
     description:
         - This connection plugin allows ansible to communicate to the target machines via normal ssh command line.
         - Ansible does not expose a channel to allow communication between the user and the ssh process to accept
           a password manually to decrypt an ssh key when using this connection plugin (which is the default). The
           use of ``ssh-agent`` is highly recommended.
-    author: ansible (@core)
-    version_added: historical
+    author: Lorenzo Zolfanelli
+    version_added: "2.9.6"
     options:
       host:
           description: Hostname/ip to connect to.
@@ -24,6 +26,12 @@ DOCUMENTATION = '''
           vars:
                - name: ansible_host
                - name: ansible_ssh_host
+      container_name:
+          description: name of lxc container to attach to
+          vars:
+              - name: ansible_ssh_lxc_name
+              - name: ansible_docker_extra_args
+          type: str
       host_key_checking:
           description: Determines if ssh should check host keys
           type: boolean
@@ -444,7 +452,7 @@ def _ssh_retry(func):
 class Connection(ConnectionBase):
     ''' ssh based connections '''
 
-    transport = 'ssh'
+    transport = 'ssh_lxc'
     has_pipelining = True
 
     def __init__(self, *args, **kwargs):
@@ -470,6 +478,7 @@ class Connection(ConnectionBase):
     # management here.
 
     def _connect(self):
+        self.container_name = self.get_option('container_name')
         return self
 
     @staticmethod
@@ -764,7 +773,7 @@ class Connection(ConnectionBase):
 
         # We don't use _shell.quote as this is run on the controller and independent from the shell plugin chosen
         display_cmd = u' '.join(shlex_quote(to_text(c)) for c in cmd)
-        display.vvv(u'SSH: EXEC {0}'.format(display_cmd), host=self.host)
+        display.vvv(u'SSH_LXC: EXEC {0}'.format(display_cmd), host=self.host)
 
         # Start the given command. If we don't need to pipeline data, we can try
         # to use a pseudo-tty (ssh will have been invoked with -tt). If we are
@@ -1153,12 +1162,16 @@ class Connection(ConnectionBase):
     #
     # Main public methods
     #
-    def exec_command(self, cmd, in_data=None, sudoable=True):
+    def exec_command(self, cmd, in_data=None, sudoable=False):
         ''' run a command on the remote host '''
 
         super(Connection, self).exec_command(cmd, in_data=in_data, sudoable=sudoable)
 
-        display.vvv(u"ESTABLISH SSH CONNECTION FOR USER: {0}".format(self._play_context.remote_user), host=self._play_context.remote_addr)
+        display.vvv(
+            "ESTABLISH SSH_LXC CONNECTION TO {1}, AS SSH USER: {0}".format(self._play_context.remote_user,
+                                                                           self.container_name),
+            host=self._play_context.remote_addr
+        )
 
         if getattr(self._shell, "_IS_WINDOWS", False):
             # Become method 'runas' is done in the wrapper that is executed,
@@ -1179,14 +1192,17 @@ class Connection(ConnectionBase):
 
         ssh_executable = self._play_context.ssh_executable
 
+        lxc_cmd = 'lxc-attach --name %s -- /bin/sh -c %s' % (shlex_quote(self.container_name),
+                                                             shlex_quote(cmd))
+
         # -tt can cause various issues in some environments so allow the user
         # to disable it as a troubleshooting method.
         use_tty = self.get_option('use_tty')
 
         if not in_data and sudoable and use_tty:
-            args = (ssh_executable, '-tt', self.host, cmd)
+            args = (ssh_executable, '-tt', self.host, lxc_cmd)
         else:
-            args = (ssh_executable, self.host, cmd)
+            args = (ssh_executable, self.host, lxc_cmd)
 
         cmd = self._build_command(*args)
         (returncode, stdout, stderr) = self._run(cmd, in_data, sudoable=sudoable)
@@ -1209,7 +1225,10 @@ class Connection(ConnectionBase):
         if getattr(self._shell, "_IS_WINDOWS", False):
             out_path = self._escape_win_path(out_path)
 
-        return self._file_transport_command(in_path, out_path, 'put')
+        with open(in_path, 'rb') as in_f:
+            in_data = in_f.read()
+            cmd = 'cat > %s; echo -n done' % shlex_quote(out_path)
+            return self.exec_command(cmd, in_data, sudoable=False)
 
     def fetch_file(self, in_path, out_path):
         ''' fetch a file from remote to local '''
@@ -1222,7 +1241,13 @@ class Connection(ConnectionBase):
         if getattr(self._shell, "_IS_WINDOWS", False):
             in_path = self._escape_win_path(in_path)
 
-        return self._file_transport_command(in_path, out_path, 'get')
+        cmd = 'cat %s' % shlex_quote(in_path)
+        (returncode, stdout, stderr) = self.exec_command(cmd, in_data=None, sudoable=False)
+        if returncode != 0:
+            raise AnsibleError("failed to transfer file from {0}:\n{1}\n{2}".format(in_path, stdout, stderr))
+
+        with open(out_path,'wb') as out_f:
+            out_f.write(stdout)
 
     def reset(self):
         # If we have a persistent ssh connection (ControlPersist), we can ask it to stop listening.
