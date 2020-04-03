@@ -1,15 +1,19 @@
 lxc.include = /usr/share/lxc/config/debian.common.conf
 
-lxc.utsname = {{ vm_name }}
-lxc.rootfs = /dev/{{ inventory_hostname }}vg/vm_{{ vm_name }}
+lxc.uts.name = {{ vm_name }}
+lxc.rootfs.path = lvm:/dev/{{ vg_name | default(inventory_hostname+'vg') }}/vm_{{ vm_name }}
 
-lxc.tty = 4
+lxc.apparmor.profile = generated
+lxc.apparmor.allow_nesting = 1
+
+lxc.tty.max = 4
 lxc.arch = amd64
+lxc.pty.max = 1024
 
-lxc.network.type = veth
-lxc.network.flags = up
-lxc.network.link = br0
-lxc.network.name = eth0
-lxc.network.ipv4 = {{ hostvars | ip_from_inventory(vm_name) }}/24
-lxc.network.ipv4.gateway = {{ hostvars | ip_from_inventory('vm_gateway') }}
+lxc.net.0.type = veth
+lxc.net.0.flags = up
+lxc.net.0.link = br0
+lxc.net.0.name = eth0
+lxc.net.0.ipv4.address = {{ hostvars | ip_from_inventory(vm_name) }}/24
+lxc.net.0.ipv4.gateway = {{ hostvars | ip_from_inventory('vm_gateway') }}
 lxc.start.auto = {% if auto_start %}1{% else %}0{% endif %}
