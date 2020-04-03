@@ -13,6 +13,10 @@ DOCUMENTATION = '''
     connection: ssh_lxc
     short_description: connect via ssh client binary and then to a container with lxc-attach
     description:
+        - Normally this connection target host is the one running LXC. Roles which set variable
+          `ansible_connection` and `ansible_ssh_lxc_name` will be executed on the container.
+        - If the target host variable `ansible_lxc_host` is defined the behavior is reverted, and the connection
+          is established
         - This connection plugin allows ansible to communicate to the target machines via normal ssh command line.
         - Ansible does not expose a channel to allow communication between the user and the ssh process to accept
           a password manually to decrypt an ssh key when using this connection plugin (which is the default). The
@@ -21,14 +25,25 @@ DOCUMENTATION = '''
     version_added: "2.9.6"
     options:
       host:
-          description: Hostname/ip to connect to.
+          description: Hostname/ip running LXC to connect to, or name of the container if `lxc_host` is set.
           default: inventory_hostname
           vars:
                - name: ansible_host
                - name: ansible_ssh_host
-      container_name:
-          description: name of lxc container to attach to
+      lxc_host:
+          descriotion: Hostname/ip running LXC, if `ansible_host` is the container.
           vars:
+              - name: ansible_lxc_host
+          type: str
+      hostvars:
+          description: obtain invetory values for use in `delegate_to` mode with `lxc_host` set.
+          vars:
+              - name: hostvars
+          type: dict
+      container_name:
+          description: name of lxc container to attach to.
+          vars:
+              - name: ansible_lxc_name
               - name: ansible_ssh_lxc_name
               - name: ansible_docker_extra_args
           type: str
@@ -478,7 +493,28 @@ class Connection(ConnectionBase):
     # management here.
 
     def _connect(self):
-        self.container_name = self.get_option('container_name')
+        if self.get_option('lxc_host') is None:
+            self.container_name = self.get_option('container_name')
+
+            display.vvv("lxc_host=None; so container_name={}, host={}".format(self.container_name,
+                                                                              self.host))
+        else:
+            self.container_name = self.get_option('container_name')
+
+            lxc_host_hostname = self.get_option('lxc_host')
+            try:
+                lxc_host_vars = self.get_option('hostvars')[lxc_host_hostname]
+            except KeyError:
+                raise AnsibleError("ansible_lxc_host={} not found in invetory.".format(lxc_host_hostname))
+
+            self.host = lxc_host_vars['ansible_host']
+            if 'ansible_port' in lxc_host_vars:
+                self.port = lxc_host_vars['ansible_port']
+            if 'ansible_user' in lxc_host_vars:
+                self.user = lxc_host_vars['ansible_user']
+
+            display.vvv("lxc_host={1}; so container_name={0}, host={1}".format(self.container_name,
+                                                                               self.host))
         return self
 
     @staticmethod
