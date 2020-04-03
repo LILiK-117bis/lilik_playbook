@@ -41,4 +41,4 @@ On the hosts:
 |`library/ssh_cert.py`   | **YES**   | **YES**   | NO          | Migrate Python 2 to 3.      |
 |`library/gen_passwd.py` | **YES**   | **YES**   | NO          | Migrate Python 2 to 3.      |
 
-[1]: https://github.com/LILiK-117bis/ca_manager/tree/peewee3%2Brfc5280
+[ca_manager]: https://github.com/LILiK-117bis/ca_manager/tree/peewee3%2Brfc5280
