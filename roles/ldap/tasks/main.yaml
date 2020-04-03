@@ -54,18 +54,21 @@
       question: 'slapd/password1'
       vtype: 'string'
       value: '{{ slapd_passwd }}'
+
 - name: configure OpenLDAP (password2)
   debconf:
       name: 'slapd'
       question: 'slapd/password2'
       vtype: 'string'
       value: '{{ slapd_passwd }}'
+
 - name: configure phamm-ldap
   debconf:
       name: 'phamm-ldap'
       question: 'phamm-ldap/init_base_ldap'
       vtype: 'boolean'
       value: false
+
 - include_role:
     name: service
   vars:
@@ -73,13 +76,22 @@
     service_packages:
         - slapd
         - ldap-utils
-        - phamm-ldap
         - libpam-ldap
         - sudo
+
+- name: download schemas
+  copy:
+    src: "{{ item }}"
+    dest: /etc/ldap/schema/
+  loop:
+    - "phamm.schema"
+    - "phamm-vacation.schema"
+
 - name: upload slapd config
   template:
       src: slapd.conf.j2
       dest: "/etc/ldap/slapd.conf"
+
 - name: update slapd config
   shell: slaptest -f /etc/ldap/slapd.conf -F /etc/ldap/slapd.d
   args:
@@ -96,6 +108,7 @@
       olcModuleLoad: {1}memberof
       olcModuleLoad: {2}pw-sha2
   notify: restart slapd
+
 - name: upload default tree
   template:
     dest=/etc/ldap/default_tree.ldif
@@ -104,10 +117,12 @@
     group=root
     mode=0400
   register: upload_default_tree
+
 - name: create default tree
   shell: slapadd -l /etc/ldap/default_tree.ldif
   when: upload_default_tree.changed
   notify: restart slapd
+
 - name: enable OpenLDAP server
   service:
       name: 'slapd'
