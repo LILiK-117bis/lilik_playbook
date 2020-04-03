@@ -3,8 +3,10 @@
 management_gateway: 0.0.0.0
 # ip of the vm vlan gateway
 vm_gateway: 0.0.0.0
-# Put here the public key of the users CA.
-user_ca_key: ""
+# Put here a list of public keys for each allowed users CA.
+# The first one should be the current production one.
+user_ca_keys:
+ - ""
 # Put here the public ip for your organisation
 public_ip: 0.0.0.0
 # Put here the domain for your organisation

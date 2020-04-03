@@ -8,13 +8,9 @@
       - openssh-server
       - openssh-sftp-server
 
-- name: lookup user ca key
-  set_fact:
-    user_ca_key: "{{ lookup('file', 'lilik_ca_s1.pub') }}"
-
 - name: Update container user CA key
-  copy:
-    content: "{{ user_ca_key }}"
+  template:
+    src: user_ca.pub.j2
     dest: "/etc/ssh/user_ca.pub"
   notify: restart ssh
 

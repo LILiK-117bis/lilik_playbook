@@ -24,7 +24,11 @@ def serial(lines):
 def signin_ca(lines):
     for l in lines:
         if l.startswith('Signing CA'):
-            return l.split().pop()
+#            return l.split().pop()
+#       Starting from OpenSSH v8 the output format of ssh-keygen
+#       has changed, this should work for all versions:
+            return l.split()[3]
+
 
 
 def still_valid(cert_timestamps):
@@ -79,6 +83,8 @@ def main():
             '-f', result['ca']['path'],
         ])
 
+    # If multiple CA are present verify cert against the first one
+    ca_output = ca_output.splitlines()[0]
     ca_lines = ca_output.decode().split(maxsplit=2)
     result['ca']['fingerprint'] = ca_lines[1]
     result['ca']['comment'] = ca_lines[2]
