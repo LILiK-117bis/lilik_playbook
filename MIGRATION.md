@@ -18,25 +18,26 @@ On the hosts:
 
 ## Roles
 
-| Role name          | Modified? | Tested?  | Production? | Notes                                                                                    |
-|--------------------|:---------:|:--------:|:-----------:|------------------------------------------------------------------------------------------|
-|`roles/service`     | **YES**   | **YES**  | NO          | Changes in Ansible built-in `apt` module.                                                |
-|`roles/ssh_server`  | **YES**   | **YES**  | NO          | `lxc_ssh.py` --> `ssh_lxc.py`.                                                           |
-|`roles/ca`          | **YES**   | ReadNote | NO          | Changes in Ansible built-in `apt` module. Needs update of `ca_manager` to [1] to work.   |
-|`prepare_host.yaml` | **YES**   | **YES**  | NO          | Debian stretch --> buster and Python 2 --> 3                                             |
-|`roles/ldap`        | NO        | NO       | NO          |                                                                                          |
-|`roles/nginx`       | NO        | NO       | NO          |                                                                                          |
-|`roles/projects`    | NO        | NO       | NO          |                                                                                          |
-|`roles/dns_record`  | NO        | NO       | NO          |                                                                                          |
-|`roles/openvpn`     | NO        | NO       | NO          |                                                                                          |
+| Role name          | Modified? | Tested?  | Production? | Notes                                                                |
+|--------------------|:---------:|:--------:|:-----------:|----------------------------------------------------------------------|
+|`roles/service`     | **YES**   | **YES**  | NO          | New `apt` module style for packages.                                 |
+|`roles/ssh_server`  | **YES**   | **YES**  | NO          | `lxc_ssh.py` --> `ssh_lxc.py`, multi-key support.                    |
+|`roles/ca`          | **YES**   | ReadNote | NO          | New `apt` module style for pacakges. Works with this [ca_manager].   |
+|`prepare_host.yaml` | **YES**   | **YES**  | NO          | Migrate Debian release to Buster and Python 2 to 3.                  |
+|`roles/ldap`        | NO        | NO       | NO          |                                                                      |
+|`roles/nginx`       | NO        | NO       | NO          |                                                                      |
+|`roles/projects`    | NO        | NO       | NO          |                                                                      |
+|`roles/dns_record`  | NO        | NO       | NO          |                                                                      |
+|`roles/openvpn`     | NO        | NO       | NO          |                                                                      |
 
 
 ## Plugins and Modules
 
-| Plugin/Module name     | Modified? | Tested?   | Production? | Notes                                |
-|------------------------|:---------:|:---------:|:-----------:|--------------------------------------|
-|`connection/lxc_ssh.py` | *REMOVED* |           |             |                                      |
-|`connection/ssh_lxc.py` | **NEW**   | **YES**   |    NO       | Replace `lxc_ssh.py`.                |
-|`library/ssh_cert.py`   | **YES**   | **YES**   |    NO       | Migrate from `python2` to `python3`. |
+| Plugin/Module name     | Modified? | Tested?   | Production? | Notes                       |
+|------------------------|:---------:|:---------:|:-----------:|-----------------------------|
+|`connection/lxc_ssh.py` | *REMOVED* |           |             |                             |
+|`connection/ssh_lxc.py` | **NEW**   | **YES**   | NO          | Replace `lxc_ssh.py`.       |
+|`library/ssh_cert.py`   | **YES**   | **YES**   | NO          | Migrate Python 2 to 3.      |
+|`library/gen_passwd.py` | **YES**   | **YES**   | NO          | Migrate Python 2 to 3.      |
 
 [1]: https://github.com/LILiK-117bis/ca_manager/tree/peewee3%2Brfc5280
