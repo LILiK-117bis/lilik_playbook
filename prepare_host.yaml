@@ -20,6 +20,13 @@
       apt:
         name: xfsprogs
         state: present
+      notify: load xfs module
+
+    - name: autoload xfs module
+      copy:
+        content: "xfs\n"
+        dest: /etc/modules-load.d/xfs.conf
+      notify: load xfs module
 
     - name: install network bridge utilities
       apt:
@@ -62,6 +69,10 @@
         state: restarted
     - name: restart lvm
       shell: /etc/init.d/lvm2 reload
+    - name: load xfs module
+      modprobe:
+        name: xfs
+        state: present
 
 - hosts: status
   roles:

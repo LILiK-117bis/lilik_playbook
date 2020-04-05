@@ -22,7 +22,7 @@
           fs_size: "{{ vm_size }}"
           vg_name: "{{ vg_name | default(inventory_hostname+'vg') }}"
           lv_name: "vm_{{ vm_name }}"
-          fs_type: ext4
+          fs_type: xfs
           container_log: true
           template: debian
           template_options: --release {{ distro }} --packages=ssh,python3
