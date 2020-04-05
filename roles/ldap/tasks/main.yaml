@@ -62,13 +62,6 @@
       vtype: 'string'
       value: '{{ slapd_passwd }}'
 
-- name: configure phamm-ldap
-  debconf:
-      name: 'phamm-ldap'
-      question: 'phamm-ldap/init_base_ldap'
-      vtype: 'boolean'
-      value: false
-
 - include_role:
     name: service
   vars:
