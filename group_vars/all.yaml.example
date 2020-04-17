@@ -3,11 +3,22 @@
 management_gateway: 0.0.0.0
 # ip of the vm vlan gateway
 vm_gateway: 0.0.0.0
-# Put here a list of public keys for each allowed users CA.
-# The first one should be the current production one.
+# Put here the public key of the users CA.
 user_ca_keys:
- - ""
+  - "ssh-ed25519 AAAA(...) Active Production key"
+  - "ssh-ed25519 AAAA(...) Older not-expired key"
+#  - "ssh-ed25519 AAAA(...) Revoked key"
+
+# Put the TLS X.509 Subject Prefix (before OU=)
+ssl_subject_prefix: '/S=IT/L=Firenze/O=Example'
+
+# Put TLS Certificate of your Root Certification Authority
+ssl_ca_cert: |
+  -----BEGIN CERTIFICATE-----
+
+  -----END CERTIFICATE-----
+
 # Put here the public ip for your organisation
 public_ip: 0.0.0.0
 # Put here the domain for your organisation
-domain: ""
+domain: "example.com"
