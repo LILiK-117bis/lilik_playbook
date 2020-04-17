@@ -46,6 +46,7 @@ DOCUMENTATION = '''
               - name: ansible_lxc_name
               - name: ansible_ssh_lxc_name
               - name: ansible_docker_extra_args
+              - name: vm_name
           type: str
       host_key_checking:
           description: Determines if ssh should check host keys

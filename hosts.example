@@ -9,9 +9,9 @@ authorities_request   ansible_host=10.150.40.8         ansible_user=request
 black                 ansible_host=10.150.40.42        ansible_user=root        vg_name=black-vg
 ca                    ansible_host=10.150.40.8         ansible_user=root
 
-# LXC GUEST  ------------------------------------------------------------------ <LXC Running Host> ------ <LXC Container Name>
-#blogs                ansible_host=10.150.42.17        ansible_user=root        ansible_lxc_host=black    ansible_lxc_name=blogs
-ldap                  ansible_host=10.150.42.10        ansible_user=root        ansible_lxc_host=black    ansible_lxc_name=ldap
+# LXC GUEST  ------------------------------------------------------------------ <LXC Running Host>
+#blogs                ansible_host=10.150.42.17        ansible_user=root        ansible_lxc_host=black
+ldap                  ansible_host=10.150.42.10        ansible_user=root        ansible_lxc_host=black
 #lists                ansible_host=10.150.42.15        ansible_user=root
 #login                ansible_host=10.150.42.100       ansible_user=root
 #mail                 ansible_host=10.150.42.36        ansible_user=root
