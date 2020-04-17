@@ -1,0 +1,128 @@
+- apt:
+    pkg: 'openssl'
+    state: 'present'
+
+- name: 'generate ED25519 private key'
+  shell:
+    cmd: >
+      openssl genpkey
+      -algorithm ED25519
+      -out /etc/ldap/slapd.key
+    creates: '/etc/ldap/slapd.key'
+
+- name: 'set private key ownership'
+  file:
+    path: '/etc/ldap/slapd.key'
+    owner: 'openldap'
+    group: 'openldap'
+    mode: '600'
+
+- name: 'generate certificate request'
+  shell:
+    cmd: >
+      openssl req
+      -new
+      -subj "{{ ssl_subject_prefix }}/OU=Server/CN={{ ansible_hostname }}.{{ fqdn_domain }}"
+      -key /etc/ldap/slapd.key
+      -out /etc/ldap/slapd.csr
+    creates: '/etc/ldap/slapd.csr'
+
+- name: 'set key ownership and permission'
+  file:
+    path: /etc/ldap
+
+- name: 'lookup_ssl_ca_cert'
+  when: ssl_ca_cert is not defined
+  set_fact:
+    ssl_ca_cert: '{{ lookup("file", "lilik_ca_w1.pub") }}'
+
+- name: 'update ssl_ca_cert'
+  copy:
+    content: "{{ ssl_ca_cert }}"
+    dest: '/etc/ldap/ssl_ca.crt'
+
+- name: 'check if slapd cert is valid'
+  command: >
+    openssl verify
+    -CAfile /etc/ldap/ssl_ca.crt
+    -untrusted /etc/ldap/slapd.crt
+    /etc/ldap/slapd.crt
+  register: slapd_cert_is_valid
+  changed_when: false
+  failed_when: false
+
+- when: slapd_cert_is_valid.rc != 0
+  block:
+    - name: 'renewing cert - generating ca request'
+      cert_request:
+        host: '{{ ansible_hostname }}.{{ fqdn_domain }}'
+        path: '/etc/ldap/slapd.csr'
+        proto: 'ssl'
+      register: ca_request
+
+    - name: 'renewing cert - sending ca sign request'
+      include: 'ca-dialog.yaml'
+
+    - set_fact:
+        request_output: '{{ request_result.stdout | string | from_json }}'
+
+    - debug:
+        var: request_result
+
+    - name: 'renewing cert - generating get cert request'
+      set_fact:
+        ca_request:
+          type: 'get_certificate'
+          requestID: '{{ request_output.requestID }}'
+
+    - debug:
+        msg: >
+          Please manually confirm sign request with id
+          {{ request_output.requestID }}
+
+    - name: 'renewing cert - waiting for ca signature'
+      include: 'ca-dialog.yaml'
+
+    - set_fact:
+        cert_key: '{{ request_result.stdout | string | from_json }}'
+
+    - debug:
+        var: request_result
+        verbosity: 2
+
+    - name: 'renewing cert - storing new cert file'
+      copy:
+        content: '{{ cert_key.result }}'
+        dest: '/etc/ldap/slapd.crt'
+
+# !BUG! Fixed in Ansible dev using ldap_attrs instead of ldap_attr
+# Ref: https://github.com/ansible/ansible/issues/25665
+- name: 'configuring TLS options (workaround)'
+  ldap_attr:
+    dn: 'cn=config'
+    name: '{{ item.name }}'
+    values: '{{ item.value }}'
+  loop:
+    - { name: 'olcTLSCertificateFile', value: '/etc/ldap/slapd.crt' }
+    - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
+  failed_when: false
+
+- name: 'configuring TLS options'
+  ldap_attr:
+    dn: 'cn=config'
+    name: '{{ item.name }}'
+    values: '{{ item.value }}'
+    state: 'exact'
+  loop:
+    - { name: 'olcTLSCertificateFile', value: '/etc/ldap/slapd.crt' }
+    - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
+    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/ssl_ca.crt' }
+    - { name: 'olcTLSVerifyClient', value: 'try' }  # TLS Client Auth
+
+- name: 'configuring slapd service'
+  lineinfile:
+    line: 'SLAPD_SERVICES="ldap:/// ldapi:/// ldaps:///"'
+    regexp: '^SLAPD_SERVICES='
+    path: '/etc/default/slapd'
+  notify:
+    - 'restart slapd'

@@ -1,0 +1,143 @@
+---
+- name: 'evaluating base_dn'
+  set_fact:
+    base_dn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
+
+- when: ldap_passwd is not defined
+  block:
+    - name: 'get plaintext admin password'
+      slurp:
+        path: '/etc/slapd.secret'
+      register: slapd_secret
+
+    - name: 'set ldap_passwd'
+      set_fact:
+        ldap_passwd: '{{ slapd_secret.content | b64decode }}'
+
+- set_fact:
+- name: 'provisioning tree - organization units'
+  ldap_entry:
+    dn: 'ou={{ item }},{{ base_dn }}'
+    objectClass:
+      - 'organizationalUnit'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop:
+    - 'People'
+    - 'Group'
+    - 'Server'
+    - 'VirtualDomain'
+    - 'Kerberos'
+
+- name: 'provisioning tree - virtual domains'
+  ldap_entry:
+    dn: 'vd={{ item }},ou=VirtualDomain,{{ base_dn }}'
+    objectClass:
+      - 'VirtualDomain'
+    attributes:
+      postfixTransport: 'maildrop:'
+      delete: 'FALSE'
+      accountActive: 'TRUE'
+      lastChange: '{{ ansible_date_time.epoch }}'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ virtual_domains }}'
+
+- name: 'provisioning tree - virtual domain postmasters'
+  ldap_entry:
+    dn: 'cn=postmaster,vd={{ item }},ou=VirtualDomain,{{ base_dn }}'
+    objectClass:
+      - 'VirtualMailAlias'
+    attributes:
+      mail: 'postmaster@{{ item }}'
+      editAccounts: 'TRUE'
+      accountActive: 'TRUE'
+      lastChange: '{{ ansible_date_time.epoch }}'
+      maildrop: 'postmaster'
+      sn: 'postmaster'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ virtual_domains }}'
+
+- name: 'provisioning tree - posix groups'
+  ldap_entry:
+    dn: 'cn={{ item.name }},ou=Group,{{ base_dn }}'
+    objectClass:
+      - 'posixGroup'
+    attributes:
+      gidNumber: '{{ item.gid }}'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop:
+    - { name: 'stduser', gid: 5000 }
+    - { name: 'user_sites', gid: 900 }
+
+- name: 'provisioning tree - name groups'
+  ldap_entry:
+    dn: 'cn={{ item }},ou=Group,{{ base_dn }}'
+    objectClass:
+      - 'groupOfNames'
+    attributes:
+      member: 'cn=admin,{{ base_dn }}'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop:
+    - 'admin'
+    - 'wiki'
+    - 'lilik.it'
+    - 'cloud'
+    - 'projects'
+    - 'teambox'
+    - 'im'
+
+- name: 'provisioning tree - test users'
+  ldap_entry:
+    dn: 'cn={{ item.user }},ou=People,{{ base_dn }}'
+    objectClass:
+      - 'inetOrgPerson'
+      - 'authorizedServiceObject'
+    attributes: '{{ item.attrs }}'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop:
+    - { user: 'pippo', attrs: { sn: 'User Pippo', mail: 'pippo@lilik.it', authorizedService: 'gitlab' } }
+    - { user: 'pluto', attrs: { sn: 'User Pluto', mail: 'pluto@lilik.it' } }
+    - { user: 'test_admin', attrs: { sn: 'Test admin', mail: 'admin1@lilik.it' } }
+
+- name: 'provisioning tree - test users passwd'
+  ldap_passwd:
+    dn: 'cn={{ item.user }},ou=People,{{ base_dn }}'
+    passwd: '{{ item.passwd }}'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop:
+    - { user: 'pippo', passwd: 'pippopippo' }
+    - { user: 'pluto', passwd: 'plutopluto' }
+    - { user: 'test_admin', passwd: 'pippopippo' }
+
+- name: 'provisioning tree - admin group members'
+  ldap_attr:
+    dn: 'cn=admin,ou=Group,{{ base_dn }}'
+    name: 'member'
+    values: 'cn=test_admin,ou=People,{{ base_dn }}'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+
+- name: 'provisioning tree - servers'
+  ldap_entry:
+    dn: 'cn={{ item }},ou=Server,{{ base_dn }}'
+    objectClass: 'applicationProcess'
+    objectClass: 'person'
+    attributes:
+      sn: '{{ item }}'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop:
+    - 'TestServer'
+    - 'projects'
+
+#- name: templating ACLs
+#  template:
+#    src: "global.acl.j2"
+#    dest: "/etc/ldap/{{ item }}"
+...

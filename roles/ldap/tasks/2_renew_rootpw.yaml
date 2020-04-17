@@ -1,0 +1,40 @@
+---
+- name: 'evaluating base_dn'
+  set_fact:
+    base_dn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
+
+- name: 'renewing admin password - generation'
+  gen_passwd: 'length=32'
+  register: new_passwd
+
+- name: 'renewing admin password - hashing'
+  shell: >
+    slappasswd
+    -o module-load=pw-sha2
+    -h "{SSHA512}"
+    -s "{{ new_passwd.passwd }}"
+  register: new_passwd_hash
+
+- name: 'renewing admin password - setting RootPW'
+  ldap_attr:
+    dn: 'olcDatabase={1}mdb,cn=config'
+    name: 'olcRootPW'
+    values: '{{ new_passwd_hash.stdout }}'
+    state: 'exact'
+
+- name: 'renewing admin password - calling ldappasswd'
+  ldap_passwd:
+    dn: 'cn=admin,{{ base_dn }}'
+    passwd: '{{ new_passwd.passwd }}'
+    bind_dn: 'cn=admin,{{ base_dn }}'
+    bind_pw: '{{ new_passwd.passwd }}'
+
+- name: 'renewing admin password - storing plaintext'
+  copy:
+    content: '{{ new_passwd.passwd }}'
+    dest: '/etc/slapd.secret'
+
+- name: 'renewing admin password - setting fact'
+  set_fact:
+    ldap_passwd: '{{ new_passwd.passwd }}'
+...

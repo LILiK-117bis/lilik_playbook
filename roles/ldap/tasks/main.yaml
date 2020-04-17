@@ -1,123 +1,16 @@
-- include_role:
-    name: service
-  vars:
-    service_name: nscd
-    service_packages: nscd
+---
+- name: 'including configuration tasks'
+  include_tasks: '1_configure_server.yaml'
 
-- name: configure OpenLDAP (domain)
-  debconf:
-      name: 'slapd'
-      question: 'slapd/domain'
-      vtype: 'string'
-      value: '{{ ldap_domain }}'
-- name: configure OpenLDAP (configure)
-  debconf:
-      name: 'slapd'
-      question: 'slapd/dump_database'
-      vtype: 'string'
-      value: 'when needed'
-- name: configure OpenLDAP (organization)
-  debconf:
-      name: 'slapd'
-      question: 'shared/organization'
-      vtype: 'string'
-      value: '{{ ldap_organization }}'
+- name: 'including password renewal tasks'
+  include_tasks: '2_renew_rootpw.yaml'
+  when: renew_rootdn_pw
 
-- name: slurp slap secret file
-  slurp:
-    src: /etc/slapd.secret
-  register: slapdsecret
-  failed_when: false
-  changed_when: false
+- name: 'including tree provisionig tasks'
+  include_tasks: '3_provision_tree.yaml'
+  when: check_tree
 
-- set_fact:
-    slapd_passwd: "{{ slapdsecret['content'] | b64decode }}"
-  when: '"content" in slapdsecret'
-
-- block:
-  - name: generate admin password
-    gen_passwd: length=20
-    register: new_passwd
-
-  - name: store slapd secret
-    copy:
-      content : "{{ new_passwd.passwd }}"
-      dest: /etc/slapd.secret
-
-  - set_fact:
-      slapd_passwd: "{{ new_passwd.passwd }}"
-  when: 'not "content" in slapdsecret'
-
-- name: configure OpenLDAP (password1)
-  debconf:
-      name: 'slapd'
-      question: 'slapd/password1'
-      vtype: 'string'
-      value: '{{ slapd_passwd }}'
-
-- name: configure OpenLDAP (password2)
-  debconf:
-      name: 'slapd'
-      question: 'slapd/password2'
-      vtype: 'string'
-      value: '{{ slapd_passwd }}'
-
-- include_role:
-    name: service
-  vars:
-    service_name: slapd
-    service_packages:
-        - slapd
-        - ldap-utils
-        - libpam-ldap
-        - sudo
-
-- name: download schemas
-  copy:
-    src: "{{ item }}"
-    dest: /etc/ldap/schema/
-  loop:
-    - "phamm.schema"
-    - "phamm-vacation.schema"
-
-- name: upload slapd config
-  template:
-      src: slapd.conf.j2
-      dest: "/etc/ldap/slapd.conf"
-
-- name: update slapd config
-  shell: slaptest -f /etc/ldap/slapd.conf -F /etc/ldap/slapd.d
-  args:
-      creates: "/etc/ldap/slapd.d/cn=config/cn=schema/cn={4}phamm.ldif"
-  become: true
-  become_method: sudo
-  become_user: openldap
-  notify: restart slapd
-
-- name: fix missing memberOf and pw-sha2 module load
-  blockinfile:
-    dest: /etc/ldap/slapd.d/cn=config/cn=module{0}.ldif
-    content: |
-      olcModuleLoad: {1}memberof
-      olcModuleLoad: {2}pw-sha2
-  notify: restart slapd
-
-- name: upload default tree
-  template:
-    dest=/etc/ldap/default_tree.ldif
-    src=default_tree.ldif.j2
-    owner=root
-    group=root
-    mode=0400
-  register: upload_default_tree
-
-- name: create default tree
-  shell: slapadd -l /etc/ldap/default_tree.ldif
-  when: upload_default_tree.changed
-  notify: restart slapd
-
-- name: enable OpenLDAP server
-  service:
-      name: 'slapd'
-      enabled: true
-      state: started
+- name: 'including tls tasks'
+  include_tasks: '4_setup_tls.yaml'
+  when: ldap_tls_enabled
+...
