@@ -1,37 +1,61 @@
 # see /usr/share/doc/gitlab/README.Debian.gz
 # for instruction on how to migrate and reset root password
 
-- name: configure gitlab (fqdn)
-  debconf:
-      name: 'gitlab'
-      question: 'gitlab/fqdn'
-      vtype: 'string'
-      value: '{{ fqdn }}'
+- name: 'install gnupg and ca-cert'
+  apt:
+    pkg:
+      - 'gnupg'
+      - 'ca-certificates'
 
-- include_role:
-    name: service
+- name: 'add gitlab gnupg key to apt'
+  apt_key:
+    id: 'F6403F6544A38863DAA0B6E03F01618A51312F3F'
+    url: 'https://packages.gitlab.com/gpg.key'
+    state: 'present'
+
+- name: 'add gitlab apt repos'
+  apt_repository:
+    repo: '{{ item }}'
+    state: 'present'
+  loop:
+    - 'deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ buster main'
+    - 'deb-src https://packages.gitlab.com/gitlab/gitlab-ce/debian/ buster main'
+
+- include_role: name='service'
   vars:
-    service_name: gitlab
+    service_name: 'gitlab'
     service_packages:
-      - gitlab
+      - 'gitlab-ce'
 
-- name: remove debian nginx configuration
-  file:
-    path: '/etc/nginx/sites-enabled/{{ fqdn }}'
-    state: absent
+- name: 'load root ca'
+  copy:
+    content: '{{ ssl_ca_cert }}'
+    dest: '/etc/gitlab/ca.crt'
 
-- name: copy my-gitlab.yml
+- name: 'generate gitlab password'
+  gen_passwd: 'length=32'
+  register: 'ldap_bindpw'
+
+- name: 'set gitlab password'
+  delegate_to: 'localhost'
+  ldap_passwd:
+    dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ ldap_bindpw.passwd }}'
+    server_uri: 'ldap://{{ ldap_server }}'
+    start_tls: true
+    bind_dn: '{{ ldap_admin_dn }}'
+    bind_pw: '{{ ldap_admin_pw }}'
+
+- name: 'update configuration'
   template:
-      src: "gitlab.yml.j2"
-      dest: "/etc/gitlab/gitlab.yml"
-  notify: restart gitlab
+      src: 'gitlab.rb.j2'
+      dest: '/etc/gitlab/gitlab.rb'
+  notify: 'reconfigure gitlab'
 
-- name: patch gitlab source to add domain to email ldap field
-  blockinfile:
-    block: |
-        if key.to_s == "email"
-          value = value.nil? ? value : value + "@lilik.it"
-        end
-    dest: /usr/share/gitlab/lib/gitlab/ldap/auth_hash.rb
-    insertbefore: "return super unless value"
-  notify: restart gitlab
+- name: 'patch gitlab to run in lxc'
+  lineinfile:
+    path: '/opt/gitlab/embedded/cookbooks/package/resources/gitlab_sysctl.rb'
+    insertafter: '^    command "sysctl -e --system"\n'
+    line: '    ignore_failure true'
+  notify: 'reconfigure gitlab'
+

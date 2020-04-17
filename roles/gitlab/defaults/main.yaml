@@ -1,3 +1,5 @@
-fqdn: '{{ ansible_hostname }}.lilik.it'
+fqdn: '{{ ansible_hostname }}.{{ domain }}'
 ssh_port: 8022
-ldap_server: ldap.dmz.lilik
+ldap_server: ldap1.dmz.lilik.it
+ldap_basedn: 'dc=lilik,dc=it'
+enable_https: false
