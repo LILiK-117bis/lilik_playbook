@@ -1,97 +1,88 @@
 ---
-- name: check for lxc container dir
+- name: 'check if container dir exists'
   stat:
     path: '/var/lib/lxc/{{ vm_name }}'
-  register: lxc_existance
+  register: container_dir
 
-- name: check for lxc container existance
+- name: 'check if container exists'
   container_exists:
-    name: "{{ vm_name }}"
+    name: '{{ vm_name }}'
   register: container_exists
 
-- name: Check debian release
+- name: 'check if release is supported'
   assert:
     that: distro in [ 'bullseye', 'sid', 'buster' ]
-    msg: "release {{ distro }} not supported by debian template"
+    msg: 'release {{ distro }} not supported by debian template'
 
-- block:
-    - name: create the lxc container
+- when: not (container_exists.exists and container_dir.stat.isdir)
+  block:
+    - name: 'create the lxc container'
       lxc_container:
-          name: "{{ vm_name }}"
-          backing_store: lvm
-          fs_size: "{{ vm_size }}"
-          vg_name: "{{ vg_name | default(inventory_hostname+'vg') }}"
-          lv_name: "vm_{{ vm_name }}"
-          fs_type: xfs
+          name: '{{ vm_name }}'
+          backing_store: 'lvm'
+          fs_size: '{{ vm_size }}'
+          vg_name: '{{ vg_name | default(inventory_hostname+"vg") }}'
+          lv_name: 'vm_{{ vm_name }}'
+          fs_type: 'xfs'
           container_log: true
-          template: debian
-          template_options: --release {{ distro }} --packages=ssh,python3
-          state: stopped
+          template: 'debian'
+          template_options: '--release {{ distro }} --packages=ssh,python3'
+          state: 'stopped'
       # suppress messages related to file descriptors
       # leaking when lvm is invoked
       environment:
         LVM_SUPPRESS_FD_WARNINGS: 1
 
-    - name: deploy container config
+    - name: 'deploy container config'
       template:
-        src: config.j2
-        dest: "/var/lib/lxc/{{ vm_name }}/config"
+        src: 'config.j2'
+        dest: '/var/lib/lxc/{{ vm_name }}/config'
 
-    - name: start container
+    - name: 'start container'
       lxc_container:
-          name: "{{ vm_name }}"
-          state: started
+          name: '{{ vm_name }}'
+          state: 'started'
       when: auto_start|bool
-  when: not (container_exists.exists and lxc_existance.stat.isdir)
 
-- name: update container config
+- name: 'update container config'
   template:
-    src: config.j2
-    dest: "/var/lib/lxc/{{ vm_name }}/config"
+    src: 'config.j2'
+    dest: '/var/lib/lxc/{{ vm_name }}/config'
   register: container_config
-  notify: restart container
+  notify: 'restart container'
 
-- name: set container running state
+- name: 'set container running state'
   lxc_container:
-      name: "{{ vm_name }}"
-      state: "{{ container_state }}"
+      name: '{{ vm_name }}'
+      state: '{{ container_state }}'
   register: container_running_state
 
-- name: Read container DNS configuration
-  slurp:
-    src: /etc/resolv.conf
-  delegate_to: "{{ vm_name }}"
-  connection: ssh_lxc
-  register: vm_resolv_conf
-
-- debug:
-    msg: "{{ vm_resolv_conf['content'] | b64decode }}"
-    verbosity: 2
-
-- name: update container DNS configuration
+- name: 'update container resolv.conf'
   template:
-    src: resolv.conf.j2
-    dest: /etc/resolv.conf
-  delegate_to: "{{ vm_name }}"
-  connection: ssh_lxc
+    src: 'resolv.conf.j2'
+    dest: '/etc/resolv.conf'
+  delegate_to: '{{ vm_name }}'
+  connection: 'ssh_lxc'
 
-- name: update container network configuration
+- name: 'update container net config'
   copy:
-    src: interfaces
-    dest: /etc/network/interfaces
-  delegate_to: "{{ vm_name }}"
-  connection: ssh_lxc
-  notify: restart container
+    src: 'interfaces'
+    dest: '/etc/network/interfaces'
+  delegate_to: '{{ vm_name }}'
+  connection: 'ssh_lxc'
+  notify: 'restart container'
 
-- name: install packages
-  apt:
-    pkg:
-      - python3
-      - ssh
-    state: present
-    update_cache: yes
-    cache_valid_time: 3600
-  notify: restart container
+#- name: 'install packages'
+#  apt:
+#    pkg:
+#      - 'python3'
+#      - 'ssh'
+#    state: 'present'
+#    update_cache: yes
+#    cache_valid_time: 3600
+#  delegate_to: '{{ vm_name }}'
+#  connection: 'ssh_lxc'
+#  notify: restart container
 
   # Restart container when one in
   # - container_dns_configuration
@@ -101,8 +92,8 @@
   # is changed by executing handlers now
 - meta: flush_handlers
 
-- name: add monitoring facts
+- name: 'add monitoring facts'
   set_fact:
-    monitoring_host: "{{ monitoring_host | default([]) }} + [ '{{ vm_name }}' ]"
-  delegate_facts: True
-  delegate_to: status
+    monitoring_host: '{{ monitoring_host | default([]) }} + [ "{{ vm_name }}" ]'
+  delegate_facts: true
+  delegate_to: 'status'

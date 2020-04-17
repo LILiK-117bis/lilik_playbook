@@ -1,2 +1,2 @@
-domain dmz.lilik.it
+domain dmz.{{ domain }}
 nameserver {{ hostvars | ip_from_inventory('vm_gateway') }}
