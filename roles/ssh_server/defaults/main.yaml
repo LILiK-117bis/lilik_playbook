@@ -1,2 +1,2 @@
 ---
-server_fqdn: "{{ ansible_ssh_lxc_name | default(inventory_hostname) }}.{{ domain }}"
+server_fqdn: '{{ inventory_hostname }}.{{ domain }}'

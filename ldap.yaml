@@ -11,7 +11,6 @@
       vars:
         vm_name: '{{ inventory_hostname }}'
         vm_size: '1G'
-        vg_name: '{{ hostvars[ansible_lxc_host]["vg_name"] }}'
       delegate_to: '{{ ansible_lxc_host }}'
     # The host may not be directly reachable: use `ssh_lxc` proxy to
     # gather facts (setup) and configure SSH.

@@ -1,7 +1,7 @@
 lxc.include = /usr/share/lxc/config/debian.common.conf
 
 lxc.uts.name = {{ vm_name }}
-lxc.rootfs.path = lvm:/dev/{{ vg_name | default(inventory_hostname+'vg') }}/vm_{{ vm_name }}
+lxc.rootfs.path = lvm:/dev/{{ vg_name }}/vm_{{ vm_name }}
 
 lxc.apparmor.profile = generated
 lxc.apparmor.allow_nesting = 1

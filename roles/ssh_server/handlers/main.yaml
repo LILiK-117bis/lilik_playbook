@@ -1,4 +1,3 @@
-# We can not use include_role here since it not share thje connection with the current role
-- include: roles/service/handlers/main.yaml
+- include: 'roles/service/handlers/main.yaml'
   vars:
-    service_name: ssh
+    service_name: 'ssh'

@@ -27,10 +27,6 @@
       -out /etc/ldap/slapd.csr
     creates: '/etc/ldap/slapd.csr'
 
-- name: 'set key ownership and permission'
-  file:
-    path: /etc/ldap
-
 - name: 'lookup_ssl_ca_cert'
   when: ssl_ca_cert is not defined
   set_fact:

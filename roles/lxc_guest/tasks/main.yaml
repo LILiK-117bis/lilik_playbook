@@ -21,7 +21,7 @@
           name: '{{ vm_name }}'
           backing_store: 'lvm'
           fs_size: '{{ vm_size }}'
-          vg_name: '{{ vg_name | default(inventory_hostname+"vg") }}'
+          vg_name: '{{ vg_name }}'
           lv_name: 'vm_{{ vm_name }}'
           fs_type: 'xfs'
           container_log: true
@@ -72,25 +72,7 @@
   connection: 'ssh_lxc'
   notify: 'restart container'
 
-#- name: 'install packages'
-#  apt:
-#    pkg:
-#      - 'python3'
-#      - 'ssh'
-#    state: 'present'
-#    update_cache: yes
-#    cache_valid_time: 3600
-#  delegate_to: '{{ vm_name }}'
-#  connection: 'ssh_lxc'
-#  notify: restart container
-
-  # Restart container when one in
-  # - container_dns_configuration
-  # - network conf has changed
-  # - install_packages
-  # - container_network
-  # is changed by executing handlers now
-- meta: flush_handlers
+- meta: 'flush_handlers'
 
 - name: 'add monitoring facts'
   set_fact:

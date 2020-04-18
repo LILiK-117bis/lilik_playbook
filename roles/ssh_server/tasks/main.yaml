@@ -1,20 +1,18 @@
-# We can not use include_role here since it not
-# share the connection with the current role
 ---
-- include: roles/service/tasks/main.yaml
+- include: 'roles/service/tasks/main.yaml'
   vars:
-    service_name: ssh
+    service_name: 'ssh'
     service_packages:
-      - openssh-server
-      - openssh-sftp-server
+      - 'openssh-server'
+      - 'openssh-sftp-server'
 
-- name: Update container user CA key
+- name: 'update user ca certs'
   template:
-    src: user_ca.pub.j2
-    dest: "/etc/ssh/user_ca.pub"
-  notify: restart ssh
+    src: 'user_ca.pub.j2'
+    dest: '/etc/ssh/user_ca.pub'
+  notify: 'restart ssh'
 
-- name: Validate SSH host certificate if any
+- name: 'validate ssh cert if present'
   ssh_cert:
   register: ssh_verification
   ignore_errors: yes
@@ -24,30 +22,30 @@
     verbosity: 2
 
 - block:
-    - name: Generate host request
+    - name: 'generate host cert request'
       cert_request:
-        host: "{{ server_fqdn }}"
-        path: "/etc/ssh/ssh_host_ed25519_key.pub"
-        proto: "ssh"
+        host: '{{ server_fqdn }}'
+        path: '/etc/ssh/ssh_host_ed25519_key.pub'
+        proto: 'ssh'
       register: ca_request
 
-    - name: start sign request
-      include: ca-dialog.yaml
+    - name: 'start sign request'
+      include: 'ca-dialog.yaml'
       vars:
-        ansible_connection: ssh
+        ansible_connection: 'ssh'
 
     - debug:
         var: request_result
         verbosity: 2
 
     - set_fact:
-        request_output: "{{ request_result.stdout | from_json }}"
+        request_output: '{{ request_result.stdout | from_json }}'
 
     - debug:
         var: request_output
         verbosity: 2
 
-    - name: generate get request
+    - name: 'generate get request'
       set_fact:
         ca_request:
           type: 'get_certificate'
@@ -58,55 +56,55 @@
         verbosity: 2
 
     - debug:
-        msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
+        msg: 'Please manualy confirm sign request with id {{ request_output.requestID }}'
 
-    - name: wait for cert
-      include: ca-dialog.yaml
+    - name: 'wait for cert'
+      include: 'ca-dialog.yaml'
       vars:
-        ansible_connection: ssh
+        ansible_connection: 'ssh'
 
     - debug:
         var: request_result
         verbosity: 2
 
     - set_fact:
-          cert_key: "{{ request_result.stdout | string | from_json }}"
+          cert_key: '{{ request_result.stdout | string | from_json }}'
 
-    - name: Write certificate to container
+    - name: 'write certificate to container'
       copy:
-        content: "{{ cert_key.result }}"
-        dest: "/etc/ssh/ssh_host_ed25519_key-cert.pub"
+        content: '{{ cert_key.result }}'
+        dest: '/etc/ssh/ssh_host_ed25519_key-cert.pub'
       register: set_pub_key
-      notify: restart ssh
+      notify: 'restart ssh'
   when: ssh_verification.failed
 
-- name: add certificate to sshd config
+- name: 'add certificate to sshd config'
   lineinfile:
     line: 'HostCertificate /etc/ssh/ssh_host_ed25519_key-cert.pub'
     dest: '/etc/ssh/sshd_config'
     regexp: '^HostCertificate *'
-  notify: restart ssh
+  notify: 'restart ssh'
 
-- name: trust user ca key
+- name: 'trust user ca key'
   lineinfile:
     line: 'TrustedUserCAKeys /etc/ssh/user_ca.pub'
     dest: '/etc/ssh/sshd_config'
     regexp: '^TrustedUserCAKeys *'
-  notify: restart ssh
+  notify: 'restart ssh'
 
-- name: permit root login only with certificate
+- name: 'permit root login only with certificate'
   lineinfile:
     line: 'PermitRootLogin without-password'
     dest: '/etc/ssh/sshd_config'
     regexp: '^PermitRootLogin *'
-  notify: restart ssh
+  notify: 'restart ssh'
 
-- meta: flush_handlers
+- meta: 'flush_handlers'
 
-- name: "waiting for ssh on {{ ansible_ssh_lxc_name | default(inventory_hostname) }} to start"
+- name: 'waiting for ssh on {{ inventory_hostname }} to start'
   wait_for:
-    host: "{{ hostvars | ip_from_inventory(inventory_hostname) }}"
+    host: '{{ hostvars | ip_from_inventory(inventory_hostname) }}'
     port: 22
     timeout: 30
-  delegate_to: "{{ inventory_hostname }}"
-  delegate_facts: True
+  delegate_to: '{{ inventory_hostname }}'
+  delegate_facts: true
