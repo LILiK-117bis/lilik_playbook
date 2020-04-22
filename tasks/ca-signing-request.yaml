@@ -1,0 +1,43 @@
+---
+- name: 'CA_MANAGER | generating json signing request'
+  cert_request:
+    host: '{{ host }}'
+    path: '{{ request_path }}'
+    proto: 'ssl'
+    client: '{{ client | default(false) }}'
+  register: ca_request
+
+- name: 'CA_MANAGER | sending json signing request'
+  include: 'ca-dialog.yaml'
+
+- set_fact:
+    request_output: '{{ request_result.stdout | string | from_json }}'
+
+- debug:
+    var: request_result
+
+- name: 'CA_MANAGER | generating json get request'
+  set_fact:
+    ca_request:
+      type: 'get_certificate'
+      requestID: '{{ request_output.requestID }}'
+
+- debug:
+    msg: >
+      Please manually confirm sign request with id
+      {{ request_output.requestID }}
+
+- name: 'CA_MANAGER | waiting for certificate...'
+  include: 'ca-dialog.yaml'
+
+- set_fact:
+    cert_key: '{{ request_result.stdout | string | from_json }}'
+
+- debug:
+    var: request_result
+    verbosity: 2
+
+- name: 'CA_MANAGER | saving certificate'
+  copy:
+    content: '{{ cert_key.result }}'
+    dest: '{{ output_path }}'

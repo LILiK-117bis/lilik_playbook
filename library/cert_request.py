@@ -74,6 +74,11 @@ def main():
                         required=True,
                         choices=['ssh', 'ssl'],
                     ),
+                    client=dict(
+                        required=False,
+                        default=False,
+                        choices=[True, False],
+                    ),
                 ),
                 supports_check_mode=False,
             )
@@ -81,17 +86,24 @@ def main():
     host = module.params.get('host')
     path = module.params.get('path')
     proto = module.params.get('proto')
+    client = module.params.get('client')
 
     with open(path, 'r') as src:
         result = {
             'type': 'sign_request',
             'request': {
-                'keyType': '{}_host'.format(proto),
-                'hostName': host,
                 'keyData': src.read(),
             },
         }
-        module.exit_json(**result)
+
+    if client:
+        result['request']['keyType'] = '{}_user'.format(proto)
+        result['request']['userName'] = host
+    else:
+        result['request']['keyType'] = '{}_host'.format(proto)
+        result['request']['hostName'] = host
+
+    module.exit_json(**result)
 
 
 if __name__ == '__main__':

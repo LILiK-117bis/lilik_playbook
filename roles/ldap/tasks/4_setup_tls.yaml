@@ -40,44 +40,6 @@
   tags:
     - 'tls_int'
 
-- when: slapd_cert_is_valid.rc != 0
-  block:
-    - name: 'renewing cert - generating ca request'
-      cert_request:
-        host: '{{ ansible_hostname }}.{{ fqdn_domain }}'
-        path: '/etc/ldap/slapd.csr'
-        proto: 'ssl'
-      register: ca_request
-
-    - name: 'renewing cert - sending ca sign request'
-      include: 'ca-dialog.yaml'
-
-    - set_fact:
-        request_output: '{{ request_result.stdout | string | from_json }}'
-
-    - debug:
-        var: request_result
-
-    - name: 'renewing cert - generating get cert request'
-      set_fact:
-        ca_request:
-          type: 'get_certificate'
-          requestID: '{{ request_output.requestID }}'
-
-    - debug:
-        msg: >
-          Please manually confirm sign request with id
-          {{ request_output.requestID }}
-
-    - name: 'renewing cert - waiting for ca signature'
-      include: 'ca-dialog.yaml'
-
-    - set_fact:
-        cert_key: '{{ request_result.stdout | string | from_json }}'
-
-    - debug:
-        var: request_result
-        verbosity: 2
 - name: 'create slapd cert request'
   shell:
     cmd: >
@@ -90,13 +52,20 @@
   tags:
     - 'tls_int'
 
-    - name: 'renewing cert - storing new cert file'
-      copy:
-        content: '{{ cert_key.result }}'
-        dest: '/etc/ldap/slapd.crt'
+- import_tasks: 'ca-signing-request.yaml'
+  vars:
+    host: '{{ server_fqdn }}'
+    request_path: '/etc/ldap/slapd.csr'
+    output_path: '/etc/ldap/slapd.crt'
+  when: slapd_cert_is_valid.rc != 0
+  tags:
+    - 'tls_int'
 
 # !BUG! Fixed in Ansible dev using ldap_attrs instead of ldap_attr
+# Setting the parameters twice in a row fix the problem.
 # Ref: https://github.com/ansible/ansible/issues/25665
+# **ToDO: Find the right combination, is still failing at the first run
+# but works on the second iteration
 - name: 'configuring TLS options (workaround)'
   ldap_attr:
     dn: 'cn=config'
