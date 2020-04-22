@@ -1,0 +1,25 @@
+---
+- hosts: 'cloud'
+  gather_facts: false
+  tasks:
+    - import_role: name='lxc_guest'
+      vars:
+        vm_name: '{{ inventory_hostname }}'
+        vm_size: '4G'
+        vg_name: '{{ hostvars[ansible_lxc_host]["vg_name"] }}'
+      delegate_to: '{{ ansible_lxc_host }}'
+    - set_fact: ansible_connection='ssh_lxc'
+    - setup:
+    - import_role: name='ssh_server'
+    - set_fact: ansible_connection='ssh'
+
+- hosts: 'cloud'
+  roles:
+    - role: 'dns_record'
+    - role: 'reverse_proxy'
+      hostname: 'cloud'
+    - role: 'nextcloud'
+
+- hosts: 'status'
+  roles:
+    - role: 'icinga2-monitoring'

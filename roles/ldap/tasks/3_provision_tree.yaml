@@ -135,6 +135,7 @@
   loop:
     - 'TestServer'
     - 'projects'
+    - 'nextcloud'
 
 #- name: templating ACLs
 #  template:

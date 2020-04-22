@@ -1,0 +1,195 @@
+- name: 'install requirements'
+  apt:
+    pkg:
+      - 'sudo'
+      - 'bzip2'
+      - 'php7.3-fpm'
+      - 'php7.3-common'
+      - 'php7.3-xml'
+      - 'php7.3-gd'
+      - 'php7.3-json'
+      - 'php7.3-mbstring'
+      - 'php7.3-zip'
+      - 'php7.3-pgsql'
+      - 'php7.3-ldap'
+      - 'php7.3-curl'
+      - 'php7.3-intl'
+      - 'php7.3-bz2'
+      #- 'php7.3.-imagick'
+      #- 'ffmpeg'
+      - 'postgresql'
+      - 'postgresql-contrib'
+      - 'python3-psycopg2'
+      - 'ca-certificates'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
+
+- block:
+    - name: 'create nextcloud DB'
+      postgresql_db:
+        name: 'nextcloud'
+    - name: 'create nextcloud DB user'
+      postgresql_user:
+        name: 'www-data'
+        db: 'nextcloud'
+        priv: 'ALL'
+  become: true
+  become_method: 'su'
+  become_user: 'postgres'
+
+- name: 'download latest nextcloud'
+  get_url:
+    url: 'https://download.nextcloud.com/server/releases/nextcloud-18.0.3.tar.bz2'
+    dest: '/opt/nextcloud.tar.bz2'
+  register: 'new_download'
+  tags:
+    - 'packages'
+
+- name: 'unpack nextcloud'
+  unarchive:
+    src: '/opt/nextcloud.tar.bz2'
+    dest: '/opt'
+    owner: 'www-data'
+    group: 'www-data'
+    copy: no
+  when: new_download.changed
+  tags:
+    - 'packages'
+
+- name: 'create nextcloud data folder'
+  file:
+    path: '/opt/nextcloud_data'
+    owner: 'www-data'
+    group: 'www-data'
+    state: 'directory'
+
+- name: 'create nginx configuration'
+  template:
+    src: 'nextcloud.conf.j2'
+    dest: '/etc/nginx/locations/{{ server_fqdn }}/nextcloud.conf'
+  notify: 'restart nginx'
+
+- import_tasks: 'occ.yaml'
+  vars:
+    occ_args: '--no-warnings status --output json'
+    ignore_changes: true
+- set_fact:
+    installed: '{{ occ_out.installed }}'
+
+- block:
+    - name: 'create random root password'
+      gen_passwd: length=20
+      register: 'password'
+    - set_fact:
+        initial_root_password: '{{  new_passwd.passwd }}'
+    - name: 'store root password plaintext'
+      copy:
+        content: '{{ initial_root_password }}'
+        dest: '/etc/nextcloud.secret'
+    - fail:
+        msg: >-
+          Warning! First Install and `initial_root_password` not provided.
+          Random password generated and stored in /etc/nextcloud.secret.
+          **WIPE AS SOON AS POSSIBLE**
+        failed_when: false
+  when: (initial_root_password is not defined) and (not installed)
+
+- name: 'install nextcloud'
+  include_tasks: 'occ.yaml'
+  vars:
+     occ_args: >-
+       maintenance:install
+       --database 'pgsql'
+       --database-name 'nextcloud'
+       --database-host '/var/run/postgresql'
+       --database-user 'www-data'
+       --database-pass ''
+       --admin-pass '{{ initial_root_password }}'
+       --data-dir '/opt/nextcloud_data'
+       --no-interaction
+     nojson: true
+  when: not installed
+
+- name: 'set trusted_domains'
+  occ:
+    command: 'config:system:set'
+    key: 'trusted_domains {{ idx }}'
+    value: '{{ item }}'
+  loop:
+    - 'localhost'
+    - '{{ server_fqdn }}'
+  loop_control:
+    index_var: idx
+
+- name: 'update tls ca'
+  copy:
+    content: '{{ tls_root_ca }}'
+    dest: '/etc/ldap/root_ca.crt'
+  tags:
+    - 'tls_int'
+
+- name: 'configure ldap client'
+  copy:
+    src: 'ldap.conf'
+    dest: '/etc/ldap/ldap.conf'
+
+- name: 'enable user_ldap'
+  occ:
+    command: 'config:app:set'
+    key: 'user_ldap enabled'
+    value: 'yes'
+  tags:
+    - 'service_password'
+
+- name: 'configure user_ldap'
+  occ:
+    command: 'config:app:set'
+    key: 'user_ldap s01{{ item.key }}'
+    value: '{{ item.value }}'
+  loop: '{{ ldap_settings|dict2items }}'
+  vars:
+    ldap_settings:
+      has_memberof_filter_support: '1'
+      ldap_host: '{{ ldap_server }}'
+      ldap_port: '389'
+      ldap_dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
+      ldap_base: 'ou=People,{{ ldap_basedn }}'
+      ldap_base_users: 'ou=People,{{ ldap_basedn }}'
+      ldap_base_groups: 'ou=Groups,{{ ldap_basedn }}'
+      ldap_login_filter: '(&(cn=%uid)(authorizedService=nextcloud))'
+      ldap_user_filter: '(authorizedService=nextcloud)'
+      ldap_attributes_for_user_search: 'cn'
+      ldap_attributes_for_group_search: 'cn'
+      ldap_email_attr: 'mail'
+      ldap_tls: '1'
+      ldap_experienced_admin: '1'
+      ldap_configuration_active: '1'
+
+- name: 'generate nextcloud ldap password'
+  gen_passwd: 'length=32'
+  register: 'new_passwd'
+  tags:
+    - 'service_password'
+
+- name: 'set nextcloud ldap password in ldap'
+  delegate_to: 'localhost'
+  ldap_passwd:
+    dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ new_passwd.passwd }}'
+    server_uri: 'ldap://{{ ldap_server }}'
+    start_tls: true
+    bind_dn: '{{ ldap_admin_dn }}'
+    bind_pw: '{{ ldap_admin_pw }}'
+  tags:
+    - 'service_password'
+
+- import_tasks: 'occ.yaml'
+  vars:
+    occ_args: 'ldap:set-config s01 ldapAgentPassword {{ new_passwd.passwd }}'
+    nojson: true
+  tags:
+    - 'service_password'
+...
