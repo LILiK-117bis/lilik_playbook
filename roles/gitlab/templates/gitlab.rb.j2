@@ -1168,7 +1168,11 @@ external_url 'http://{{ server_fqdn }}'
 
 ##! **Override only if you use a reverse proxy**
 ##! Docs: https://docs.gitlab.com/omnibus/settings/nginx.html#setting-the-nginx-listen-port
+{% if enable_https %}
+ nginx['listen_port'] = "443 proxy_protocol"
+{% else %}
 # nginx['listen_port'] = nil
+{% endif %}
 
 ##! **Override only if your reverse proxy internally communicates over HTTP**
 ##! Docs: https://docs.gitlab.com/omnibus/settings/nginx.html#supporting-proxied-ssl
@@ -1190,8 +1194,8 @@ external_url 'http://{{ server_fqdn }}'
 # nginx['proxy_cache_path'] = 'proxy_cache keys_zone=gitlab:10m max_size=1g levels=1:2'
 # nginx['proxy_cache'] = 'gitlab'
 # nginx['http2_enabled'] = true
-# nginx['real_ip_trusted_addresses'] = []
-# nginx['real_ip_header'] = nil
+ nginx['real_ip_trusted_addresses'] = [ '{{ hostvars | ip_from_inventory('vm_gateway') }}' ]
+ nginx['real_ip_header'] = "proxy_protocol"
 # nginx['real_ip_recursive'] = nil
 # nginx['custom_error_pages'] = {
 #   '404' => {

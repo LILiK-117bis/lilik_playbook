@@ -19,6 +19,7 @@
                ssl_preread on;
                proxy_pass $name;
                # Pass original Client IP with PROXY PROTOCOL
+               proxy_protocol on;
                access_log /var/log/nginx/stream_443.log stream_routing;
           }
       }
