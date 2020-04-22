@@ -11,6 +11,7 @@
     question: '{{ item.question }}'
     vtype: 'string'
     value: '{{ item.value }}'
+  register: debconfs
   loop:
     - { question: 'slapd/domain', value: '{{ ldap_domain }}' }
     - { question: 'slapd/dump_database', value: 'when needed' }
@@ -26,6 +27,17 @@
         - 'libpam-ldap'
         - 'python3-ldap'
         - 'sudo'
+
+- name: 'delete old backups'
+  file:
+    path: '{{ item }}'
+    state: 'absent'
+  with_fileglob: '/var/backups/*.ldapdb'
+  when: debconfs.results[0].changed
+
+- name: 'backup old database and re-create'
+  command: 'dpkg-reconfigure -p critical slapd'
+  when: debconfs.results[0].changed
 
 - name: 'start slapd service'
   service:
@@ -111,12 +123,12 @@
     name: 'olcAuthzRegexp'
     state: 'exact'
     values:
-      - |-
-        {0} ^cn=([^,]+),ou=Server,{{ x509_suffix }}$
-          cn=$1,ou=Server,{{ base_dn }}
-      - |-
-        {1} ^mail=[^,]+,cn=([^,]+),ou=People,{{ x509_suffix }}$
-          cn=$1,ou=People,{{ base_dn }}
+      - >-
+       {0} ^cn=([^,]+),ou=Server,{{ x509_ldap_suffix }}$
+       cn=$1,ou=Server,{{ base_dn }}
+      - >-
+       {1} ^mail=[^,]+,cn=([^,]+),ou=People,{{ x509_ldap_suffix }}$
+       cn=$1,ou=People,{{ base_dn }}
 
 - name: 'configure main tree acls'
   ldap_attr:
@@ -126,68 +138,69 @@
     values:
       # [0] -> Admins can proxy-auth to RootDN
       # /proxy-auth is not required for routine user-management operations
-      - |-
+      - >-
         {0} to dn.exact=cn=admin,{{ base_dn }} attrs=authzFrom
-          by group.exact=cn=admin,ou=Group,dc=lilik,dc=it auth
-          by * none
+        by group.exact=cn=admin,ou=Group,{{ base_dn }} auth
+        by * none
       # [1] :: ou=People
       # [1.0] -> Admins can edit People `userPassword`
       #       -> People can edit their `userPassword`
       #       -> Anyone can auth with `userPassword` if using strong TLS.
-      - |-
+      - >-
         {1} to dn.one=ou=People,{{ base_dn }} attrs=userPassword
-          by group.exact=cn=admin,ou=Group,{{ base_dn }} write
-          by self write
-          by anonymous tls_ssf=256 auth
-          by * none
+        by group.exact=cn=admin,ou=Group,{{ base_dn }} write
+        by self write
+        by anonymous tls_ssf=256 auth
+        by * none
       # [1.1] -> Admins can list the full People tree
       #       -> Servers can perform search on People tree
-      - |-
+      - >-
         {2}to dn.exact=ou=People,{{ base_dn }} attrs=entry
-          by group.exact=cn=admin,ou=Group,{{ base_dn }} read
-          by dn.children=ou=Server,{{ base_dn }} search
-          by * none
+        by group.exact=cn=admin,ou=Group,{{ base_dn }} read
+        by dn.children=ou=Server,{{ base_dn }} search
+        by * none
       # [1.2] -> Admins can add/remove People entries
-      - |-
+      - >-
         {3} to dn.exact=ou=People,{{ base_dn }} attrs=children
-          by group.exact=cn=admin,ou=Group,{{ base_dn }} write
-          by * none
+        by group.exact=cn=admin,ou=Group,{{ base_dn }} write
+        by * none
       # [1.3] -> Admins can edit all People attributes
       #       -> Servers can read all People attributes (except userPassword)
       #       -> People can read all their attributes
       #       -> Break: over privileges may be accorded later (i.e.: servers)
-      - |-
+      - >-
         {4} to dn.one=ou=People,{{ base_dn }}
-          by group.exact=cn=admin,ou=Group,{{ base_dn }} write
-          by dn.children=ou=Server,{{ base_dn }} read
-          by self read
-          by * break
+        by group.exact=cn=admin,ou=Group,{{ base_dn }} write
+        by dn.children=ou=Server,{{ base_dn }} read
+        by self read
+        by * break
       # [1.5] -> No other access to People tree
-      - |-
+      - >-
         {5} to dn.subtree=ou=People,{{ base_dn }}
-          by * none
+        by * none
       # [2] :: ou=Group
       # [2.1] -> Admins can add/remove members from groups
-      - |-
+      - >-
         {6} to dn.one=ou=Group,{{ base_dn }} attrs=member
-          by group.exact=cn=admin,ou=Group,{{ base_dn }} write
-          by * none
+        by group.exact=cn=admin,ou=Group,{{ base_dn }} write
+        by * none
       # [2.2] -> No other access to Group tree
-      - |-
+      - >-
         {7} to dn.children=ou=Group,{{ base_dn }}
-          by * none
+        by * none
       # [3] :: ou=Server
       # [3.0] -> Local servers can simple-bind their entries if using TLS
       # /Server using TLS-client Auth with OU=Server are automatically authenticated
-      - |-
+      ## TODO: Remove hard-coded IPs
+      - >-
         {8} to dn.children=ou=Server,{{ base_dn }} attrs=userPassword
-          by peername.ip=10.151.42.0%255.255.255.0 tls_ssf=256 auth
-          by group.exact=cn=admin,ou=Group,{{ base_dn }} write
-          by * none
+        by peername.ip=10.151.42.0%255.255.255.0 tls_ssf=256 auth
+        by group.exact=cn=admin,ou=Group,{{ base_dn }} write
+        by * none
       # [3.1] -> No other access to Server tree
-      - |-
+      - >-
         {9} to dn.subtree=ou=Server,{{ base_dn }}
-          by * none
+        by * none
       # [4] :: ou=VirtualDomains - WiP
       # [4.0] -> Admins can write whole subtree
       # [4.1] -> Servers can read whole subtree

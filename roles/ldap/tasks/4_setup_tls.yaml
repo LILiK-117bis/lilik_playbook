@@ -74,6 +74,7 @@
   loop:
     - { name: 'olcTLSCertificateFile', value: '/etc/ldap/slapd.crt' }
     - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
+    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/root_ca.crt' }
   failed_when: false
   tags:
     - 'tls_int'
@@ -85,9 +86,9 @@
     values: '{{ item.value }}'
     state: 'exact'
   loop:
+    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/root_ca.crt' }
     - { name: 'olcTLSCertificateFile', value: '/etc/ldap/slapd.crt' }
     - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
-    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/ssl_ca.crt' }
     - { name: 'olcTLSVerifyClient', value: 'try' }  # TLS Client Auth
     - { name: 'olcTLSCipherSuite', value: 'SECURE:-VERS-ALL:+VERS-TLS1.3' } # TLSv1.3 Only
   tags:
