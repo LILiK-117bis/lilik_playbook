@@ -120,6 +120,7 @@
     - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
     - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/ssl_ca.crt' }
     - { name: 'olcTLSVerifyClient', value: 'try' }  # TLS Client Auth
+    - { name: 'olcTLSCipherSuite', value: 'SECURE:-VERS-ALL:+VERS-TLS1.3' } # TLSv1.3 Only
   tags:
     - 'tls_int'
 

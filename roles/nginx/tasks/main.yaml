@@ -31,12 +31,6 @@
     dest: '/etc/nginx/sites-available/{{ server_fqdn }}.conf'
   notify: 'restart nginx'
 
-- name: create Diffie Hellman exchange parameters
-  command: openssl dhparam -out /etc/nginx/dhparam.pem 2048
-  args:
-    creates: /etc/nginx/dhparam.pem
-  notify: restart nginx
-
 - name: 'enable nginx configurations'
   file:
     src: '/etc/nginx/sites-available/{{ server_fqdn }}.conf'
