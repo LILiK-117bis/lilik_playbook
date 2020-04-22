@@ -4,15 +4,16 @@ Set-up a Omnibus GitLab server
 
 ## Configuration variables
 
-| Name            | Description                                     |
-|-----------------|-------------------------------------------------|
-| `server_fqdn`   | [`$hostname.$domain`]                           |
-| `ssh_port`      | External SSH port. [`22`]                       |
-| `ldap_server`*  | LDAP server fqdn [`'ldap1.dmz.$domain'`]        |
-| `ldap_domain`   | LDAP domain, used to derive base dn [`$domain`] |
-| `enable_https`  | Enable HTTPS. [`false`]                         |
-| `ldap_admin_dn` | DN of a LDAP user with admin privileges.        |
-| `ldap_admin_pw` | Bind password of that user.                     |
+| Name                    | Description                                     |
+|-------------------------|-------------------------------------------------|
+| `server_fqdn`           | [`$hostname.$domain`]                           |
+| `ssh_port`              | External SSH port. [`22`]                       |
+| `ldap_server`*          | LDAP server fqdn [`'ldap1.dmz.$domain'`]        |
+| `ldap_domain`           | LDAP domain, used to derive base dn [`$domain`] |
+| `enable_https`          | Enable HTTPS. [`false`]                         |
+| `ldap_admin_dn`         | DN of a LDAP user with admin privileges.        |
+| `ldap_admin_pw`         | Bind password of that user.                     |
+| `initial_root_password` | Available only before initialization.           |
 
 **Note**: The Ansible controller must have OpenLDAP properly configured
 with root ca set in `~/.ldaprc`.

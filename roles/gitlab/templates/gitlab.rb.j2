@@ -529,7 +529,11 @@ external_url 'http://{{ server_fqdn }}'
 #### Change the initial default admin password and shared runner registration tokens.
 ####! **Only applicable on initial setup, changing these settings after database
 ####!   is created and seeded won't yield any change.**
+{% if initial_root_password is defined %}
+ gitlab_rails['initial_root_password'] = "{{ initial_root_password }}"
+{% else %}
 # gitlab_rails['initial_root_password'] = "password"
+{% endif %}
 # gitlab_rails['initial_shared_runners_registration_token'] = "token"
 
 #### Set path to an initial license to be used while bootstrapping GitLab.
