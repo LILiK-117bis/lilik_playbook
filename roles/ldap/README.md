@@ -4,17 +4,17 @@ Set-up a LDAP server
 
 ## Configuration variables
 
-| Name                 | Description                                                 |
-|----------------------|-------------------------------------------------------------|
-| `ldap_domain`*       | Dot-form domain name (i.e.: `'lilik.it'`).                  |
-| `ldap_organization`* | Organization (i.e.: `'LILiK'`).                             |
-| `ssl_subject_prefix` | X.509 TLS Cert Subject (i.e: `'/ST=IT/L=Firenze/O=LILiK'`). |
-| `fqdn_domain`*       | Required for TLS certificate.                               |
-| `x509_suffix`*       | The same in LDAP form (i.e: `'o=LILiK,l=Firenze/st=IT'`).   |
-| `virtual_domains`    | Required with `check_tree`: list of vds to init.            |
-| `ldap_tls_enabled`   | Enables TLS, requires a *ca_manager*. [`true`]              |
-| `renew_rootdn_pw`    | Create a new random password for RooDN. [`true`]            |
-| `check_tree`         | Deploy initial tree configuration. [`true`]                 |
+| Name                   | Description                                                 |
+|------------------------|-------------------------------------------------------------|
+| `ldap_domain`          | Dot-form domain name. [`$domain`]                           |
+| `ldap_organization`*   | Organization (i.e.: `'LILiK'`).                             |
+| `x509_subject_prefix`* | X.509 TLS Cert Subject (i.e: `'/ST=IT/L=Firenze/O=LILiK'`). |
+| `x509_ldap_suffix`*    | The same in LDAP form (i.e: `'o=LILiK,l=Firenze/st=IT'`).   |
+| `server_fqdn`*         | Required for TLS certificate. [`'$hostname.dmz.$domain'`]   |
+| `virtual_domains`      | Required with `check_tree`: list of vds to init.            |
+| `ldap_tls_enabled`     | Enables TLS, requires a *ca_manager*. [`true`]              |
+| `renew_rootdn_pw`      | Create a new random password for RooDN. [`true`]            |
+| `check_tree`           | Deploy initial tree configuration. [`true`]                 |
 
 
 **Note:** If `ldap_tls_enabled` the *ca_manager* host should be configured
@@ -26,11 +26,11 @@ group_vars/all.yaml:
 
 	---
 	domain: 'example.com'
-	ssl_subject_prefix: '/C=IT/L=Firenze/O=LILiK'
-	x509_suffix: 'o=LILiK,l=Firenze,st=IT'
+	x509_subject_prefix: '/C=IT/L=Firenze/O=LILiK'
+	x509_ldap_suffix: 'o=LILiK,l=Firenze,st=IT'
 	user_ca_keys:
 	  - "ssh-ed25519 ################### CA"
-	ssl_ca_cert: |
+	tls_root_ca: |
 	  -----BEGIN CERTIFICATE-----
 	  ###########################
 	  -----END CERTIFICATE-----
@@ -49,33 +49,9 @@ playbook.yaml:
 	- hosts: 'host'
       roles:
 	    - role: ldap
-		  ldap_domain: 'example.com'
+		  #ldap_domain: '{{ domain }}'
+		  #server_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
 		  ldap_organization: 'Example'
-		  fqdn_domain: '{{ domain }}'
-		  virtual_domains:
-		    - 'example.com'
-
-	# Configure LDAP on a LXC container
-	- hosts: 'ldap1'
-	  gather_facts: false # host may not exist yet
-	  tasks:
-	    - import_role: name='lxc_guest'
-		  vars:
-		   vm_name: '{{ inventory_hostname }}'
-		   vm_size: '1G'
-	      delegate_to: '{{ ansible_lxc_host }}'
-        - set_fact: ansible_connection='ssh_lxc'
-		- setup: # gather facts
-		- include_role: name='ssh_server'
-		# Now the guest is ssh-reachable, don't need proxy anymore.
-		- set_fact: ansible_connection='ssh'
-	- hosts: 'ldap1'
-	  roles:
-	    - role: 'dns_record'
-		- role: 'ldap'
-		  ldap_domain: 'example.com'
-	      ldap_organization: 'Example'
-		  fqdn_domain: '{{ domain }}'
 		  virtual_domains:
 		    - 'example.com'
 

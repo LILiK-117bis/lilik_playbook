@@ -1,14 +1,15 @@
 ---
-- name: install certbot
+- name: 'install certbot'
   apt:
-    name: "{{ item }}"
-    state: present
+    pkg:
+      - 'certbot'
+      - 'sendmail-bin'
+      - 'cron'
+    state: 'present'
     update_cache: true
     cache_valid_time: 3600
-  with_items:
-    - certbot
-    - sendmail-bin
-    - cron
+  tags:
+    - 'packages'
 
 - name: Shutdown webservers
   service:
@@ -16,19 +17,21 @@
     state: stopped
   ignore_errors: yes
 
-- name: request certificate
+- name: 'request certificate'
   command: >
     certbot
         certonly
         -a standalone
         --agree-tos
-        --email roots@lists.lilik.it
+        --email {{ letsencrypt_email }}
         --preferred-challenges http
         -d {{ server_fqdn }}
         -d www.{{ server_fqdn }}
         -n
   args:
-    creates: /etc/letsencrypt/live/{{ server_fqdn }}/cert.pem
+    creates: '/etc/letsencrypt/live/{{ server_fqdn }}/cert.pem'
+  tags:
+    - 'tls_pub'
 
 - name: Restart webservers
   service:
@@ -36,19 +39,26 @@
     state: started
   ignore_errors: yes
 
-- name: Add systemd timer for cert renewal
+- name: 'add systemd timer for cert renewal'
   template:
-    src: certbot.timer
-    dest: /etc/systemd/system/certbot.timer
+    src: 'certbot.timer'
+    dest: '/etc/systemd/system/certbot.timer'
+  tags:
+    - 'tls_pub'
 
-- name: Add systemd service for cert renewal
+- name: 'add systemd service for cert renewal'
   template:
-    src: certbot.service
-    dest: /etc/systemd/system/certbot.service
+    src: 'certbot.service'
+    dest: '/etc/systemd/system/certbot.service'
+  tags:
+    - 'tls_pub'
 
-- name: Enable timer
+- name: 'enable timer'
   systemd:
-    name: certbot.timer
-    state: started
+    name: 'certbot.timer'
+    state: 'started'
     enabled: true
     daemon_reload: true
+  tags:
+    - 'tls_pub'
+...

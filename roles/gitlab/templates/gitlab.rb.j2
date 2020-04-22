@@ -27,9 +27,9 @@
 ##! address from AWS. For more details, see:
 ##! https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
 {% if enable_https %}
-external_url 'https://{{ fqdn }}'
+external_url 'https://{{ server_fqdn }}'
 {% else %}
-external_url 'http://{{ fqdn }}'
+external_url 'http://{{ server_fqdn }}'
 {% endif %}
 
 ## Roles for multi-instance GitLab
@@ -343,11 +343,11 @@ external_url 'http://{{ fqdn }}'
      port: 389
      uid: 'cn'
      bind_dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
-     password: '{{ ldap_bindpw.passwd }}'
+     password: '{{ new_passwd.passwd }}'
      encryption: 'start_tls' # "start_tls" or "simple_tls" or "plain"
      verify_certificates: true
      tls_options:
-       ca_file: '/etc/gitlab/ca.crt'
+       ca_file: '/etc/gitlab/root_ca.crt'
        min_version: 772 # TLSv1.3
 #     smartcard_auth: false
 #     active_directory: true
@@ -1870,6 +1870,19 @@ external_url 'http://{{ fqdn }}'
 ################################################################################
 # Let's Encrypt integration
 ################################################################################
+{% if enable_https %}
+ letsencrypt['enable'] = true
+ letsencrypt['contact_emails'] = [ '{{ letsencrypt_email }}' ] # This should be an array of email addresses to add as contacts
+ letsencrypt['group'] = 'root'
+ letsencrypt['key_size'] = 4096
+ letsencrypt['owner'] = 'root'
+ letsencrypt['wwwroot'] = '/var/opt/gitlab/nginx/www'
+# See http://docs.gitlab.com/omnibus/settings/ssl.html#automatic-renewal for more on these sesttings
+ letsencrypt['auto_renew'] = true
+ letsencrypt['auto_renew_hour'] = 0
+ letsencrypt['auto_renew_minute'] = 54 # Should be a number or cron expression, if specified.
+ letsencrypt['auto_renew_day_of_month'] = "*/4"
+{% else %}
 # letsencrypt['enable'] = nil
 # letsencrypt['contact_emails'] = [] # This should be an array of email addresses to add as contacts
 # letsencrypt['group'] = 'root'
@@ -1881,6 +1894,7 @@ external_url 'http://{{ fqdn }}'
 # letsencrypt['auto_renew_hour'] = 0
 # letsencrypt['auto_renew_minute'] = nil # Should be a number or cron expression, if specified.
 # letsencrypt['auto_renew_day_of_month'] = "*/4"
+{% endif %}
 
 ##! Turn off automatic init system detection. To skip init detection in
 ##! non-docker containers. Recommended not to change.

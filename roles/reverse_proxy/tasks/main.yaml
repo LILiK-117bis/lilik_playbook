@@ -1,77 +1,76 @@
 ---
-- name: add https configs to nginx
+- name: 'add https configs to nginx'
   blockinfile:
-    dest: /etc/nginx/nginx.conf
+    dest: '/etc/nginx/nginx.conf'
     block: |
-            stream {
+      stream {
+          map $ssl_preread_server_name $name {
+              include /etc/nginx/map.conf.d/*.conf;
+          }
+          include /etc/nginx/upstream.conf.d/*.conf;
 
-                map $ssl_preread_server_name $name {
-                    include /etc/nginx/map.conf.d/*.conf;
-                }
-                include /etc/nginx/upstream.conf.d/*.conf;
-
-                log_format stream_routing '$remote_addr [$time_local] '
-                                      'with SNI name "$ssl_preread_server_name" '
-                                      'proxying to "$name" '
-                                      '$protocol $status $bytes_sent $bytes_received '
-                                      '$session_time';
-                server {
-                    listen {{ public_ip }}:443;
-                    ssl_preread on;
-                    proxy_pass $name;
-                    access_log /var/log/nginx/stream_443.log stream_routing;
-                }
-
-            }
-  delegate_to: reverse_proxy
+          log_format stream_routing '$remote_addr [$time_local] '
+                                    'with SNI name "$ssl_preread_server_name" '
+                                    'proxying to "$name" '
+                                    '$protocol $status $bytes_sent $bytes_received '
+                                    '$session_time';
+          server {
+              listen {{ public_ip }}:443;
+               ssl_preread on;
+               proxy_pass $name;
+               # Pass original Client IP with PROXY PROTOCOL
+               access_log /var/log/nginx/stream_443.log stream_routing;
+          }
+      }
+  delegate_to: 'reverse_proxy'
   notify: reload nginx
 
-- name: add http configs to nginx
+- name: 'add http configs to nginx'
   lineinfile:
-    dest: /etc/nginx/nginx.conf
+    dest: '/etc/nginx/nginx.conf'
     insertafter: '^http {'
     line: 'include /etc/nginx/http.conf.d/*.conf;'
-  delegate_to: reverse_proxy
-  notify: reload nginx
+  delegate_to: 'reverse_proxy'
+  notify: 'reload nginx'
 
-- name: Create the http.conf directory for nginx
+- name: 'create the http.conf.d directory for nginx'
   file:
-    state: directory
-    dest: "/etc/nginx/http.conf.d"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+    state: 'directory'
+    dest: '/etc/nginx/http.conf.d'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload nginx'
 
-- name: Upload http to reverse proxy
+- name: 'upload http to reverse proxy'
   template:
-    src: http.j2
-    dest: "/etc/nginx/http.conf.d/http_{{ hostname }}.conf"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+    src: 'http.j2'
+    dest: '/etc/nginx/http.conf.d/http_{{ hostname }}.conf'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload nginx'
 
-- name: Create the map.conf directory for nginx
+- name: 'create the map.conf directory for nginx'
   file:
-    state: directory
-    dest: "/etc/nginx/map.conf.d"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+    state: 'directory'
+    dest: '/etc/nginx/map.conf.d'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload nginx'
 
-- name: Create the upstream.conf directory for nginx
+- name: 'create the upstream.conf directory for nginx'
   file:
-    state: directory
-    dest: "/etc/nginx/upstream.conf.d"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+    state: 'directory'
+    dest: '/etc/nginx/upstream.conf.d'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload nginx'
 
-- name: Upload mappings to reverse proxy
+- name: 'upload mappings to reverse proxy'
   template:
-    src: map.j2
-    dest: "/etc/nginx/map.conf.d/map_{{ hostname }}.conf"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+    src: 'map.j2'
+    dest: '/etc/nginx/map.conf.d/map_{{ hostname }}.conf'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload nginx'
 
-- name: Upload upstream to reverse proxy
+- name: 'upload upstream to reverse proxy'
   template:
-    src: upstream.j2
-    dest: "/etc/nginx/upstream.conf.d/upstream_{{ hostname }}.conf"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+    src: 'upstream.j2'
+    dest: '/etc/nginx/upstream.conf.d/upstream_{{ hostname }}.conf'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload nginx'

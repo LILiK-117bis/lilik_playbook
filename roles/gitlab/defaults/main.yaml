@@ -1,5 +1,8 @@
-fqdn: '{{ ansible_hostname }}.{{ domain }}'
+---
+server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 ssh_port: 8022
-ldap_server: ldap1.dmz.lilik.it
-ldap_basedn: 'dc=lilik,dc=it'
-enable_https: false
+ldap_domain: '{{ domain }}'
+ldap_server: 'ldap1.dmz.{{ domain }}'
+ldap_basedn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
+enable_https: true
+...

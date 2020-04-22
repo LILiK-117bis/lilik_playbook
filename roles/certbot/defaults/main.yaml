@@ -1,2 +1,3 @@
 ---
-webserver_name: nginx
+webserver_name: 'nginx'
+...

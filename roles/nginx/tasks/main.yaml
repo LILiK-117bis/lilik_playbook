@@ -1,34 +1,35 @@
 ---
 - include_role:
-    name: service
+    name: 'service'
   vars:
-    service_name: nginx
+    service_name: 'nginx'
     service_packages:
-      - nginx
+      - 'nginx'
+  tags:
+    - 'packages'
 
-- name: disable nginx default configuration
+- name: 'disable nginx default configuration'
   file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  notify: restart nginx
+    path: '/etc/nginx/sites-enabled/default'
+    state: 'absent'
+  notify: 'restart nginx'
 
-- name: create nginx location configuration directory
+- name: 'create nginx location configuration directory'
   file:
     path: '{{ item }}'
-    state: directory
-    mode: 0755
-    owner: www-data
-    group: www-data
-  with_items:
-    - /etc/nginx/locations/
+    state: 'directory'
+    mode: '0755'
+    owner: 'www-data'
+    group: 'www-data'
+  loop:
+    - '/etc/nginx/locations/'
     - '/etc/nginx/locations/{{ server_fqdn }}/'
 
-- name: upload nginx configuration
+- name: 'upload nginx configuration'
   template:
-    src: base.j2
-    dest: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
-  notify:
-    - restart nginx
+    src: 'base.j2'
+    dest: '/etc/nginx/sites-available/{{ server_fqdn }}.conf'
+  notify: 'restart nginx'
 
 - name: create Diffie Hellman exchange parameters
   command: openssl dhparam -out /etc/nginx/dhparam.pem 2048
@@ -36,9 +37,10 @@
     creates: /etc/nginx/dhparam.pem
   notify: restart nginx
 
-- name: enable nginx configurations
+- name: 'enable nginx configurations'
   file:
-    src: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
-    dest: "/etc/nginx/sites-enabled/{{ server_fqdn }}.conf"
-    state: link
-  notify: restart nginx
+    src: '/etc/nginx/sites-available/{{ server_fqdn }}.conf'
+    dest: '/etc/nginx/sites-enabled/{{ server_fqdn }}.conf'
+    state: 'link'
+  notify: 'restart nginx'
+...

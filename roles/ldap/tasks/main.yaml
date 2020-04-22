@@ -1,16 +1,16 @@
 ---
 - name: 'including configuration tasks'
-  include_tasks: '1_configure_server.yaml'
+  import_tasks: '1_configure_server.yaml'
 
 - name: 'including password renewal tasks'
-  include_tasks: '2_renew_rootpw.yaml'
-  when: renew_rootdn_pw
+  import_tasks: '2_renew_rootpw.yaml'
+  tags: service_password
 
 - name: 'including tree provisionig tasks'
-  include_tasks: '3_provision_tree.yaml'
+  import_tasks: '3_provision_tree.yaml'
   when: check_tree
 
 - name: 'including tls tasks'
-  include_tasks: '4_setup_tls.yaml'
+  import_tasks: '4_setup_tls.yaml'
   when: ldap_tls_enabled
 ...

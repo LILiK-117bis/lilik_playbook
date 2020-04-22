@@ -5,21 +5,29 @@
     service_packages:
       - 'openssh-server'
       - 'openssh-sftp-server'
+  tags:
+    - packages
 
 - name: 'update user ca certs'
   template:
     src: 'user_ca.pub.j2'
     dest: '/etc/ssh/user_ca.pub'
   notify: 'restart ssh'
+  tags:
+    - ssh_certs
 
 - name: 'validate ssh cert if present'
   ssh_cert:
   register: ssh_verification
   ignore_errors: yes
+  tags:
+    - ssh_certs
 
 - debug:
     var: ssh_verification
     verbosity: 2
+  tags:
+    - ssh_certs
 
 - block:
     - name: 'generate host cert request'
@@ -77,6 +85,8 @@
       register: set_pub_key
       notify: 'restart ssh'
   when: ssh_verification.failed
+  tags:
+    - ssh_certs
 
 - name: 'add certificate to sshd config'
   lineinfile:
@@ -84,6 +94,8 @@
     dest: '/etc/ssh/sshd_config'
     regexp: '^HostCertificate *'
   notify: 'restart ssh'
+  tags:
+    - ssh_certs
 
 - name: 'trust user ca key'
   lineinfile:
@@ -91,6 +103,8 @@
     dest: '/etc/ssh/sshd_config'
     regexp: '^TrustedUserCAKeys *'
   notify: 'restart ssh'
+  tags:
+    - ssh_certs
 
 - name: 'permit root login only with certificate'
   lineinfile:

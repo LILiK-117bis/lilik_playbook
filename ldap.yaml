@@ -1,10 +1,10 @@
 ---
 # 1) Deploy the lxc container(s)
-- hosts: ldap
+- hosts: 'ldap'
   # The host may not exist yet: do not gather facts
   gather_facts: false
   tags:
-    - lxc
+    - 'lxc'
   tasks:
     # Delegate lxc container deployment to `ansible_lxc_host`
     - import_role: name='lxc_guest'
@@ -16,19 +16,16 @@
     # gather facts (setup) and configure SSH.
     - set_fact: ansible_connection='ssh_lxc'
     - setup:
-    - include_role: name='ssh_server'
+    - import_role: name='ssh_server'
     # Now the host should be ssh-reachable
     - set_fact: ansible_connection='ssh'
 
 # 2) Deploy LDAP server(s)
-- hosts: ldap
+- hosts: 'ldap'
   roles:
-      - role: dns_record
-      - role: ldap
-        ldap_domain: 'lilik.it'
+      - role: 'dns_record'
+      - role: 'ldap'
         ldap_organization: 'LILiK'
-        fqdn_domain: 'dmz.{{ domain }}'
-        x509_suffix: 'o=LILiK,l=Firenze,st=IT'
         virtual_domains:
           - '{{ domain }}'
         # Default values:
@@ -37,6 +34,6 @@
         #check_tree: true
 
 # 3) Enable monitoring
-- hosts: status
+- hosts: 'status'
   roles:
-    - role: icinga2-monitoring
+    - role: 'icinga2-monitoring'

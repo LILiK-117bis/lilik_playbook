@@ -1,2 +1,3 @@
 ---
-server_fqdn: "{{ ansible_hostname }}.lilik.it"
+server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+...

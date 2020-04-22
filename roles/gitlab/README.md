@@ -4,15 +4,15 @@ Set-up a Omnibus GitLab server
 
 ## Configuration variables
 
-| Name            | Description                                               |
-|-----------------|-----------------------------------------------------------|
-| `fqdn`          | [`$hosname.$domain`]                                      |
-| `ssh_port`      | External SSH port. [`22`]                                 |
-| `ldap_server`*  | LDAP server FQDN (must be valid for STARTTLS).            |
-| `ldap_basedn`*  | LDAP base before ou=People (i.e.: `'dc=example,dc=com'`). |
-| `enable_https`  | Enable HTTPS. [`false`]                                   |
-| `ldap_admin_dn` | DN of a LDAP user with admin privileges.                  |
-| `ldap_admin_pw` | Bind password of that user.                               |
+| Name            | Description                                     |
+|-----------------|-------------------------------------------------|
+| `server_fqdn`   | [`$hostname.$domain`]                           |
+| `ssh_port`      | External SSH port. [`22`]                       |
+| `ldap_server`*  | LDAP server fqdn [`'ldap1.dmz.$domain'`]        |
+| `ldap_domain`   | LDAP domain, used to derive base dn [`$domain`] |
+| `enable_https`  | Enable HTTPS. [`false`]                         |
+| `ldap_admin_dn` | DN of a LDAP user with admin privileges.        |
+| `ldap_admin_pw` | Bind password of that user.                     |
 
 **Note**: The Ansible controller must have OpenLDAP properly configured
 with root ca set in `~/.ldaprc`.
@@ -43,15 +43,14 @@ hosts:
 playbook.yaml:
 
 	---
-	# Configure LDAP on a Physical Host
+	# Configure GitLab on a Physical Host
 	- hosts: 'host1'
       roles:
 	    - role: 'dns_record'
 	    - role: 'reverse_proxy'
 		  hostname: 'projects'
 	    - role: 'gitlab'
-		  ldap_server: 'ldap.dmz.{{ domain }}'
-		  ldap_basedn: 'dc=example,dc=com'
+
 
 Command line:
 

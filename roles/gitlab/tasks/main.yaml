@@ -6,12 +6,16 @@
     pkg:
       - 'gnupg'
       - 'ca-certificates'
+  tags:
+    - 'packages'
 
 - name: 'add gitlab gnupg key to apt'
   apt_key:
     id: 'F6403F6544A38863DAA0B6E03F01618A51312F3F'
     url: 'https://packages.gitlab.com/gpg.key'
     state: 'present'
+  tags:
+    - 'packages'
 
 - name: 'add gitlab apt repos'
   apt_repository:
@@ -20,37 +24,53 @@
   loop:
     - 'deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ buster main'
     - 'deb-src https://packages.gitlab.com/gitlab/gitlab-ce/debian/ buster main'
+  tags:
+    - 'packages'
 
-- include_role: name='service'
-  vars:
-    service_name: 'gitlab'
-    service_packages:
-      - 'gitlab-ce'
+- name: 'install gitlab'
+  apt:
+    pkg: 'gitlab-ce'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
 
 - name: 'load root ca'
   copy:
-    content: '{{ ssl_ca_cert }}'
-    dest: '/etc/gitlab/ca.crt'
+    content: '{{ tls_root_ca }}'
+    dest: '/etc/gitlab/root_ca.crt'
+  tags:
+    - 'tls_int'
 
-- name: 'generate gitlab password'
+- name: 'generate gitlab ldap password'
   gen_passwd: 'length=32'
-  register: 'ldap_bindpw'
+  register: 'new_passwd'
+  tags:
+    - 'tls_int'
+    - 'service_password'
 
-- name: 'set gitlab password'
+- name: 'set gitlab ldap password'
   delegate_to: 'localhost'
   ldap_passwd:
     dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
-    passwd: '{{ ldap_bindpw.passwd }}'
+    passwd: '{{ new_passwd.passwd }}'
     server_uri: 'ldap://{{ ldap_server }}'
     start_tls: true
     bind_dn: '{{ ldap_admin_dn }}'
     bind_pw: '{{ ldap_admin_pw }}'
+  tags:
+    - 'tls_int'
+    - 'service_password'
 
-- name: 'update configuration'
+- name: 'update gitlab configuration'
   template:
       src: 'gitlab.rb.j2'
       dest: '/etc/gitlab/gitlab.rb'
   notify: 'reconfigure gitlab'
+  tags:
+    - 'tls_int'
+    - 'service_password'
 
 - name: 'patch gitlab to run in lxc'
   lineinfile:
@@ -58,4 +78,3 @@
     insertafter: '^    command "sysctl -e --system"\n'
     line: '    ignore_failure true'
   notify: 'reconfigure gitlab'
-

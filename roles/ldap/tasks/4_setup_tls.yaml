@@ -1,14 +1,18 @@
 - apt:
     pkg: 'openssl'
     state: 'present'
+  tags:
+    - 'packages'
 
-- name: 'generate ED25519 private key'
+- name: 'create slapd private key'
   shell:
     cmd: >
       openssl genpkey
       -algorithm ED25519
       -out /etc/ldap/slapd.key
     creates: '/etc/ldap/slapd.key'
+  tags:
+    - 'tls_int'
 
 - name: 'set private key ownership'
   file:
@@ -17,35 +21,24 @@
     group: 'openldap'
     mode: '600'
 
-- name: 'generate certificate request'
-  shell:
-    cmd: >
-      openssl req
-      -new
-      -subj "{{ ssl_subject_prefix }}/OU=Server/CN={{ ansible_hostname }}.{{ fqdn_domain }}"
-      -key /etc/ldap/slapd.key
-      -out /etc/ldap/slapd.csr
-    creates: '/etc/ldap/slapd.csr'
-
-- name: 'lookup_ssl_ca_cert'
-  when: ssl_ca_cert is not defined
-  set_fact:
-    ssl_ca_cert: '{{ lookup("file", "lilik_ca_w1.pub") }}'
-
-- name: 'update ssl_ca_cert'
+- name: 'update tls ca'
   copy:
-    content: "{{ ssl_ca_cert }}"
-    dest: '/etc/ldap/ssl_ca.crt'
+    content: '{{ tls_root_ca }}'
+    dest: '/etc/ldap/root_ca.crt'
+  tags:
+    - 'tls_int'
 
-- name: 'check if slapd cert is valid'
+- name: 'check slapd cert status'
   command: >
     openssl verify
-    -CAfile /etc/ldap/ssl_ca.crt
+    -CAfile /etc/ldap/root_ca.crt
     -untrusted /etc/ldap/slapd.crt
     /etc/ldap/slapd.crt
   register: slapd_cert_is_valid
   changed_when: false
   failed_when: false
+  tags:
+    - 'tls_int'
 
 - when: slapd_cert_is_valid.rc != 0
   block:
@@ -85,6 +78,17 @@
     - debug:
         var: request_result
         verbosity: 2
+- name: 'create slapd cert request'
+  shell:
+    cmd: >
+      openssl req
+      -new
+      -subj "{{ x509_subject_prefix }}/OU=Server/CN={{ server_fqdn }}"
+      -key /etc/ldap/slapd.key
+      -out /etc/ldap/slapd.csr
+  when: slapd_cert_is_valid.rc != 0
+  tags:
+    - 'tls_int'
 
     - name: 'renewing cert - storing new cert file'
       copy:
@@ -102,6 +106,8 @@
     - { name: 'olcTLSCertificateFile', value: '/etc/ldap/slapd.crt' }
     - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
   failed_when: false
+  tags:
+    - 'tls_int'
 
 - name: 'configuring TLS options'
   ldap_attr:
@@ -114,11 +120,14 @@
     - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
     - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/ssl_ca.crt' }
     - { name: 'olcTLSVerifyClient', value: 'try' }  # TLS Client Auth
+  tags:
+    - 'tls_int'
 
 - name: 'configuring slapd service'
   lineinfile:
     line: 'SLAPD_SERVICES="ldap:/// ldapi:/// ldaps:///"'
     regexp: '^SLAPD_SERVICES='
     path: '/etc/default/slapd'
-  notify:
-    - 'restart slapd'
+  notify: 'restart slapd'
+  tags:
+    - 'tls_int'
