@@ -1,113 +1,87 @@
 ---
-- name: install openvpn-openssl package
+- name: 'install openvpn-openssl package'
   opkg:
-    name: openvpn-openssl
-    state: present
+    name: 'openvpn-openssl'
+    state: 'present'
+  tags:
+    - 'packages'
 
-- name: create openvpn KEY
-  shell: 'openssl genrsa -out {{ openvpn_key }} 2047'
+- name: 'create openvpn private key'
+  shell:
+    cmd: >
+      openssl genpkey
+      -algorithm ed25519
+      -out /etc/openvpn/openvpn.key
   args:
-    creates: "{{ openvpn_key }}"
-  notify: reload openvpn
+    creates: '/etc/openvpn/openvpn.key'
+  notify: 'reload openvpn'
+  tags:
+    - 'tls_int'
 
+#- name: create openvpn dh2048
+#  shell: 'openssl dhparam -out /etc/openvpn/dh2048.pem 2048'
+#  args:
+#    creates: /etc/openvpn/dh2048.pem
+#  notify: reload openvpn
 
-- name: create openvpn dh2048
-  shell: 'openssl dhparam -out /etc/openvpn/dh2048.pem 2048'
-  args:
-    creates: /etc/openvpn/dh2048.pem
-  notify: reload openvpn
+- name: 'upload server ca'
+  copy:
+    content: '{{ tls_vpn_server_ca }}{{ tls_root_ca }}'
+    dest: '/etc/openvpn/server_ca.crt'
+  tags:
+    - 'tls_int'
 
+- name: 'upload user ca'
+  copy:
+    content: '{{ tls_vpn_user_ca }}{{ tls_root_ca }}'
+    dest: '/etc/openvpn/user_ca.crt'
+  notify: 'reload openvpn'
+  tags:
+    - 'tls_int'
 
-- name: create CSR
-  shell: 'openssl req -new -sha256 -subj "/C=IT/ST=ITALY/L=TUSCANY/O=IT/CN={{ ansible_hostname }}.lilik.it" -key /etc/openvpn/openvpn.key -out /etc/openvpn/openvpn.csr'
-  args:
-    creates: "{{ openvpn_csr }}"
-  notify: reload openvpn
+- name: 'check openvpn cert status'
+  command: >-
+    openssl verify
+    -CAfile /etc/openvpn/server_ca.crt
+    /etc/openvpn/openvpn.crt
+  register: openvpn_cert_is_valid
+  changed_when: false
+  failed_when: false
+  tags:
+    - 'tls_int'
 
-- name: check if openvpn cert key exist
-  stat:
-    path: "{{ openvpn_crt }}"
-  register: openvpn_cert_key
+- name: 'create openvpn cert request'
+  shell: >
+    openssl req
+    -new
+    -subj "{{ x509_subject_prefix }}/OU=Server/CN={{ server_fqdn }}"
+    -key /etc/openvpn/openvpn.key
+    -out /etc/openvpn/openvpn.csr
+  when: openvpn_cert_is_valid.rc != 0
+  tags:
+    - 'tls_int'
 
-- block:
-    - name: get pub key
-      shell: "cat /etc/openvpn/openvpn.csr"
-      register: pub_key
+- import_tasks: 'ca-signing-request.yaml'
+  vars:
+    host: '{{ server_fqdn }}'
+    request_path: '/etc/openvpn/openvpn.csr'
+    output_path: '/etc/openvpn/openvpn.crt'
+  when: openvpn_cert_is_valid.rc != 0
+  notify: 'reload openvpn'
+  tags:
+    - 'tls_int'
 
-    - debug:
-        var: pub_key
-        verbosity: 2
-
-    - name: generate host request
-      set_fact:
-        ca_request:
-          type: 'sign_request'
-          request:
-            keyType: 'ssl_host'
-            hostName: '{{ inventory_hostname }}.lilik.it'
-            keyData: '{{ pub_key.stdout }}'
-
-    - debug:
-        var: cert_request
-        verbosity: 2
-
-    - name: start sign request
-      include: ca-dialog.yaml
-
-    - set_fact:
-        request_output: "{{ request_result.stdout | string | from_json }}"
-
-    - debug:
-        var: request_output
-
-    - name: generate get request
-      set_fact:
-        ca_request:
-          type: 'get_certificate'
-          requestID: '{{ request_output.requestID }}'
-
-    - debug:
-        msg: "Please manualy confirm sign request with id {{ request_output.requestID }}"
-
-    - name: wait for cert
-      include: ca-dialog.yaml
-
-    - set_fact:
-          cert_key: "{{ request_result.stdout | string | from_json }}"
-
-    - debug:
-        var: request_result
-        verbosity: 2
-
-    - name: set pub key
-      copy:
-        content: "{{ cert_key.result }}"
-        dest: "{{ openvpn_crt }}"
-      register: set_pub_key
-  when: not openvpn_cert_key.stat.exists
-
-- set_fact:
-    certificates:
-      - files/lilik_ca_x1.pub
-      - files/lilik_ca_v1.pub
-
-- name: create vpn fullchain
+- name: 'write openvpn configuration'
   template:
-    src: fullchain.j2
-    dest: /etc/openvpn/fullchain.crt
-  notify: reload openvpn
+    dest: '/etc/config/openvpn'
+    src: 'openvpn.j2'
+    owner: 'root'
+    group: 'root'
+    mode: '0400'
+  register: config_updated
+  notify: 'reload openvpn'
 
-- name: write openvpn configuration
-  template:
-    dest: /etc/config/openvpn
-    src: openvpn.j2
-    owner: root
-    group: root
-    mode: 0400
-  register: new_vpn_config
-  notify: reload openvpn
-
-- name: commit openvpn configuration to uci
+- name: 'commit openvpn configuration to uci'
   shell: 'uci commit openvpn'
-  notify: reload openvpn
-  when: new_vpn_config.changed
+  notify: 'reload openvpn'
+  when: config_updated.changed

@@ -1,9 +1,14 @@
 ---
-- hosts: gandalf
+- hosts: 'gandalf'
   roles:
-    - role: openvpn
-    - role: ssh_server
-      ansible_distribution: "openwrt"
-- hosts: status
+    - role: 'openvpn'
+      routes:
+        - '10.151.42.0 255.255.255.0'
+        - '10.151.40.0 255.255.255.0'
+    - role: 'ssh_server'
+      ansible_distribution: 'openwrt'
+
+- hosts: 'status'
   roles:
-    - role: icinga2-monitoring
+    - role: 'icinga2-monitoring'
+...
