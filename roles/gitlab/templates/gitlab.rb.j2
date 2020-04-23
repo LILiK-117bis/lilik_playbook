@@ -1438,7 +1438,11 @@ external_url 'http://{{ server_fqdn }}'
 ##! Docs: https://docs.gitlab.com/omnibus/gitlab-mattermost
 ################################################################################
 
+{% if mattermost_hostname is defined %}
+ mattermost_external_url 'https://{{ mattermost_hostname }}.{{ domain }}'
+{% else %}
 # mattermost_external_url 'http://mattermost.example.com'
+{% endif %}
 
 # mattermost['enable'] = false
 # mattermost['username'] = 'mattermost'

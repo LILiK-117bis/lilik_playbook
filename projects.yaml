@@ -20,7 +20,10 @@
     - role: 'dns_record'
     - role: 'reverse_proxy'
       hostname: 'projects'
+    - role: 'reverse_proxy'
+      hostname: 'mattermost'
     - role: 'gitlab'
+      mattermost_hostname: 'mattermost'
 
 - hosts: 'status'
   roles:

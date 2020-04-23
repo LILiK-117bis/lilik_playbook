@@ -14,6 +14,7 @@ Set-up a Omnibus GitLab server
 | `ldap_admin_dn`         | DN of a LDAP user with admin privileges.        |
 | `ldap_admin_pw`         | Bind password of that user.                     |
 | `initial_root_password` | Available only before initialization.           |
+| `mattermost_hostname`   | If defined, creates GitLab Mattermost instance. |
 
 **Note**: The Ansible controller must have OpenLDAP properly configured
 with root ca set in `~/.ldaprc`.
