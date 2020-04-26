@@ -27,9 +27,9 @@
 ##! address from AWS. For more details, see:
 ##! https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
 {% if enable_https %}
-external_url 'https://{{ server_fqdn }}'
+external_url 'https://{{ gitlab_fqdn }}'
 {% else %}
-external_url 'http://{{ server_fqdn }}'
+external_url 'http://{{ gitlab_fqdn }}'
 {% endif %}
 
 ## Roles for multi-instance GitLab
@@ -1168,16 +1168,15 @@ external_url 'http://{{ server_fqdn }}'
 
 ##! **Override only if you use a reverse proxy**
 ##! Docs: https://docs.gitlab.com/omnibus/settings/nginx.html#setting-the-nginx-listen-port
-{% if enable_https %}
- nginx['listen_port'] = "443 proxy_protocol"
-{% else %}
 # nginx['listen_port'] = nil
-{% endif %}
 
 ##! **Override only if your reverse proxy internally communicates over HTTP**
 ##! Docs: https://docs.gitlab.com/omnibus/settings/nginx.html#supporting-proxied-ssl
 # nginx['listen_https'] = nil
 
+{% if proxy_protocol %}
+ nginx['custom_gitlab_server_config'] = "listen 10443 ssl http2 proxy_protocol;"
+{% endif %}
 # nginx['custom_gitlab_server_config'] = "location ^~ /foo-namespace/bar-project/raw/ {\n deny all;\n}\n"
 # nginx['custom_nginx_config'] = "include /etc/nginx/conf.d/example.conf;"
 # nginx['proxy_read_timeout'] = 3600
@@ -1194,8 +1193,10 @@ external_url 'http://{{ server_fqdn }}'
 # nginx['proxy_cache_path'] = 'proxy_cache keys_zone=gitlab:10m max_size=1g levels=1:2'
 # nginx['proxy_cache'] = 'gitlab'
 # nginx['http2_enabled'] = true
+{% if proxy_protocol %}
  nginx['real_ip_trusted_addresses'] = [ '{{ hostvars | ip_from_inventory('vm_gateway') }}' ]
  nginx['real_ip_header'] = "proxy_protocol"
+{% endif %}
 # nginx['real_ip_recursive'] = nil
 # nginx['custom_error_pages'] = {
 #   '404' => {
@@ -1438,8 +1439,8 @@ external_url 'http://{{ server_fqdn }}'
 ##! Docs: https://docs.gitlab.com/omnibus/gitlab-mattermost
 ################################################################################
 
-{% if mattermost_hostname is defined %}
- mattermost_external_url 'https://{{ mattermost_hostname }}.{{ domain }}'
+{% if enable_mattermost %}
+ mattermost_external_url 'https://{{ mattermost_fqdn }}'
 {% else %}
 # mattermost_external_url 'http://mattermost.example.com'
 {% endif %}
@@ -1486,6 +1487,12 @@ external_url 'http://{{ server_fqdn }}'
 
 # Below you can find settings that are exclusive to "Mattermost NGINX"
 # mattermost_nginx['enable'] = false
+
+{% if proxy_protocol %}
+ mattermost_nginx['custom_gitlab_mattermost_server_config'] = "listen 10443 ssl http2 proxy_protocol;"
+ mattermost_nginx['real_ip_trusted_addresses'] = [ '{{ hostvars | ip_from_inventory('vm_gateway') }}' ]
+ mattermost_nginx['real_ip_header'] = "proxy_protocol"
+{% endif %}
 
 # mattermost_nginx['custom_gitlab_mattermost_server_config'] = "location ^~ /foo-namespace/bar-project/raw/ {\n deny all;\n}\n"
 # mattermost_nginx['proxy_set_headers'] = {

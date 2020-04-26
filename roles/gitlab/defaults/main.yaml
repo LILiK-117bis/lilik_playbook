@@ -1,8 +1,11 @@
 ---
-server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+gitlab_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+mattermost_fqdn: 'mattermost.{{ domain }}'
 ssh_port: 8022
 ldap_domain: '{{ domain }}'
 ldap_server: 'ldap1.dmz.{{ domain }}'
 ldap_basedn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
 enable_https: true
+enable_mattermost: true
+proxy_protocol: true
 ...
