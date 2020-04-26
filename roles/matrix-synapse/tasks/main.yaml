@@ -1,40 +1,114 @@
 ---
-- name: set synapse server name
+- name: 'install gnupg and ca-cert'
+  apt:
+    pkg:
+      - 'gnupg'
+      - 'ca-certificates'
+  tags:
+      - 'packages'
+
+- name: 'add matrix gnupg key to apt'
+  apt_key:
+    id: 'AAF9AE843A7584B5A3E4CD2BCF45A512DE2DA058'
+    url: 'https://packages.matrix.org/debian/matrix-org-archive-keyring.gpg'
+    state: 'present'
+  tags:
+    - 'packages'
+
+- name: 'add matrix apt repos'
+  apt_repository:
+    repo: '{{ item }}'
+    state: 'present'
+  loop:
+    - 'deb https://packages.matrix.org/debian/ buster main'
+    - 'deb-src https://packages.matrix.org/debian/ buster main'
+  tags:
+    - 'packages'
+
+- name: 'set synapse server name'
   debconf:
-    name: 'matrix-synapse'
+    name: 'matrix-synapse-py3'
     question: 'matrix-synapse/server-name'
     vtype: 'string'
-    value: '{{ ansible_hostname }}'
+    value: '{{ matrix_domain }}'
 
-- name: install synapse
-  include_role:
-    name: service
-  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
+- name: 'install synapse'
+  include_role: name='service'
   vars:
-    service_name: matrix-synapse
+    service_name: 'matrix-synapse'
     service_packages:
-      - matrix-synapse
+      - 'matrix-synapse-py3'
+      - 'postgresql'
+      - 'postgresql-contrib'
+      - 'python3-psycopg2'
 
-- name: fix synapse folders permissions
-  file:
-    path: "{{ item }}"
-    owner: matrix-synapse
-    group: nogroup
-    mode: 0750
-    state: directory
-  with_items:
-    - /etc/matrix-synapse
-    - /etc/matrix-synapse/conf.d
+- block:
+    - name: 'create synapse DB'
+      postgresql_db:
+        name: 'synapse'
+        encoding: 'UTF-8'
+        lc_collate: 'C'
+        lc_ctype: 'C'
+        template: 'template0'
+    - name: 'create synapse DB user'
+      postgresql_user:
+        name: 'matrix-synapse'
+        db: 'synapse'
+        priv: 'ALL'
+  become: true
+  become_method: 'su'
+  become_user: 'postgres'
 
-- name: upload synapse reverse proxy conf
+#- name: fix synapse folders permissions
+#  file:
+#    path: "{{ item }}"
+#    owner: matrix-synapse
+#    group: nogroup
+#    mode: 0750
+#    state: directory
+#  with_items:
+#    - /etc/matrix-synapse
+#    - /etc/matrix-synapse/conf.d
+
+- name: 'upload synapse reverse proxy conf'
   template:
-    src: synapse.conf
-    dest: "/etc/nginx/locations/{{ server_fqdn }}/synapse.conf"
-  notify:
-    - restart nginx
+    src: 'synapse.conf.j2'
+    dest: '/etc/nginx/locations/{{ server_fqdn }}/synapse.conf'
+  notify: 'restart nginx'
 
-- name: upload synapse conf
+- name: 'generate matrix ldap password'
+  gen_passwd: 'length=32'
+  register: 'new_passwd'
+  tags:
+    - 'service_password'
+
+- name: 'set matrix ldap password in ldap'
+  delegate_to: 'localhost'
+  ldap_passwd:
+    dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ new_passwd.passwd }}'
+    server_uri: 'ldap://{{ ldap_server }}'
+    start_tls: true
+    bind_dn: '{{ ldap_admin_dn }}'
+    bind_pw: '{{ ldap_admin_pw }}'
+  tags:
+    - 'service_password'
+
+- name: 'update tls ca'
+  copy:
+    content: '{{ tls_root_ca }}'
+    dest: '/etc/ldap/root_ca.crt'
+
+- name: 'configure ldap client'
+  copy:
+    src: 'ldap.conf'
+    dest: '/etc/ldap/ldap.conf'
+
+
+- name: 'upload synapse conf'
   template:
-    src: homeserver.yaml.j2
-    dest: /etc/matrix-synapse/homeserver.yaml
-  notify: "restart matrix-synapse"
+    src: 'homeserver.yaml.j2'
+    dest: '/etc/matrix-synapse/homeserver.yaml'
+  notify: 'reload matrix-synapse'
+  tags:
+    - 'service_password'
