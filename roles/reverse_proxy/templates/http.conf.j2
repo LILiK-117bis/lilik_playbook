@@ -1,8 +1,9 @@
 server {
     listen {{ public_ip }}:80;
 
-    server_name {{ hostname }}.{{ domain }} www.{{ hostname }}.{{ domain }};
+    server_name {{ server_fqdns | join(" ") }};
 
+    # Redirect ACME Challenges to the upstream server port 80
     location /.well-known/acme-challenge/ {
       proxy_set_header X-Real-IP $remote_addr;
       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -11,6 +12,7 @@ server {
       proxy_pass http://{{ hostvars | ip_from_inventory(ansible_hostname) }};
     }
 
+    # Redirect to HTTPS all non-ACME requests
     location / {
       if ($request_method = POST) {
         return 307 https://$server_name$request_uri;

@@ -1,3 +1,0 @@
-upstream {{ hostname }}_https {
-    server {{ hostvars | ip_from_inventory(ansible_hostname) }}:443;
-}
