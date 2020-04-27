@@ -12,23 +12,30 @@ server {
     real_ip_header proxy_protocol;
 {% endif %}
 
+    # Do not advertise nginx version number
+    server_tokens off;
 
+    # Certificates location from CertBot
     ssl_certificate /etc/letsencrypt/live/{{ server_fqdn }}/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/{{ server_fqdn }}/privkey.pem;
 
-    ssl_session_timeout 5m;
+    # TLS Mozilla Guideline v5.4,
+    # nginx 1.14.2, OpenSSL 1.1.1d, modern configuration
+    ssl_session_timeout 1d;
     ssl_session_cache shared:MozSSL:10m;
     ssl_session_tickets off;
-
+    # modern configuration
     ssl_protocols TLSv1.3;
     ssl_prefer_server_ciphers off;
-
+    # HSTS (2 years, no preloading)
+    add_header Strict-Transport-Security "max-age=63072000" always;
+    # OCSP stapling
     ssl_stapling on;
     ssl_stapling_verify on;
 
-    add_header Strict-Transport-Security "max-age=63072000" always;
-
+    # verify chain of trust of OCSP response using Root CA and Intermediate certs
     ssl_trusted_certificate /etc/letsencrypt/live/{{ server_fqdn }}/chain.pem;
 
+    # Include custom locations
     include     /etc/nginx/locations/{{ server_fqdn }}/*.conf;
 }
