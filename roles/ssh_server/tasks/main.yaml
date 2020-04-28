@@ -118,5 +118,5 @@
     host: '{{ hostvars | ip_from_inventory(inventory_hostname) }}'
     port: 22
     timeout: 30
-  delegate_to: '{{ inventory_hostname }}'
+  delegate_to: 'localhost'
   delegate_facts: true
