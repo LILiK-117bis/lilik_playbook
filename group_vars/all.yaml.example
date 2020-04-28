@@ -1,24 +1,37 @@
 ---
-# ip of the management vlan gateway
-management_gateway: 0.0.0.0
-# ip of the vm vlan gateway
-vm_gateway: 0.0.0.0
-# Put here the public key of the users CA.
+# Put here the public ip for your organisation
+public_ip: 0.0.0.0
+# Put here the domain for your organisation
+domain: "example.com"
+# Put here an email address to receive Let's Encrypt communications.
+letsencrypt_email: 'admin@example.com'
+
+# Put the TLS X.509 Subject Prefix (before OU=)
+x509_subject_prefix: '/C=IT/L=Firenze/O=Example'
+# Here the same in LDAP (and reversed) format
+x509_ldap_suffix: 'o=Example,l=Firenze,c=it'
+
+# Put here the public key of the user CAs.
+# The first one will be used also to check if host certificate are
+# updated.
 user_ca_keys:
   - "ssh-ed25519 AAAA(...) Active Production key"
   - "ssh-ed25519 AAAA(...) Older not-expired key"
 #  - "ssh-ed25519 AAAA(...) Revoked key"
 
-# Put the TLS X.509 Subject Prefix (before OU=)
-ssl_subject_prefix: '/S=IT/L=Firenze/O=Example'
-
 # Put TLS Certificate of your Root Certification Authority
-ssl_ca_cert: |
+tls_root_ca: |
   -----BEGIN CERTIFICATE-----
-
+  #########################
+  -----END CERTIFICATE-----
+# Put TLS Certificate for OpenVPN Server Intermediate CA
+tls_vpn_user_ca: |
+  -----BEGIN CERTIFICATE-----
+  #########################
+  -----END CERTIFICATE-----
+# Put TLS Certificate for OpenVPN Users Intermediate CA
+tls_vpn_server_ca: |
+  -----BEGIN CERTIFICATE-----
+  ##########################
   -----END CERTIFICATE-----
 
-# Put here the public ip for your organisation
-public_ip: 0.0.0.0
-# Put here the domain for your organisation
-domain: "example.com"
