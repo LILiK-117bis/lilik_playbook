@@ -19,11 +19,10 @@
   roles:
     - role: 'dns_record'
     - role: 'reverse_proxy'
-      hostname: 'projects'
-    - role: 'reverse_proxy'
-      hostname: 'mattermost'
+      server_fqdns:
+        - 'projects.{{ domain }}'
+        - 'mattermost.{{ domain }}'
     - role: 'gitlab'
-      mattermost_hostname: 'mattermost'
 
 - hosts: 'status'
   roles:
