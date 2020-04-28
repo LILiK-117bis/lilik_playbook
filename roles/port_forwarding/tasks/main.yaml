@@ -1,0 +1,20 @@
+---
+- name: 'set port redirection rule for {{ rule_name }}'
+  uci:
+    command: 'set'
+    key: 'firewall.{{ item.0 }}'
+    value: '{{ item.1 }}'
+  loop:
+    - [ '{{ rule_name }}', 'redirect' ]
+    - [ '{{ rule_name }}.name', 'AnsibleManagedRedirect: {{ rule_name }}' ]
+    - [ '{{ rule_name }}.proto', '{{ proto }}' ]
+    - [ '{{ rule_name }}.src', 'wan' ]
+    - [ '{{ rule_name }}.dest', 'secure' ]
+    - [ '{{ rule_name }}.src_dport', '{{ port }}' ]
+    - [ '{{ rule_name }}.dest_ip','{{ hostvars | ip_from_inventory(inventory_hostname) }}' ]
+    - [ '{{ rule_name }}.dest_port', '{{ int_port | default(port) }}' ]
+  delegate_to: '{{ firewall }}'
+  notify:
+    - 'uci commit firewall'
+    - 'reload firewall'
+...
