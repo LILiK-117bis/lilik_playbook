@@ -72,6 +72,11 @@
     - 'tls_int'
     - 'service_password'
 
+- name: 'upload letsencrypt ca for ocsp stapling verification'
+  get_url:
+    url: 'https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem.txt'
+    dest: '/etc/gitlab/ssl/chain.crt'
+
 - name: 'patch gitlab to run in lxc'
   lineinfile:
     path: '/opt/gitlab/embedded/cookbooks/package/resources/gitlab_sysctl.rb'

@@ -1130,6 +1130,15 @@ external_url 'http://{{ gitlab_fqdn }}'
 ##! Most root CA's are included by default
 # nginx['ssl_client_certificate'] = "/etc/gitlab/ssl/ca.crt"
 
+##! Mozilla Recommendations - Modern
+ nginx['ssl_session_timeout'] = "1d"
+ nginx['ssl_session_cache'] = "builtin:1000 shared:MozSSL:10m"
+ nginx['ssl_protocols'] = "TLSv1.3"
+ nginx['ssl_prefer_server_ciphers'] = "off"
+ nginx['hsts_max_age'] = 63072000
+ nginx['ssl_stapling'] = "on"
+ nginx['ssl_stapling_verify'] = "on"
+ nginx['ssl_trusted_certificate'] = "/etc/gitlab/ssl/chain.crt"
 ##! enable/disable 2-way SSL client authentication
 # nginx['ssl_verify_client'] = "off"
 
@@ -1138,26 +1147,25 @@ external_url 'http://{{ gitlab_fqdn }}'
 
 # nginx['ssl_certificate'] = "/etc/gitlab/ssl/#{node['fqdn']}.crt"
 # nginx['ssl_certificate_key'] = "/etc/gitlab/ssl/#{node['fqdn']}.key"
- nginx['ssl_ciphers'] = nil
- nginx['ssl_prefer_server_ciphers'] = "off"
+# nginx['ssl_ciphers'] = nil
+# nginx['ssl_prefer_server_ciphers'] = "off"
 
 ##! **Recommended by: https://raymii.org/s/tutorials/Strong_SSL_Security_On_nginx.html
 ##!                   https://cipherli.st/**
- nginx['ssl_protocols'] = "TLSv1.3"
+# nginx['ssl_protocols'] = "TLSv1.2 TLSv1.3"
 
 ##! **Recommended in: https://nginx.org/en/docs/http/ngx_http_ssl_module.html**
- nginx['ssl_session_cache'] = "builtin:1000  shared:MozSSL:10m"
+# nginx['ssl_session_cache'] = "builtin:1000  shared:SSL:5m"
 
 ##! **Default according to https://nginx.org/en/docs/http/ngx_http_ssl_module.html**
- nginx['ssl_session_timeout'] = "5m"
- nginx['ssl_session_tickets'] = "off"
+# nginx['ssl_session_timeout'] = "1d"
 
 # nginx['ssl_dhparam'] = nil # Path to dhparams.pem, eg. /etc/gitlab/ssl/dhparams.pem
 # nginx['listen_addresses'] = ['*', '[::]']
 
 ##! **Defaults to forcing web browsers to always communicate using only HTTPS**
 ##! Docs: https://docs.gitlab.com/omnibus/settings/nginx.html#setting-http-strict-transport-security
-# nginx['hsts_max_age'] = 31536000
+# nginx['hsts_max_age'] = 63072000
 # nginx['hsts_include_subdomains'] = false
 
 ##! Defaults to stripping path information when making cross-origin requests
@@ -1175,7 +1183,12 @@ external_url 'http://{{ gitlab_fqdn }}'
 # nginx['listen_https'] = nil
 
 {% if proxy_protocol %}
- nginx['custom_gitlab_server_config'] = "listen 10443 ssl http2 proxy_protocol;"
+ nginx['custom_gitlab_server_config'] = "ssl_session_tickets off;\n"\
+					"ssl_stapling on;\n"\
+					"ssl_stapling_verify on;\n"\
+					"ssl_trusted_certificate /etc/gitlab/ssl/chain.crt;\n"\
+					"listen 10443 ssl http2 proxy_protocol;\n"\
+                                        "listen [::]:10443 ssl http2 proxy_protocol;\n"\
 {% endif %}
 # nginx['custom_gitlab_server_config'] = "location ^~ /foo-namespace/bar-project/raw/ {\n deny all;\n}\n"
 # nginx['custom_nginx_config'] = "include /etc/nginx/conf.d/example.conf;"
@@ -1489,7 +1502,13 @@ external_url 'http://{{ gitlab_fqdn }}'
 # mattermost_nginx['enable'] = false
 
 {% if proxy_protocol %}
- mattermost_nginx['custom_gitlab_mattermost_server_config'] = "listen 10443 ssl http2 proxy_protocol;"
+ mattermost_nginx['custom_gitlab_mattermost_server_config'] = "ssl_session_tickets off;\n"\
+							      "ssl_stapling on;\n"\
+							      "ssl_stapling_verify on;\n"\
+							      "ssl_trusted_certificate /etc/gitlab/ssl/chain.crt;\n"\
+							      "listen 10443 ssl http2 proxy_protocol;\n"\
+                                        		      "listen [::]:10443 ssl http2 proxy_protocol;\n"\
+
  mattermost_nginx['real_ip_trusted_addresses'] = [ '{{ hostvars | ip_from_inventory('vm_gateway') }}' ]
  mattermost_nginx['real_ip_header'] = "proxy_protocol"
 {% endif %}
