@@ -1,0 +1,57 @@
+---
+- name: 'install coturn'
+  include_role: name='service'
+  vars:
+    service_name: 'coturn'
+    service_packages:
+      - 'coturn'
+
+- name: 'check if rest-api shared secret exists'
+  stat:
+    path: '/etc/coturn_rest.secret'
+  register: coturn_secret_stat
+
+- block:
+    - name: 'slurp shared secret'
+      slurp:
+        path: '/etc/coturn_rest.secret'
+      register: coturn_secret_slurp
+    - set_fact:
+        shared_secret: '{{ coturn_secret_slurp.content | b64decode }}'
+  when: (not renew_shared_secret) and (coturn_secret_stat.stat.exists)
+
+- block:
+    - name: 'generate new shared secret'
+      gen_passwd: 'length=32'
+      register: new_passwd
+    - copy:
+        content: '{{ new_passwd.passwd }}'
+        dest: '/etc/coturn_rest.secret'
+    - set_fact:
+        shared_secret: '{{ new_passwd.passwd }}'
+  when: (renew_shared_secret) or (not coturn_secret_stat.stat.exists)
+  tags:
+    - 'service_password'
+
+- name: 'set-up port forwarding for listener'
+  import_role: name='port_forwarding'
+  vars:
+    rule_name: 'turn'
+    proto: 'tcp udp'
+    port: '{{ turn_port }}'
+
+- name: 'set-up port forwarding for relay'
+  import_role: name='port_forwarding'
+  vars:
+    rule_name: 'turn_relay'
+    proto: 'udp'
+    port: '{{ min_relay_port }}-{{ max_relay_port }}'
+
+- name: 'update coturn config'
+  template:
+    src: 'turnserver.conf.j2'
+    dest: '/etc/turnserver.conf'
+  notify: 'restart coturn'
+  tags:
+    - 'service_password'
+...
