@@ -1,7 +1,7 @@
 ---
 server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 proxy_location_path: "_matrix"
-remote_host: "http://127.0.0.1:8008/_matrix"
+remote_host: "http://127.0.0.1:8008"
 matrix_domain: '{{ domain }}'
 ldap_server: 'ldap1.dmz.{{ domain }}'
 ldap_domain: '{{ domain }}'
