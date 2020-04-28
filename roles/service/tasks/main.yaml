@@ -25,19 +25,11 @@
     tags:
       - 'packages'
 
-# remove this in ansible 2.3 (see next comment)
-  - name: link /etc/init.d/sshd init script to /etc/init.d/ssh
-    file:
-      src: "/etc/init.d/sshd"
-      dest: "/etc/init.d/ssh"
-      state: link
+  - set_fact:
+      service_name: 'sshd'
     when: service_name == 'ssh'
 
-# waithing for ansible 2.3 (https://docs.ansible.com/ansible/openwrt_init_module.html)
-#  - openwrt_init:
-#      name: "{{ service_name }}"
-#      enabled: yes
-  - name: start {{ service_name }} at boot
-    shell: "/etc/init.d/{{ service_name }} enable"
-    changed_when: false
+  - openwrt_init:
+      name: '{{ service_name }}'
+      enabled: true
   when: ansible_distribution == 'openwrt'

@@ -25,12 +25,23 @@
   when: ansible_distribution != 'openwrt'
 
 - block:
-# waithing for ansible 2.3 (https://docs.ansible.com/ansible/openwrt_init_module.html)
-#  - openwrt_init:
-#      name: "{{ service_name }}"
-#      state: reloaded
-  - name: restart {{ service_name }} on openwrt
-    shell: "/etc/init.d/{{ service_name }} restart"
-  - name: reload {{ service_name }} on openwrt
-    shell: /etc/init.d/"{{ service_name }} reload"
-  when: ansible_distribution == 'openwrt'
+  - name: 'restart {{ service_name }} on openwrt'
+    openwrt_init:
+      name: '{{ service_name }}'
+      state: 'restarted'
+  - name: 'reload {{ service_name }} on openwrt'
+    openwrt_init:
+      name: '{{ service_name }}'
+      state: 'reloaded'
+  when: (ansible_distribution == 'openwrt') and (service_name != 'ssh')
+
+- block:
+  - name: 'restart {{ service_name }} on openwrt'
+    openwrt_init:
+      name: 'sshd'
+      state: 'restarted'
+  - name: 'reload {{ service_name }} on openwrt'
+    openwrt_init:
+      name: 'sshd'
+      state: 'reloaded'
+  when: (ansible_distribution == 'openwrt') and (service_name == 'ssh')
