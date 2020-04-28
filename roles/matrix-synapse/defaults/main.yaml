@@ -6,3 +6,7 @@ matrix_domain: '{{ domain }}'
 ldap_server: 'ldap1.dmz.{{ domain }}'
 ldap_domain: '{{ domain }}'
 ldap_basedn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
+turn_integration: true
+turn_host: 'matrix'
+turn_fqdn: 'turn.{{ domain }}'
+turn_port: '3478'

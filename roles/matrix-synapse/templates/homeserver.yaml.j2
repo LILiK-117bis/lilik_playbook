@@ -842,13 +842,14 @@ media_store_path: "/var/lib/matrix-synapse/media"
 
 ## TURN ##
 
+{% if turn_integration %}
 # The public URIs of the TURN server to give to clients
 #
-#turn_uris: []
+turn_uris: [ "turn:{{ turn_fqdn }}:{{ turn_port }}?transport=udp", "turn:{{ turn_fqdn }}:{{ turn_port }}?transport=tcp" ]
 
 # The shared secret used to compute passwords for the TURN server
 #
-#turn_shared_secret: "YOUR_SHARED_SECRET"
+turn_shared_secret: "{{ coturn_secret.content | b64decode }}"
 
 # The Username and password if the TURN server needs them and
 # does not use a token
@@ -858,7 +859,7 @@ media_store_path: "/var/lib/matrix-synapse/media"
 
 # How long generated TURN credentials last
 #
-#turn_user_lifetime: 1h
+turn_user_lifetime: 86400000
 
 # Whether guests should be allowed to use the TURN server.
 # This defaults to True, otherwise VoIP will be unreliable for guests.
@@ -866,8 +867,8 @@ media_store_path: "/var/lib/matrix-synapse/media"
 # connect to arbitrary endpoints without having first signed up for a
 # valid account (e.g. by passing a CAPTCHA).
 #
-#turn_allow_guests: true
-
+turn_allow_guests: false
+{% endif %}
 
 ## Registration ##
 #

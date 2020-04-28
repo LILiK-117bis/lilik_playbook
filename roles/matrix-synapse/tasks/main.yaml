@@ -78,7 +78,7 @@
 
 - name: 'generate matrix ldap password'
   gen_passwd: 'length=32'
-  register: 'new_passwd'
+  register: new_passwd
   tags:
     - 'service_password'
 
@@ -104,6 +104,12 @@
     src: 'ldap.conf'
     dest: '/etc/ldap/ldap.conf'
 
+- name: 'get turn shared secret'
+  slurp:
+    path: '/etc/coturn_rest.secret'
+  register: coturn_secret
+  when: turn_integration
+  delegate_to: '{{ turn_host }}'
 
 - name: 'upload synapse conf'
   template:
