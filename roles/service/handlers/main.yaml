@@ -1,27 +1,27 @@
 ---
-- name: restart {{ service_name }}
-  debug: msg="notify restart on all os"
+- name: 'restart {{ service_name }}'
+  debug: msg='notify restart on all os'
   changed_when: true
   notify:
-    - restart {{ service_name }} on all distro
-    - restart {{ service_name }} on openwrt
+    - 'restart {{ service_name }} on all distro'
+    - 'restart {{ service_name }} on openwrt'
 
-- name: reload {{ service_name }}
-  debug: msg="notify reload on all os"
+- name: 'reload {{ service_name }}'
+  debug: msg='notify reload on all os'
   changed_when: true
   notify:
-    - reload {{ service_name }} on all distro
-    - reload {{ service_name }} on openwrt
+    - 'reload {{ service_name }} on all distro'
+    - 'reload {{ service_name }} on openwrt'
 
 - block:
-  - name: restart {{ service_name }} on all distro
+  - name: 'restart {{ service_name }} on all distro'
     service:
-      name: "{{ service_name }}"
-      state: restarted
-  - name: reload {{ service_name }} on all distro
+      name: '{{ service_name }}'
+      state: 'restarted'
+  - name: 'reload {{ service_name }} on all distro'
     service:
-      name: "{{ service_name }}"
-      state: reloaded
+      name: '{{ service_name }}'
+      state: 'reloaded'
   when: ansible_distribution != 'openwrt'
 
 - block:

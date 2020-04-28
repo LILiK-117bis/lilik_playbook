@@ -1,25 +1,29 @@
 ---
 - block:
-  - name: install {{ service_name }}
+  - name: 'install {{ service_name }}'
     apt:
-      pkg: "{{ service_packages }}"
-      state: present
-      update_cache: yes
+      pkg: '{{ service_packages }}'
+      state: 'present'
+      update_cache: true
       cache_valid_time: 3600
       install_recommends: '{{ install_recommends | default("no") }}'
+    tags:
+      - 'packages'
 
-  - name: start {{ service_name }} at boot
+  - name: 'start {{ service_name }} at boot'
     service:
-      name: "{{ service_name }}"
-      enabled: yes
+      name: '{{ service_name }}'
+      enabled: true
   when: ansible_distribution != 'openwrt'
 
 - block:
-  - name: install {{ service_name }}
+  - name: 'install {{ service_name }}'
     opkg:
-      name: "{{ item }}"
-      state: present
-    with_items: "{{ service_packages }}"
+      name: '{{ service_packages | join(" ") }}'
+      state: 'present'
+      update_cache: true
+    tags:
+      - 'packages'
 
 # remove this in ansible 2.3 (see next comment)
   - name: link /etc/init.d/sshd init script to /etc/init.d/ssh
