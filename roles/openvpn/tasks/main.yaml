@@ -18,6 +18,8 @@
   tags:
     - 'tls_int'
 
+# Shouldn't be required for TLSv1.3
+#
 #- name: create openvpn dh2048
 #  shell: 'openssl dhparam -out /etc/openvpn/dh2048.pem 2048'
 #  args:

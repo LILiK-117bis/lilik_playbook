@@ -1,0 +1,3 @@
+---
+server_fqdn: '{{ inventory_hostname }}.{{ domain }}'
+...
