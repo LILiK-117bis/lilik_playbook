@@ -87,5 +87,6 @@
   delegate_to: 'reverse_proxy'
   notify: 'reload nginx'
 
+-  meta: 'flush_handlers'
 
 
