@@ -150,7 +150,7 @@
         {1} to dn.one=ou=People,{{ base_dn }} attrs=userPassword
         by group.exact=cn=admin,ou=Group,{{ base_dn }} write
         by self write
-        by anonymous tls_ssf=256 auth
+        by anonymous {{ 'tls_ssf=256 ' if ldap_tls_enabled }}auth
         by * none
       # [1.1] -> Admins can list the full People tree
       #       -> Servers can perform search on People tree
@@ -191,10 +191,10 @@
       # [3] :: ou=Server
       # [3.0] -> Local servers can simple-bind their entries if using TLS
       # /Server using TLS-client Auth with OU=Server are automatically authenticated
-      ## TODO: Remove hard-coded IPs
+      ## TODO: Add peername.ip filtering on server subnet
       - >-
         {8} to dn.children=ou=Server,{{ base_dn }} attrs=userPassword
-        by peername.ip=10.151.42.0%255.255.255.0 tls_ssf=256 auth
+        by {{ 'tls_ssf=256 ' if ldap_tls_enabled }}auth
         by group.exact=cn=admin,ou=Group,{{ base_dn }} write
         by * none
       # [3.1] -> No other access to Server tree
