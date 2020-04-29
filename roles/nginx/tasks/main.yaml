@@ -5,8 +5,6 @@
     service_name: 'nginx'
     service_packages:
       - 'nginx'
-  tags:
-    - 'packages'
 
 - name: 'disable nginx default configuration'
   file:

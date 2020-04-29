@@ -12,6 +12,8 @@ server {
     real_ip_header proxy_protocol;
 {% endif %}
 
+    server_name {{ server_fqdn }};
+
     # Do not advertise nginx version number
     server_tokens off;
 
