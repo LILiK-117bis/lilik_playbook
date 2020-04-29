@@ -155,7 +155,7 @@
       # [1.1] -> Admins can list the full People tree
       #       -> Servers can perform search on People tree
       - >-
-        {2}to dn.exact=ou=People,{{ base_dn }} attrs=entry
+        {2} to dn.exact=ou=People,{{ base_dn }} attrs=entry
         by group.exact=cn=admin,ou=Group,{{ base_dn }} read
         by dn.children=ou=Server,{{ base_dn }} search
         by * none

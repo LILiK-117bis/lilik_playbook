@@ -6,10 +6,11 @@
 - name: 'renewing admin password - generation'
   gen_passwd: 'length=32'
   register: new_passwd
-  hide_log: true
+  no_log: true
 
 - set_fact:
-    password: new_passwd.passwd
+    password: '{{ new_passwd.passwd }}'
+  no_log: true
 
 - name: 'renewing admin password - hashing'
   shell: >
