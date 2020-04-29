@@ -15,8 +15,8 @@ server {
     # Redirect to HTTPS all non-ACME requests
     location / {
       if ($request_method = POST) {
-        return 307 https://$server_name$request_uri;
+        return 307 https://$host$request_uri;
       }
-      return 301 https://$server_name$request_uri;
+      return 301 https://$host$request_uri;
     }
 }
