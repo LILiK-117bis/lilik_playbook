@@ -1,4 +1,6 @@
 # Based on https://github.com/vector-im/riot-web/releases
 ---
-riot_web_version: "v0.15.4"
-server_fqdn: "{{ ansible_hostname }}.lilik.it"
+riot_web_version: "v1.6.0-rc.4"
+server_fqdn: "riot.{{ domain }}"
+matrix_fqdn: "matrix.{{ domain }}"
+matrix_server_name: "{{ domain }}"

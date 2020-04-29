@@ -19,9 +19,14 @@
   roles:
     - role: 'dns_record'
     - role: 'reverse_proxy'
+      server_fqdns:
+        - 'matrix.{{ domain }}'
+        - 'riot.{{ domain }}'
     - role: 'coturn'
     - role: 'matrix-synapse'
-#    - role: 'riot-web'
+      server_fqdn: 'matrix.{{ domain }}'
+    - role: 'riot-web'
+      server_fqdn: 'riot.{{ domain }}'
 
 - hosts: 'status'
   roles:
