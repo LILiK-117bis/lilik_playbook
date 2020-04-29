@@ -135,6 +135,7 @@
   copy:
     src: 'ldap.conf'
     dest: '/etc/ldap/ldap.conf'
+  when: ldap_tls_enabled
 
 - name: 'enable user_ldap'
   occ:
@@ -164,13 +165,14 @@
       ldap_attributes_for_user_search: 'cn'
       ldap_attributes_for_group_search: 'cn'
       ldap_email_attr: 'mail'
-      ldap_tls: '1'
+      ldap_tls: '{{ 1 if ldap_tls_enabled else 0 }}'
       ldap_experienced_admin: '1'
       ldap_configuration_active: '1'
 
 - name: 'generate nextcloud ldap password'
   gen_passwd: 'length=32'
   register: 'new_passwd'
+  no_log: true
   tags:
     - 'service_password'
 
@@ -180,9 +182,10 @@
     dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
     passwd: '{{ new_passwd.passwd }}'
     server_uri: 'ldap://{{ ldap_server }}'
-    start_tls: true
+    start_tls: '{{ ldap_tls_enabled }}'
     bind_dn: '{{ ldap_admin_dn }}'
     bind_pw: '{{ ldap_admin_pw }}'
+  no_log: true
   tags:
     - 'service_password'
 
