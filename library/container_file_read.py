@@ -30,7 +30,7 @@ def read_file_in_container(args):
                 path = path,
                 text = lines.read().strip('\n'),
             )
-    except IOError, e:
+    except IOError as e:
         module.exit_json(
             msg = e,
             path = path,
