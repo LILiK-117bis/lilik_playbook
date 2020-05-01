@@ -40,9 +40,9 @@
   become_method: 'su'
   become_user: 'postgres'
 
-- name: 'download latest nextcloud'
+- name: 'download nextcloud'
   get_url:
-    url: 'https://download.nextcloud.com/server/releases/nextcloud-18.0.3.tar.bz2'
+    url: 'https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.tar.bz2'
     dest: '/opt/nextcloud.tar.bz2'
   register: 'new_download'
   tags:

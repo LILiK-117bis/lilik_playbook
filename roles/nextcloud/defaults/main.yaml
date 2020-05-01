@@ -1,4 +1,5 @@
 ---
+nextcloud_version: '18.0.4'
 server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 ldap_server: 'ldap1.dmz.{{ domain }}'
 ldap_basedn: 'dc={{ domain.replace(".", ",dc=") }}'
