@@ -84,7 +84,7 @@
       gen_passwd: length=20
       register: 'password'
     - set_fact:
-        initial_root_password: '{{  new_passwd.passwd }}'
+        initial_root_password: '{{  password.passwd }}'
     - name: 'store root password plaintext'
       copy:
         content: '{{ initial_root_password }}'
