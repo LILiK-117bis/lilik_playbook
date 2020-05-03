@@ -1,15 +1,18 @@
 - include_role:
-    name: service
+    name: 'service'
   vars:
-    service_name: icinga2
+    service_name: 'icinga2'
+  tags:
+    - 'monitoring'
 
 - debug:
-    var: monitoring_host
+    var: 'monitoring_facts'
 
-- name: add host monitoring
+- name: 'MONITORING | configure HOST/{{ item.key }}'
   template:
-    src: host.conf.j2
-    dest: "/etc/icinga2/conf.d/hosts/{{ item }}.conf"
-  with_items:
-    - "{{ monitoring_host }}"
-  notify: reload icinga2
+    src: 'host.conf.j2'
+    dest: "/etc/icinga2/conf.d/hosts/{{ item.key }}.conf"
+  loop: '{{ monitoring_facts|dict2items }}'
+  notify: 'reload icinga2'
+  tags:
+    - 'monitoring'

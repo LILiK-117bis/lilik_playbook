@@ -1,7 +1,8 @@
-object Host "{{ item }}" {
+object Host "{{ item.key }}" {
   import "generic-host"
 
+  address = "{{ item.value.address }}"
+
   vars.os = "Linux"
-  vars.address = "{{ hostvars | ip_from_inventory(item) }}"
   vars.sla = "24x7"
 }
