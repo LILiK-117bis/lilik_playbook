@@ -84,9 +84,20 @@
 
 - meta: 'flush_handlers'
 
-- name: 'add monitoring facts'
-  set_fact:
-    monitoring_host: '{{ monitoring_host | default([]) }} + [ "{{ vm_name }}" ]'
-  delegate_facts: true
-  delegate_to: 'status'
+- name: 'MONITORING | add to monitored hosts'
+  block:
+    - name: 'MONITORING | add HOST/{{ host_fqdn }} to monitored hosts'
+      set_fact:
+        lxc_monitoring_entry: >
+          {{ { host_fqdn: { 'address': ansible_host } } }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine(lxc_monitoring_entry) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
 ...
