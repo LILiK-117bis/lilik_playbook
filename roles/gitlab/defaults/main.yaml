@@ -1,4 +1,5 @@
 ---
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
 gitlab_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 mattermost_fqdn: 'mattermost.{{ domain }}'
 ssh_port: 8022

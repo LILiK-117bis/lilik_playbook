@@ -83,3 +83,42 @@
     insertafter: '^    command "sysctl -e --system"\n'
     line: '    ignore_failure true'
   notify: 'reconfigure gitlab'
+
+
+- name: 'MONITORING | add HTTP services'
+  block:
+    - name: 'MONITORING | fetch monitored HTTP for current host'
+      set_fact:
+        vhosts: >
+          {{ hostvars[monitoring_host]['monitoring_facts'][host_fqdn]['vhosts']
+               | default([]) }}
+    - name: 'MONITORING | add HTTP/{{ gitlab_fqdn }} to monitored service'
+      set_fact:
+        vhosts: '{{ vhosts + [gitlab_fqdn] }}'
+      when: enable_https
+    - name: 'MONITORING | add HTTP/{{ mattermost_fqdn }} to monitored service'
+      set_fact:
+        vhosts: '{{ vhosts + [mattermost_fqdn] }}'
+        when: enable_mattermost
+    - name: 'MONITORING | create host monitoring entry'
+      set_fact:
+        gitlab_monitoring_entry: >
+          {{ {
+               host_fqdn: {
+                            'address': ansible_host,
+                            'vhosts': vhosts,
+                          }
+             } }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine(gitlab_monitoring_entry, recursive=true) }}
+        delegate_facts: true
+        delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
+...
+
+
