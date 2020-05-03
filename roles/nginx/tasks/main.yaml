@@ -35,4 +35,31 @@
     dest: '/etc/nginx/sites-enabled/{{ server_fqdn }}.conf'
     state: 'link'
   notify: 'restart nginx'
+
+- name: 'MONITORNIG | add service HTTP/{{ server_fqdn }}'
+  block:
+    - name: 'MONITORING | fetch monitored HTTP for current host'
+      set_fact:
+        vhosts: >
+          {{ hostvars[monitoring_host]['monitoring_facts'][host_fqdn]['vhosts']
+               | default([]) }}
+    - name: 'MONITORING | add HTTP/{{ server_fqdn }} to monitored service'
+      set_fact:
+        nginx_monitoring_entry: >
+          {{ {
+               host_fqdn: {
+                            'address': ansible_host,
+                            'vhosts': vhosts + [server_fqdn],
+                          }
+             } }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine(nginx_monitoring_entry, recursive=true) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
 ...

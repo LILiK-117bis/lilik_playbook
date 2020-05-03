@@ -1,4 +1,5 @@
 ---
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
 server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 # Accept HTTPS over PROXY PROTOCOL on Alternate Port: 10443
 proxy_protocol: true
