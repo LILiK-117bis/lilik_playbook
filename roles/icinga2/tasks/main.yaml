@@ -26,6 +26,16 @@
       question: 'icinga2-ido-pgsql/dbconfig-reinstall'
       vtype: 'boolean'
       value: true
+- name: 'create icinga2 service role'
+  include_role: name='service'
+  vars:
+    service_name: 'icinga2'
+    service_packages:
+      - 'icinga2'
+      - 'icingacli'
+      - 'icinga2-ido-pgsql'
+      - 'monitoring-plugins'
+      - 'nagios-plugins-contrib'
 
 
 # - name: nasty dpkg-reconfigure
@@ -37,33 +47,24 @@
 #       question: 'icinga2-ido-pgsql/dbconfig-reinstall'
 #       vtype: 'boolean'
 #       value: false
+- name: 'install IcingaWeb2 packages'
+  apt:
+    pkg:
+      - 'icingaweb2'
+      - 'icingaweb2-module-monitoring'
+      - 'php-ldap'
+      - 'php-pgsql'
+      - 'php-intl'
+      - 'php-imagick'
+      - 'php-fpm'
+      - 'rsync'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
 
 
-- include_role:
-    name: service
-  vars:
-    service_name: icinga2
-    service_packages:
-      - icinga2-ido-pgsql
-      - monitoring-plugins
-      - nagios-plugins-contrib
-      - icinga2
-      - icingacli
-      - php-ldap
-      - php-pgsql
-      - php-intl
-      - php-imagick
-      - icingaweb2-module-monitoring
-      - icingaweb2
-      # TODO: log, add a centralized log server
-      - rsyslog
-      - rsync
-
-- name: enable ido-pgsql and command features
-  command: "icinga2 feature enable ido-pgsql command"
-  register: icinga2_features
-  changed_when: "'Enabling' in icinga2_features.stdout"
-  notify: restart icinga2
 - name: 'LDAP | upload client root ca'
   copy:
     content: '{{ tls_root_ca }}'
@@ -137,9 +138,9 @@
     - 'authentication.ini'
     - 'groups.ini'
 
-- name: add nginx configurations
+- name: 'NGINX | configure IcingaWeb2 locations'
   template:
-    src: icinga.conf
+    src: 'icinga.conf'
     dest: "/etc/nginx/locations/{{ server_fqdn }}/service.conf"
   notify:
-    - restart nginx
+    - 'reload nginx'
