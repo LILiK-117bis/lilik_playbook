@@ -5,4 +5,19 @@ object Host "{{ item.key }}" {
 
   vars.os = "Linux"
   vars.sla = "24x7"
+
+{% if 'vhosts' in item.value %}
+{% for vhost in item.value.vhosts %}
+  vars.http_vhosts["{{ vhost }}"] = {
+    http_uri = "/"
+    http_vhost = "{{ vhost }}"
+    http_onredirect = "follow"
+    http_sni = true
+    /* Check remaining days before cert expiration */
+    http_certificate = "30,20"
+  }
+{% endfor %}
+{% endif %}
 }
+
+
