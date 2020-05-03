@@ -1,0 +1,10 @@
+[icingaweb2]
+backend = "ldap"
+resource = "icingaweb2-users-ldap"
+user_backend = "ldap-user-auth"
+group_class = "groupofnames"
+group_filter = ""
+group_name_attribute = "cn"
+group_member_attribute = "member"
+base_dn = "ou=Group,{{ ldap_basedn }}"
+

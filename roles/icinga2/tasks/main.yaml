@@ -64,43 +64,78 @@
   register: icinga2_features
   changed_when: "'Enabling' in icinga2_features.stdout"
   notify: restart icinga2
+- name: 'LDAP | upload client root ca'
+  copy:
+    content: '{{ tls_root_ca }}'
+    dest: '/etc/ldap/root_ca.crt'
+  tags:
+    - 'tls_int'
 
-- name: copy icingaweb2 configuration
+- name: 'LDAP | configure client'
+  copy:
+    src: 'ldap.conf'
+    dest: '/etc/ldap/ldap.conf'
+  when: ldap_tls_enabled
+
+- name: 'LDAP | generate client service password'
+  gen_passwd: 'length=32'
+  register: 'new_passwd'
+  no_log: true
+  tags:
+    - 'service_password'
+
+- name: 'LDAP | set client service password on server'
+  delegate_to: 'localhost'
+  ldap_passwd:
+    dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ new_passwd.passwd }}'
+    server_uri: 'ldap://{{ ldap_server }}'
+    start_tls: '{{ ldap_tls_enabled }}'
+    bind_dn: '{{ ldap_admin_dn }}'
+    bind_pw: '{{ ldap_admin_pw }}'
+  no_log: true
+  tags:
+    - 'service_password'
+
+
+- name: 'configure IcingaWeb2 (static files)'
   synchronize:
-    src: icingaweb2
-    dest: /etc
+    src: 'icingaweb2'
+    dest: '/etc'
     rsync_opts:
-        - "--chmod Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo= "
-        - "--chown root:icingaweb2"
+        - "--chmod=Du+rwx,Dg+rwx,Do-rwx,Fu+rw,Fg+rw,Fo-rwx"
+        - "--chown=root:icingaweb2"
 
-- name: enable icingaweb2 monitoring plugin
+- name: 'create enabledModules folder'
+  file:
+    path: '/etc/icingaweb2/enabledModules/'
+    state: 'directory'
+    owner: 'root'
+    group: 'icingaweb2'
+    mode: '0770'
+
+- name: 'enable IcingaWeb2 monitoring plugin'
   file:
     src: '/usr/share/icingaweb2/modules/monitoring'
     dest: '/etc/icingaweb2/enabledModules/monitoring'
-    state: link
+    state: 'link'
 
 - name:
   command: grep -Po 'password = "\K.*?(?=")' /etc/icinga2/features-available/ido-pgsql.conf
   register: icinga2_password
   changed_when: false
 
-- name: configure icingaweb2 resources
+- name: 'configure IcingaWeb2 (templates)'
   template:
-    src: icingaweb2/resources.ini.j2
-    dest: /etc/icingaweb2/resources.ini
-    owner: root
-    group: icingaweb2
-    mode: 0640
-
-- name: create icinga2 hosts directory
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: icinga2
-    group: icinga2
-    mode: 0770
-  with_items:
-    - /etc/icinga2/conf.d/hosts/
+    src: 'icingaweb2/{{ item }}.j2'
+    dest: '/etc/icingaweb2/{{ item }}'
+    owner: 'root'
+    group: 'icingaweb2'
+    mode: '0660'
+  loop:
+    - 'resources.ini'
+    - 'authentication.ini'
+    - 'groups.ini'
 
 - name: add nginx configurations
   template:
