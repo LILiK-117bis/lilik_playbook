@@ -33,6 +33,16 @@
       - 'monitoring-plugins'
       - 'nagios-plugins-contrib'
 
+- name: 'create directory for hosts configuration'
+  file:
+    path: '/etc/icinga2/conf.d/hosts/'
+    state: 'directory'
+    owner: 'nagios'
+    group: 'nagios'
+    mode: '0770'
+
+# ToDo: more icinga2/conf.d customization
+
 # ***** IcingaWeb2 *****
 - name: 'PGSQL | IcingaWeb2 tunings'
   block:
