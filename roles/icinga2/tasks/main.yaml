@@ -1,31 +1,27 @@
 ---
-- name: configure icinga2-ido-pgsql (host)
+# ***** Icinga2 *****
+- name: 'PGSQL | preseed IDO debconf variables'
+  # When icinga2-ido-pgsql is installed for the first time:
+  #  - db `icinga2` is automatically created as `postgres` user
+  #  - user `nagios` for socket authentication is created
+  #  - user `nagios` is granted privilegies on db `icinga2`
+  #  - db `icinga2` is populated with DB IDO schema
+  #  - pgsql is enabled as default DB IDO
   debconf:
       name: 'icinga2-ido-pgsql'
-      question: 'icinga2-ido-pgsql/remote/host'
-      vtype: 'string'
-      value: 'localhost'
+      question: 'icinga2-ido-pgsql/{{ item[0] }}'
+      vtype: '{{ item[1] }}'
+      value: '{{ item[2] }}'
+  loop:
+    - [ 'dbconfig-install', 'boolean', 'true' ]
+    - [ 'enable', 'boolean', 'true' ]
+    - [ 'pgsql/authmethod-user', 'string', 'ident' ]
+    - [ 'pgsql/authmethod-admin', 'string', 'ident' ]
+    - [ 'pgsql/method', 'string', 'Unix socket' ]
+    - [ 'db/dbname', 'string', 'icinga2' ]
+    - [ 'db/app-user', 'string', 'nagios' ]
+    - [ 'dbconfig-reinstall', 'boolean', 'true' ]
 
-- name: configure icinga2-ido-pgsql (enable)
-  debconf:
-      name: 'icinga2-ido-pgsql'
-      question: 'icinga2-ido-pgsql/enable'
-      vtype: 'boolean'
-      value: true
-
-- name: configure icinga2-ido-pgsql (dbconfig-install)
-  debconf:
-      name: 'icinga2-ido-pgsql'
-      question: 'icinga2-ido-pgsql/dbconfig-install'
-      vtype: 'boolean'
-      value: true
-
-- name: configure icinga2-ido-pgsql (dbconfig-reinstall)
-  debconf:
-      name: 'icinga2-ido-pgsql'
-      question: 'icinga2-ido-pgsql/dbconfig-reinstall'
-      vtype: 'boolean'
-      value: true
 - name: 'create icinga2 service role'
   include_role: name='service'
   vars:
@@ -37,16 +33,48 @@
       - 'monitoring-plugins'
       - 'nagios-plugins-contrib'
 
+# ***** IcingaWeb2 *****
+- name: 'PGSQL | IcingaWeb2 tunings'
+  block:
+    - name: 'PGSQL | create IcingaWeb2 socket authentication user'
+      postgresql_user:
+        name: 'www-data'
+        priv: 'ALL'
+    - name: 'PGSQL | GRANT CONNECT to IDO'
+      postgresql_privs:
+        db: 'icinga2'
+        privs: 'CONNECT'
+        type: 'database'
+        role: 'www-data'
+    - name: 'PGSQL | GRANT SCHEMA USAGE on IDO'
+      postgresql_privs:
+        db: 'icinga2'
+        privs: 'USAGE'
+        type: 'schema'
+        objs: 'public'
+        role: 'www-data'
+    - name: 'PGSQL | GRANT SELECT on all IDO tables (existing)'
+      postgresql_privs:
+        db: 'icinga2'
+        privs: 'SELECT'
+        type: 'table'
+        schema: 'public'
+        objs: 'ALL_IN_SCHEMA'
+        role: 'www-data'
+    - name: 'PGSQL | GRANT SELECT on all IDO tables (default privilege)'
+      postgresql_privs:
+        db: 'icinga2'
+        privs: 'SELECT'
+        type: 'default_privs'
+        schema: 'public'
+        objs: 'TABLES'
+        role: 'www-data'
+        target_roles: 'nagios'
+  become: true
+  become_method: 'su'
+  become_user: 'postgres'
 
-# - name: nasty dpkg-reconfigure
-#   command: "dpkg-reconfigure --frontend noninteractive icinga2-ido-pgsql"
-#
-# - name: configure icinga2-ido-pgsql (dbconfig-reinstall)
-#   debconf:
-#       name: 'icinga2-ido-pgsql'
-#       question: 'icinga2-ido-pgsql/dbconfig-reinstall'
-#       vtype: 'boolean'
-#       value: false
+
 - name: 'install IcingaWeb2 packages'
   apt:
     pkg:
@@ -120,11 +148,6 @@
     src: '/usr/share/icingaweb2/modules/monitoring'
     dest: '/etc/icingaweb2/enabledModules/monitoring'
     state: 'link'
-
-- name:
-  command: grep -Po 'password = "\K.*?(?=")' /etc/icinga2/features-available/ido-pgsql.conf
-  register: icinga2_password
-  changed_when: false
 
 - name: 'configure IcingaWeb2 (templates)'
   template:
