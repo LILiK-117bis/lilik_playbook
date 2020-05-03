@@ -36,8 +36,13 @@
 # ***** IcingaWeb2 *****
 - name: 'PGSQL | IcingaWeb2 tunings'
   block:
+    - name: 'PGSQL | create IcingaWeb2 user preference DB'
+      postgresql_db:
+        name: 'icingaweb2'
+      register: icingaweb2_db
     - name: 'PGSQL | create IcingaWeb2 socket authentication user'
       postgresql_user:
+        db: 'icingaweb2'
         name: 'www-data'
         priv: 'ALL'
     - name: 'PGSQL | GRANT CONNECT to IDO'
@@ -92,6 +97,13 @@
   tags:
     - 'packages'
 
+- name: 'PGSQL | populate IcingaWeb2 user preference DB'
+  shell: 'cat /usr/share/icingaweb2/etc/schema/pgsql.schema.sql | psql -d icingaweb2'
+  become: true
+  become_method: 'su'
+  become_flags: '-p'
+  become_user: 'www-data'
+  when: icingaweb2_db.changed
 
 - name: 'LDAP | upload client root ca'
   copy:
