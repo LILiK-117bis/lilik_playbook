@@ -1,15 +1,12 @@
 ---
-- name: 'evaluating base_dn'
-  set_fact:
-    base_dn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
-
 - name: 'renewing admin password - generation'
   gen_passwd: 'length=32'
   register: new_passwd
   no_log: true
 
-- set_fact:
-    password: '{{ new_passwd.passwd }}'
+- name: 'renewing admin password - set fact'
+  set_fact:
+    ldap_passwd: '{{ new_passwd.passwd }}'
   no_log: true
 
 - name: 'renewing admin password - hashing'
@@ -17,7 +14,7 @@
     slappasswd
     -o module-load=pw-sha2
     -h "{SSHA512}"
-    -s {{ password | quote }}
+    -s {{ ldap_passwd | quote }}
   register: new_passwd_hash
   no_log: true
 
@@ -32,17 +29,15 @@
 
 - name: 'renewing admin password - calling ldappasswd'
   ldap_passwd:
-    dn: 'cn=admin,{{ base_dn }}'
-    passwd: '{{ new_passwd.passwd }}'
-    bind_dn: 'cn=admin,{{ base_dn }}'
-    bind_pw: '{{ new_passwd.passwd }}'
+    dn: 'cn=admin,{{ ldap_basedn }}'
+    passwd: '{{ ldap_passwd }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
 
 - name: 'renewing admin password - storing plaintext'
   copy:
-    content: '{{ new_passwd.passwd }}'
+    content: '{{ ldap_passwd }}'
     dest: '/etc/slapd.secret'
-
-- name: 'renewing admin password - setting fact'
-  set_fact:
-    ldap_passwd: '{{ new_passwd.passwd }}'
+  when: test_env is defined and test_env
+  no_log: true
 ...

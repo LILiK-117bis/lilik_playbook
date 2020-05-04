@@ -1,3 +1,5 @@
 ---
 dependencies:
   - role: 'certbot'
+    certbot_site_fqdn: '{{ nginx_site_fqdn }}'
+...

@@ -26,11 +26,8 @@
 ##! On AWS EC2 instances, we also attempt to fetch the public hostname/IP
 ##! address from AWS. For more details, see:
 ##! https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
-{% if enable_https %}
-external_url 'https://{{ gitlab_fqdn }}'
-{% else %}
-external_url 'http://{{ gitlab_fqdn }}'
-{% endif %}
+external_url 'http{{ 's' if gitlab_enable_https }}://{{ gitlab_nginx_main_fqdn }}'
+
 
 ## Roles for multi-instance GitLab
 ##! The default is to have no roles enabled, which results in GitLab running as an all-in-one instance.
@@ -342,12 +339,12 @@ external_url 'http://{{ gitlab_fqdn }}'
      host: '{{ ldap_server }}'
      port: 389
      uid: 'cn'
-     bind_dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
-     password: '{{ new_passwd.passwd }}'
+     bind_dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+     password: '{{ gitlab_ldap_passwd.passwd }}'
      encryption: 'start_tls' # "start_tls" or "simple_tls" or "plain"
      verify_certificates: true
      tls_options:
-       ca_file: '/etc/gitlab/root_ca.crt'
+       ca_file: '/etc/gitlab/ldap_server_ca.crt'
        min_version: 772 # TLSv1.3
 #     smartcard_auth: false
 #     active_directory: true
@@ -529,11 +526,11 @@ external_url 'http://{{ gitlab_fqdn }}'
 #### Change the initial default admin password and shared runner registration tokens.
 ####! **Only applicable on initial setup, changing these settings after database
 ####!   is created and seeded won't yield any change.**
-{% if initial_root_password is defined %}
- gitlab_rails['initial_root_password'] = "{{ initial_root_password }}"
-{% else %}
-# gitlab_rails['initial_root_password'] = "password"
+{% if gitlab_initial_root_password is defined %}
+ gitlab_rails['initial_root_password'] = "{{ gitlab_initial_root_password }}"
 {% endif %}
+# gitlab_rails['initial_root_password'] = "password"
+
 # gitlab_rails['initial_shared_runners_registration_token'] = "token"
 
 #### Set path to an initial license to be used while bootstrapping GitLab.
@@ -1182,14 +1179,20 @@ external_url 'http://{{ gitlab_fqdn }}'
 ##! Docs: https://docs.gitlab.com/omnibus/settings/nginx.html#supporting-proxied-ssl
 # nginx['listen_https'] = nil
 
-{% if proxy_protocol %}
+{% if gitlab_nginx_proxy_protocol %}
  nginx['custom_gitlab_server_config'] = "ssl_session_tickets off;\n"\
 					"ssl_stapling on;\n"\
 					"ssl_stapling_verify on;\n"\
 					"ssl_trusted_certificate /etc/gitlab/ssl/chain.crt;\n"\
 					"listen 10443 ssl http2 proxy_protocol;\n"\
-                                        "listen [::]:10443 ssl http2 proxy_protocol;\n"\
+                                        "listen [::]:10443 ssl http2 proxy_protocol;\n"
+{% else %}
+ nginx['custom_gitlab_server_config'] = "ssl_session_tickets off;\n"\
+					"ssl_stapling on;\n"\
+					"ssl_stapling_verify on;\n"\
+					"ssl_trusted_certificate /etc/gitlab/ssl/chain.crt;\n"
 {% endif %}
+
 # nginx['custom_gitlab_server_config'] = "location ^~ /foo-namespace/bar-project/raw/ {\n deny all;\n}\n"
 # nginx['custom_nginx_config'] = "include /etc/nginx/conf.d/example.conf;"
 # nginx['proxy_read_timeout'] = 3600
@@ -1206,7 +1209,7 @@ external_url 'http://{{ gitlab_fqdn }}'
 # nginx['proxy_cache_path'] = 'proxy_cache keys_zone=gitlab:10m max_size=1g levels=1:2'
 # nginx['proxy_cache'] = 'gitlab'
 # nginx['http2_enabled'] = true
-{% if proxy_protocol %}
+{% if gitlab_nginx_proxy_protocol %}
  nginx['real_ip_trusted_addresses'] = [ '{{ hostvars | ip_from_inventory('vm_gateway') }}' ]
  nginx['real_ip_header'] = "proxy_protocol"
 {% endif %}
@@ -1452,11 +1455,10 @@ external_url 'http://{{ gitlab_fqdn }}'
 ##! Docs: https://docs.gitlab.com/omnibus/gitlab-mattermost
 ################################################################################
 
-{% if enable_mattermost %}
- mattermost_external_url 'https://{{ mattermost_fqdn }}'
-{% else %}
-# mattermost_external_url 'http://mattermost.example.com'
+{% if gitlab_enable_mattermost %}
+ mattermost_external_url 'https://{{ gitlab_nginx_mattermost_fqdn }}'
 {% endif %}
+# mattermost_external_url 'http://mattermost.example.com'
 
 # mattermost['enable'] = false
 # mattermost['username'] = 'mattermost'
@@ -1501,16 +1503,20 @@ external_url 'http://{{ gitlab_fqdn }}'
 # Below you can find settings that are exclusive to "Mattermost NGINX"
 # mattermost_nginx['enable'] = false
 
-{% if proxy_protocol %}
+{% if gitlab_nginx_proxy_protocol %}
  mattermost_nginx['custom_gitlab_mattermost_server_config'] = "ssl_session_tickets off;\n"\
 							      "ssl_stapling on;\n"\
 							      "ssl_stapling_verify on;\n"\
 							      "ssl_trusted_certificate /etc/gitlab/ssl/chain.crt;\n"\
 							      "listen 10443 ssl http2 proxy_protocol;\n"\
-                                        		      "listen [::]:10443 ssl http2 proxy_protocol;\n"\
-
+                                        		      "listen [::]:10443 ssl http2 proxy_protocol;\n"
  mattermost_nginx['real_ip_trusted_addresses'] = [ '{{ hostvars | ip_from_inventory('vm_gateway') }}' ]
  mattermost_nginx['real_ip_header'] = "proxy_protocol"
+{% else %}
+ mattermost_nginx['custom_gitlab_mattermost_server_config'] = "ssl_session_tickets off;\n"\
+							      "ssl_stapling on;\n"\
+							      "ssl_stapling_verify on;\n"\
+							      "ssl_trusted_certificate /etc/gitlab/ssl/chain.crt;\n"
 {% endif %}
 
 # mattermost_nginx['custom_gitlab_mattermost_server_config'] = "location ^~ /foo-namespace/bar-project/raw/ {\n deny all;\n}\n"
@@ -1909,7 +1915,7 @@ external_url 'http://{{ gitlab_fqdn }}'
 ################################################################################
 # Let's Encrypt integration
 ################################################################################
-{% if enable_https %}
+{% if gitlab_enable_https %}
  letsencrypt['enable'] = true
  letsencrypt['contact_emails'] = [ '{{ letsencrypt_email }}' ] # This should be an array of email addresses to add as contacts
  letsencrypt['group'] = 'root'
@@ -1921,7 +1927,7 @@ external_url 'http://{{ gitlab_fqdn }}'
  letsencrypt['auto_renew_hour'] = 0
  letsencrypt['auto_renew_minute'] = 54 # Should be a number or cron expression, if specified.
  letsencrypt['auto_renew_day_of_month'] = "*/4"
-{% else %}
+{% endif %}
 # letsencrypt['enable'] = nil
 # letsencrypt['contact_emails'] = [] # This should be an array of email addresses to add as contacts
 # letsencrypt['group'] = 'root'
@@ -1933,7 +1939,6 @@ external_url 'http://{{ gitlab_fqdn }}'
 # letsencrypt['auto_renew_hour'] = 0
 # letsencrypt['auto_renew_minute'] = nil # Should be a number or cron expression, if specified.
 # letsencrypt['auto_renew_day_of_month'] = "*/4"
-{% endif %}
 
 ##! Turn off automatic init system detection. To skip init detection in
 ##! non-docker containers. Recommended not to change.

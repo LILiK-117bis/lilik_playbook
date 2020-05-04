@@ -21,18 +21,18 @@
     group: 'www-data'
   loop:
     - '/etc/nginx/locations/'
-    - '/etc/nginx/locations/{{ server_fqdn }}/'
+    - '/etc/nginx/locations/{{ nginx_site_fqdn }}/'
 
 - name: 'upload nginx configuration'
   template:
     src: 'base.j2'
-    dest: '/etc/nginx/sites-available/{{ server_fqdn }}.conf'
+    dest: '/etc/nginx/sites-available/{{ nginx_site_fqdn }}.conf'
   notify: 'restart nginx'
 
 - name: 'enable nginx configurations'
   file:
-    src: '/etc/nginx/sites-available/{{ server_fqdn }}.conf'
-    dest: '/etc/nginx/sites-enabled/{{ server_fqdn }}.conf'
+    src: '/etc/nginx/sites-available/{{ nginx_site_fqdn }}.conf'
+    dest: '/etc/nginx/sites-enabled/{{ nginx_site_fqdn }}.conf'
     state: 'link'
   notify: 'restart nginx'
 

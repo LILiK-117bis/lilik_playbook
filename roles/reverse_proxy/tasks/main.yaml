@@ -32,7 +32,7 @@
               # If on send PROXY Protocol headers to EVERY upstream
               # servers. WARNING: It will break connection to upstreams
               # not configured to accept PROXY Protocol!
-              proxy_protocol {{ 'on' if proxy_protocol else 'off' }};
+              proxy_protocol {{ 'on' if reverse_proxy_proxy_protocol else 'off' }};
           }
       }
 
@@ -70,7 +70,7 @@
     content: |
       upstream {{ ansible_hostname }}_https {
         server {{ hostvars|ip_from_inventory(ansible_hostname) }}:{{
-          "10443" if proxy_protocol else "443"
+          "10443" if reverse_proxy_proxy_protocol else "443"
         }};
       }
     dest: '/etc/nginx/upstream.conf.d/{{ ansible_hostname }}.conf'
@@ -80,8 +80,8 @@
 - name: 'configure sni-upstream mapping'
   copy:
     content: |
-      {% for server_fqdn in server_fqdns %}
-      {{ server_fqdn }} {{ ansible_hostname }}_https;
+      {% for site_fqdn in reverse_proxy_site_fqdns %}
+      {{ site_fqdn }} {{ ansible_hostname }}_https;
       {% endfor %}
     dest: '/etc/nginx/map.conf.d/{{ ansible_hostname }}.conf'
   delegate_to: 'reverse_proxy'

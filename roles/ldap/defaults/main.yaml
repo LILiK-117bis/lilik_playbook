@@ -1,7 +1,50 @@
 ---
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
+
 ldap_domain: '{{ domain }}'
-server_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
+ldap_organization: '{{ organization }}'
+ldap_check_tree: true
 ldap_tls_enabled: true
-renew_rootdn_pw: true
-check_tree: true
+
+ldap_tls_server_ca: '{{ tls_root_ca }}'
+ldap_tls_user_ca: '{{ tls_root_ca }}'
+
+ldap_server_accounts:
+  - 'projects.dmz.{{ domain }}'
+  - 'cloud.dmz.{{ domain }}'
+  - 'matrix.dmz.{{ domain }}'
+  - 'status.dmz.{{ domain }}'
+
+ldap_groups_name:
+  - 'admin'
+
+ldap_groups_posix:
+  stduser: 5000
+  user_sites: 900
+
+ldap_users_admin:
+  test_admin:
+    password: 'pippopippo'
+    sn: 'Test Admin User'
+    mail: 'admin@zolfa.nl'
+    authorizedServices:
+      - 'icinga2'
+
+ldap_users_common:
+  pippo:
+    password: 'pippopippo'
+    sn: 'Utente Pippo'
+    mail: 'pippo@zolfa.nl'
+    authorizedServices:
+      - 'nextcloud'
+      - 'matrix'
+      - 'gitlab'
+  pluto:
+    password: 'plutopluto'
+    sn: 'Utente Pluto'
+    mail: 'pluto@zolfa.nl'
+
+ldap_basedn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
+ldap_x509_suffix: >-
+  {% for k, v in x509_subj_prefix.items()|reverse %}{{k|lower}}={{v}}{{ ',' if not loop.last }}{% endfor %}
 ...

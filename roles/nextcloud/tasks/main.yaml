@@ -44,7 +44,7 @@
   get_url:
     url: 'https://download.nextcloud.com/server/releases/nextcloud-{{ nextcloud_version }}.tar.bz2'
     dest: '/opt/nextcloud.tar.bz2'
-  register: 'new_download'
+  register: 'nextcloud_new_download'
   tags:
     - 'packages'
 
@@ -55,7 +55,7 @@
     owner: 'www-data'
     group: 'www-data'
     copy: no
-  when: new_download.changed
+  when: nextcloud_new_download.changed
   tags:
     - 'packages'
 
@@ -69,33 +69,37 @@
 - name: 'create nginx configuration'
   template:
     src: 'nextcloud.conf.j2'
-    dest: '/etc/nginx/locations/{{ server_fqdn }}/nextcloud.conf'
+    dest: '/etc/nginx/locations/{{ nextcloud_nginx_fqdn }}/nextcloud.conf'
   notify: 'restart nginx'
 
 - import_tasks: 'occ.yaml'
   vars:
     occ_args: '--no-warnings status --output json'
     ignore_changes: true
-- set_fact:
-    installed: '{{ occ_out.installed }}'
+
+- name: 'read installation status'
+  set_fact:
+    nextcloud_installed: '{{ occ_out.installed }}'
 
 - block:
     - name: 'create random root password'
       gen_passwd: length=20
-      register: 'password'
-    - set_fact:
-        initial_root_password: '{{  password.passwd }}'
+      register: 'nextcloud_password'
+    - name: 'set initial root password'
+      set_fact:
+        nextcloud_initial_root_password: '{{ nextcloud_password.passwd }}'
     - name: 'store root password plaintext'
       copy:
-        content: '{{ initial_root_password }}'
+        content: '{{ nextcloud_initial_root_password }}'
         dest: '/etc/nextcloud.secret'
-    - fail:
+    - name: 'emit warning for initial_root_password not set'
+      fail:
         msg: >-
           Warning! First Install and `initial_root_password` not provided.
           Random password generated and stored in /etc/nextcloud.secret.
           **WIPE AS SOON AS POSSIBLE**
         failed_when: false
-  when: (initial_root_password is not defined) and (not installed)
+  when: (nextcloud_initial_root_password is not defined) and (not nextcloud_installed)
 
 - name: 'install nextcloud'
   include_tasks: 'occ.yaml'
@@ -111,7 +115,7 @@
        --data-dir '/opt/nextcloud_data'
        --no-interaction
      nojson: true
-  when: not installed
+  when: not nextcloud_installed
 
 - name: 'set trusted_domains'
   occ:
@@ -120,14 +124,14 @@
     value: '{{ item }}'
   loop:
     - 'localhost'
-    - '{{ server_fqdn }}'
+    - '{{ nextcloud_nginx_fqdn }}'
   loop_control:
     index_var: idx
 
-- name: 'update tls ca'
+- name: 'update tls ldap server ca'
   copy:
-    content: '{{ tls_root_ca }}'
-    dest: '/etc/ldap/root_ca.crt'
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/ldap/server_ca.crt'
   tags:
     - 'tls_int'
 
@@ -156,10 +160,10 @@
       has_memberof_filter_support: '1'
       ldap_host: '{{ ldap_server }}'
       ldap_port: '389'
-      ldap_dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
+      ldap_dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
       ldap_base: 'ou=People,{{ ldap_basedn }}'
       ldap_base_users: 'ou=People,{{ ldap_basedn }}'
-      ldap_base_groups: 'ou=Groups,{{ ldap_basedn }}'
+      ldap_base_groups: 'ou=Group,{{ ldap_basedn }}'
       ldap_login_filter: '(&(cn=%uid)(authorizedService=nextcloud))'
       ldap_user_filter: '(authorizedService=nextcloud)'
       ldap_attributes_for_user_search: 'cn'
@@ -171,7 +175,7 @@
 
 - name: 'generate nextcloud ldap password'
   gen_passwd: 'length=32'
-  register: 'new_passwd'
+  register: 'nextcloud_ldap_passwd'
   no_log: true
   tags:
     - 'service_password'
@@ -179,8 +183,8 @@
 - name: 'set nextcloud ldap password in ldap'
   delegate_to: 'localhost'
   ldap_passwd:
-    dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
-    passwd: '{{ new_passwd.passwd }}'
+    dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ nextcloud_ldap_passwd.passwd }}'
     server_uri: 'ldap://{{ ldap_server }}'
     start_tls: '{{ ldap_tls_enabled }}'
     bind_dn: '{{ ldap_admin_dn }}'
@@ -191,7 +195,7 @@
 
 - import_tasks: 'occ.yaml'
   vars:
-    occ_args: 'ldap:set-config s01 ldapAgentPassword {{ new_passwd.passwd }}'
+    occ_args: 'ldap:set-config s01 ldapAgentPassword {{ nextcloud_ldap_passwd.passwd }}'
     nojson: true
   tags:
     - 'service_password'

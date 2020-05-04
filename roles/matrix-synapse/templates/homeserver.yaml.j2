@@ -32,7 +32,7 @@ pid_file: "/var/run/matrix-synapse.pid"
 # use synapse with a reverse proxy, this should be the URL to reach
 # synapse via the proxy.
 #
-public_baseurl: https://{{ server_fqdn }}/
+public_baseurl: https://{{ synapse_nginx_fqdn }}/
 
 # Set the soft limit on the number of file descriptors synapse can use
 # Zero is used to indicate synapse should set the soft limit to the
@@ -842,10 +842,10 @@ media_store_path: "/var/lib/matrix-synapse/media"
 
 ## TURN ##
 
-{% if turn_integration %}
+{% if synapse_coturn_integration %}
 # The public URIs of the TURN server to give to clients
 #
-turn_uris: [ "turn:{{ turn_fqdn }}:{{ turn_port }}?transport=udp", "turn:{{ turn_fqdn }}:{{ turn_port }}?transport=tcp" ]
+turn_uris: [ "turn:{{ coturn_fqdn }}:{{ coturn_port }}?transport=udp", "turn:{{ coturn_fqdn }}:{{ coturn_port }}?transport=tcp" ]
 
 # The shared secret used to compute passwords for the TURN server
 #
@@ -1564,8 +1564,8 @@ password_providers:
            uid: "cn"
            mail: "mail"
            name: "sn"
-        bind_dn: "cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}"
-        bind_password: "{{ new_passwd.passwd }}"
+        bind_dn: "cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}"
+        bind_password: "{{ synapse_ldap_passwd.passwd }}"
         filter: "(authorizedService=matrix)"
 
 

@@ -4,17 +4,16 @@ Set-up a LDAP server
 
 ## Configuration variables
 
-| Name                   | Description                                                 |
-|------------------------|-------------------------------------------------------------|
-| `ldap_domain`          | Dot-form domain name. [`$domain`]                           |
-| `ldap_organization`*   | Organization (i.e.: `'LILiK'`).                             |
-| `x509_subject_prefix`* | X.509 TLS Cert Subject (i.e: `'/ST=IT/L=Firenze/O=LILiK'`). |
-| `x509_ldap_suffix`*    | The same in LDAP form (i.e: `'o=LILiK,l=Firenze/st=IT'`).   |
-| `server_fqdn`*         | Required for TLS certificate. [`'$hostname.dmz.$domain'`]   |
-| `virtual_domains`      | Required with `check_tree`: list of vds to init.            |
-| `ldap_tls_enabled`     | Enables TLS, requires a *ca_manager*. [`true`]              |
-| `renew_rootdn_pw`      | Create a new random password for RooDN. [`true`]            |
-| `check_tree`           | Deploy initial tree configuration. [`true`]                 |
+| Name                   | Description                                        |
+|------------------------|----------------------------------------------------|
+| `host_fqdn`            | FQDN of the host [`$hostname.dmz.$domain`]         |
+| `ldap_domain`          | Dot-form domain name. [`$domain`]                  |
+| `ldap_organization`    | Organization [`$organization`]                     |
+| `ldap_check_tree`      | Populate tree with initial configuration. [`true`] |
+| `ldap_tls_enabled`     | Enables TLS, requires a *ca_manager*. [`true`]     |
+| `ldap_tls_server_ca`   | CA to check slapd cert [`$tls_root_ca`]            |
+| `ldap_tls_user_ca`     | CA to authenticate users [`$tls_root_ca`]          |
+| `virtual_domains`      | Required with `check_tree`: list of vds to init.   |
 
 
 **Note:** If `ldap_tls_enabled` the *ca_manager* host should be configured
@@ -26,8 +25,12 @@ group_vars/all.yaml:
 
 	---
 	domain: 'example.com'
-	x509_subject_prefix: '/C=IT/L=Firenze/O=LILiK'
-	x509_ldap_suffix: 'o=LILiK,l=Firenze,st=IT'
+	organization: 'LILiK'
+	x509_subj_prefix:
+	  C: 'IT'
+	  L: 'Firenze'
+	  O: '{{ organization }}'
+
 	user_ca_keys:
 	  - "ssh-ed25519 ################### CA"
 	tls_root_ca: |
@@ -49,9 +52,6 @@ playbook.yaml:
 	- hosts: 'host'
       roles:
 	    - role: ldap
-		  #ldap_domain: '{{ domain }}'
-		  #server_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
-		  ldap_organization: 'Example'
 		  virtual_domains:
 		    - 'example.com'
 

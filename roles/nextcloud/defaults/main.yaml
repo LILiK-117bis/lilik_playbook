@@ -1,7 +1,10 @@
 ---
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
 nextcloud_version: '18.0.4'
-server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+nextcloud_nginx_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 ldap_server: 'ldap1.dmz.{{ domain }}'
 ldap_basedn: 'dc={{ domain.replace(".", ",dc=") }}'
 ldap_tls_enabled: true
+ldap_tls_server_ca: '{{ tls_root_ca }}'
 ...
+

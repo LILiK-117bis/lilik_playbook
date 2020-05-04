@@ -1,3 +1,5 @@
 ---
 dependencies:
-  - role: nginx
+  - role: 'nginx'
+    nginx_site_fqdn: '{{ synapse_nginx_fqdn }}'
+...

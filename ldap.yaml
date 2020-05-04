@@ -25,13 +25,11 @@
   roles:
       - role: 'dns_record'
       - role: 'ldap'
-        ldap_organization: 'LILiK'
         virtual_domains:
           - '{{ domain }}'
         # Default values:
         #ldap_tls_enabled: true
-        #renew_rootdn_pw: true
-        #check_tree: true
+        #ldap_check_tree: true
 
 # 3) Enable monitoring
 - hosts: 'status'

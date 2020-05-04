@@ -23,7 +23,7 @@
 - name: 'configure nginx location'
   template:
     src: 'riot.conf'
-    dest: '/etc/nginx/locations/{{ server_fqdn }}/riot.conf'
+    dest: '/etc/nginx/locations/{{ riot_web_nginx_fqdn }}/riot.conf'
   notify:
     - 'reload nginx'
 

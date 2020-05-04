@@ -4,17 +4,21 @@ Set-up a Omnibus GitLab server
 
 ## Configuration variables
 
-| Name                    | Description                                     |
-|-------------------------|-------------------------------------------------|
-| `server_fqdn`           | [`$hostname.$domain`]                           |
-| `ssh_port`              | External SSH port. [`22`]                       |
-| `ldap_server`*          | LDAP server fqdn [`'ldap1.dmz.$domain'`]        |
-| `ldap_domain`           | LDAP domain, used to derive base dn [`$domain`] |
-| `enable_https`          | Enable HTTPS. [`false`]                         |
-| `ldap_admin_dn`         | DN of a LDAP user with admin privileges.        |
-| `ldap_admin_pw`         | Bind password of that user.                     |
-| `initial_root_password` | Available only before initialization.           |
-| `mattermost_hostname`   | If defined, creates GitLab Mattermost instance. |
+| Name                           | Description                                     |
+|--------------------------------|-------------------------------------------------|
+| `host_fqdn`                    | [`$hostname.dmz.$domain`]                       |
+| `gitlab_ssh_port`              | External SSH port. [`22`]                       |
+| `ldap_server`                  | LDAP server fqdn [`'ldap1.dmz.$domain'`]        |
+| `ldap_tls_server_ca`           | [`$tls_root_ca`]                                |
+| `ldap_domain`                  | LDAP domain, used to derive base dn [`$domain`] |
+| `gitlab_enable_https`          | Enable HTTPS. [`false`]                         |
+| `gitlab_enable_mattermost`     |                                                 |
+| `gitlab_nginx_main_fqdn`       | [`$hostname.$domain`]                           |
+| `gitlab_nginx_mattermost_fqdn` | [`mattermost.$domain`]                          |
+| `gitlab_nginx_proxy_protocol`  | [`true`]                                        |
+| `ldap_admin_dn`                | DN of a LDAP user with admin privileges.        |
+| `ldap_admin_pw`                | Bind password of that user.                     |
+| `gitlab_initial_root_password` | Available only before initialization.           |
 
 **Note**: The Ansible controller must have OpenLDAP properly configured
 with root ca set in `~/.ldaprc`.
@@ -25,11 +29,9 @@ group_vars/all.yaml:
 
 	---
 	domain: 'example.com'
-	ssl_subject_prefix: '/C=IT/L=Firenze/O=LILiK'
-	x509_suffix: 'o=LILiK,l=Firenze,st=IT'
 	user_ca_keys:
 	  - "ssh-ed25519 ################### CA"
-	ssl_ca_cert: |
+	tls_root_ca: |
 	  -----BEGIN CERTIFICATE-----
 	  ###########################
 	  -----END CERTIFICATE-----

@@ -1,6 +1,9 @@
-- apt:
+- name: 'install openssl'
+  apt:
     pkg: 'openssl'
     state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
   tags:
     - 'packages'
 
@@ -21,17 +24,22 @@
     group: 'openldap'
     mode: '600'
 
-- name: 'update tls ca'
+- name: 'update tls server ca'
   copy:
-    content: '{{ tls_root_ca }}'
-    dest: '/etc/ldap/root_ca.crt'
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/ldap/server_ca.crt'
   tags:
     - 'tls_int'
 
-- name: 'check slapd cert status'
+- name: 'update tls user ca'
+  copy:
+    content: '{{ ldap_tls_user_ca }}'
+    dest: '/etc/ldap/user_ca.crt'
+
+- name: 'check slapd cert against server ca'
   command: >
     openssl verify
-    -CAfile /etc/ldap/root_ca.crt
+    -CAfile /etc/ldap/server_ca.crt
     -untrusted /etc/ldap/slapd.crt
     /etc/ldap/slapd.crt
   register: slapd_cert_is_valid
@@ -45,7 +53,7 @@
     cmd: >
       openssl req
       -new
-      -subj "{{ x509_subject_prefix }}/OU=Server/CN={{ server_fqdn }}"
+      -subj '{{ openssl_x509_prefix }}/OU=Server/CN={{ host_fqdn }}'
       -key /etc/ldap/slapd.key
       -out /etc/ldap/slapd.csr
   when: slapd_cert_is_valid.rc != 0
@@ -54,7 +62,7 @@
 
 - import_tasks: 'ca-signing-request.yaml'
   vars:
-    host: '{{ server_fqdn }}'
+    host: '{{ host_fqdn }}'
     request_path: '/etc/ldap/slapd.csr'
     output_path: '/etc/ldap/slapd.crt'
   when: slapd_cert_is_valid.rc != 0
@@ -74,7 +82,7 @@
   loop:
     - { name: 'olcTLSCertificateFile', value: '/etc/ldap/slapd.crt' }
     - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
-    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/root_ca.crt' }
+    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/user_ca.crt' }
   failed_when: false
   tags:
     - 'tls_int'
@@ -86,7 +94,7 @@
     values: '{{ item.value }}'
     state: 'exact'
   loop:
-    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/root_ca.crt' }
+    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/user_ca.crt' }
     - { name: 'olcTLSCertificateFile', value: '/etc/ldap/slapd.crt' }
     - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
     - { name: 'olcTLSVerifyClient', value: 'try' }  # TLS Client Auth

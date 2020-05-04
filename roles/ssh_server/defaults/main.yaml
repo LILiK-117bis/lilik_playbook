@@ -1,2 +1,3 @@
 ---
-server_fqdn: '{{ inventory_hostname }}.{{ domain }}'
+host_fqdn: '{{ inventory_hostname }}.dmz.{{ domain }}'
+...

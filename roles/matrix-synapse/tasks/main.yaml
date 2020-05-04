@@ -30,10 +30,10 @@
     name: 'matrix-synapse-py3'
     question: 'matrix-synapse/server-name'
     vtype: 'string'
-    value: '{{ matrix_domain }}'
+    value: '{{ synapse_domain }}'
 
 - name: 'install synapse'
-  include_role: name='service'
+  import_role: name='service'
   vars:
     service_name: 'matrix-synapse'
     service_packages:
@@ -73,20 +73,23 @@
 - name: 'upload synapse reverse proxy conf'
   template:
     src: 'synapse.conf.j2'
-    dest: '/etc/nginx/locations/{{ server_fqdn }}/synapse.conf'
+    dest: '/etc/nginx/locations/{{ synapse_nginx_fqdn }}/synapse.conf'
+  vars:
+    nginx_proxy_remote_host: '{{ synapse_nginx_proxy_remote_host }}'
+    nginx_proxy_location_path: '{{ synapse_nginx_proxy_location_path }}'
   notify: 'restart nginx'
 
 - name: 'generate matrix ldap password'
   gen_passwd: 'length=32'
-  register: new_passwd
+  register: synapse_ldap_passwd
   tags:
     - 'service_password'
 
 - name: 'set matrix ldap password in ldap'
   delegate_to: 'localhost'
   ldap_passwd:
-    dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
-    passwd: '{{ new_passwd.passwd }}'
+    dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ synapse_ldap_passwd.passwd }}'
     server_uri: 'ldap://{{ ldap_server }}'
     start_tls: true
     bind_dn: '{{ ldap_admin_dn }}'
@@ -94,10 +97,10 @@
   tags:
     - 'service_password'
 
-- name: 'update tls ca'
+- name: 'update ldap tls server ca'
   copy:
-    content: '{{ tls_root_ca }}'
-    dest: '/etc/ldap/root_ca.crt'
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/ldap/server_ca.crt'
 
 - name: 'configure ldap client'
   copy:
@@ -108,8 +111,8 @@
   slurp:
     path: '/etc/coturn_rest.secret'
   register: coturn_secret
-  when: turn_integration
-  delegate_to: '{{ turn_host }}'
+  when: synapse_coturn_integration
+  delegate_to: '{{ coturn_host }}'
 
 - name: 'upload synapse conf'
   template:

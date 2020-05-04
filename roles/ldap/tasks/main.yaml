@@ -8,7 +8,7 @@
 
 - name: 'including tree provisionig tasks'
   import_tasks: '3_provision_tree.yaml'
-  when: check_tree
+  when: ldap_check_tree
 
 - name: 'including tls tasks'
   import_tasks: '4_setup_tls.yaml'

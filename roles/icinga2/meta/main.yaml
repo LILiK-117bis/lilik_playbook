@@ -1,4 +1,6 @@
 ---
 dependencies:
-  - role: nginx
-  - role: postgresql
+  - role: 'nginx'
+    nginx_site_fqdn: '{{ icingaweb2_nginx_fqdn }}'
+  - role: 'postgresql'
+...

@@ -25,11 +25,10 @@
         --agree-tos
         --email {{ letsencrypt_email }}
         --preferred-challenges http
-        -d {{ server_fqdn }}
-        -d www.{{ server_fqdn }}
+        -d {{ certbot_site_fqdn }}
         -n
   args:
-    creates: '/etc/letsencrypt/live/{{ server_fqdn }}/cert.pem'
+    creates: '/etc/letsencrypt/live/{{ certbot_site_fqdn }}/cert.pem'
   tags:
     - 'tls_pub'
 

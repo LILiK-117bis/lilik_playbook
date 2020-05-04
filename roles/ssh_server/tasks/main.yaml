@@ -30,7 +30,7 @@
 - block:
     - name: 'generate host cert request'
       cert_request:
-        host: '{{ server_fqdn }}'
+        host: '{{ host_fqdn }}'
         path: '/etc/ssh/ssh_host_ed25519_key.pub'
         proto: 'ssh'
       register: ca_request

@@ -1,7 +1,7 @@
 server {
     listen {{ public_ip }}:80;
 
-    server_name {{ server_fqdns | join(" ") }};
+    server_name {{ reverse_proxy_site_fqdns | join(" ") }};
 
     # Redirect ACME Challenges to the upstream server port 80
     location /.well-known/acme-challenge/ {

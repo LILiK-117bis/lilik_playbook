@@ -36,16 +36,17 @@
   tags:
     - 'packages'
 
-- name: 'load root ca'
+- name: 'load ldap server ca'
   copy:
-    content: '{{ tls_root_ca }}'
-    dest: '/etc/gitlab/root_ca.crt'
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/gitlab/ldap_server_ca.crt'
   tags:
     - 'tls_int'
 
 - name: 'generate gitlab ldap password'
   gen_passwd: 'length=32'
-  register: 'new_passwd'
+  register: 'gitlab_ldap_passwd'
+  no_log: true
   tags:
     - 'tls_int'
     - 'service_password'
@@ -53,12 +54,13 @@
 - name: 'set gitlab ldap password'
   delegate_to: 'localhost'
   ldap_passwd:
-    dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
-    passwd: '{{ new_passwd.passwd }}'
+    dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ gitlab_ldap_passwd.passwd }}'
     server_uri: 'ldap://{{ ldap_server }}'
     start_tls: true
     bind_dn: '{{ ldap_admin_dn }}'
     bind_pw: '{{ ldap_admin_pw }}'
+  no_log: true
   tags:
     - 'tls_int'
     - 'service_password'

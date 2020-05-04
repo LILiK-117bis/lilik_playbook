@@ -1,5 +1,5 @@
 ---
 dependencies:
-  - role: nginx
-    config_name: "riot"
-    parent_role_path: riot-web
+  - role: 'nginx'
+    nginx_site_fqdn: '{{ riot_web_nginx_fqdn }}'
+...

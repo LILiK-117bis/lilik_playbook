@@ -19,7 +19,7 @@
   roles:
     - role: 'dns_record'
     - role: 'reverse_proxy'
-      server_fqdns:
+      reverse_proxy_site_fqdns:
         - 'projects.{{ domain }}'
         - 'mattermost.{{ domain }}'
     - role: 'gitlab'

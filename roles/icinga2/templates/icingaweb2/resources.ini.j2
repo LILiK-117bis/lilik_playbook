@@ -4,8 +4,8 @@ hostname = "{{ ldap_server }}"
 port = "389"
 encryption = "starttls"
 root_dn = "{{ ldap_basedn }}"
-bind_dn = "cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}"
-bind_pw = "{{ new_passwd.passwd }}"
+bind_dn = "cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}"
+bind_pw = "{{ icingaweb2_ldap_passwd.passwd }}"
 
 [icingaweb2-ido-pgsql]
 type = "db"

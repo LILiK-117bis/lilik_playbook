@@ -18,7 +18,7 @@ to the *ca_manager* instance.
 | Name            | Description                                                     |
 |-----------------|-----------------------------------------------------------------|
 | `user_ca_keys`* | List of allowed CA certificate. First entry is the default one. |
-| `server_fqdn`   | Used for the host certificate. [`$host.$domain`]                 |
+| `host_fqdn`     | Used for the host certificate. [`$host.dmz.$domain`]            |
 
 
 **Note: The *ca_manager* instance should be present in the inventory.

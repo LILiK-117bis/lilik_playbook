@@ -117,8 +117,8 @@
 
 - name: 'LDAP | upload client root ca'
   copy:
-    content: '{{ tls_root_ca }}'
-    dest: '/etc/ldap/root_ca.crt'
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/ldap/server_ca.crt'
   tags:
     - 'tls_int'
 
@@ -130,7 +130,7 @@
 
 - name: 'LDAP | generate client service password'
   gen_passwd: 'length=32'
-  register: 'new_passwd'
+  register: 'icingaweb2_ldap_passwd'
   no_log: true
   tags:
     - 'service_password'
@@ -138,8 +138,8 @@
 - name: 'LDAP | set client service password on server'
   delegate_to: 'localhost'
   ldap_passwd:
-    dn: 'cn={{ ansible_hostname }},ou=Server,{{ ldap_basedn }}'
-    passwd: '{{ new_passwd.passwd }}'
+    dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ icingaweb2_ldap_passwd.passwd }}'
     server_uri: 'ldap://{{ ldap_server }}'
     start_tls: '{{ ldap_tls_enabled }}'
     bind_dn: '{{ ldap_admin_dn }}'
@@ -147,7 +147,6 @@
   no_log: true
   tags:
     - 'service_password'
-
 
 - name: 'configure IcingaWeb2 (static files)'
   synchronize:
@@ -186,6 +185,6 @@
 - name: 'NGINX | configure IcingaWeb2 locations'
   template:
     src: 'icinga.conf'
-    dest: "/etc/nginx/locations/{{ server_fqdn }}/service.conf"
+    dest: "/etc/nginx/locations/{{ icingaweb2_nginx_fqdn }}/service.conf"
   notify:
     - 'reload nginx'

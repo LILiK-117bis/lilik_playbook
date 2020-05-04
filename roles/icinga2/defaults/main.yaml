@@ -1,6 +1,8 @@
 ---
-server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+host_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+icingaweb2_nginx_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 ldap_server: 'ldap1.dmz.{{ domain }}'
 ldap_basedn: 'dc={{ domain.replace(".", ",dc=") }}'
 ldap_tls_enabled: true
+ldap_tls_server_ca: '{{ tls_root_ca }}'
 ...

@@ -1,12 +1,14 @@
 ---
-server_fqdn: '{{ ansible_hostname }}.{{ domain }}'
-proxy_location_path: "_matrix"
-remote_host: "http://127.0.0.1:8008"
-matrix_domain: '{{ domain }}'
+synapse_nginx_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+synapse_nginx_proxy_location_path: "_matrix"
+synapse_nginx_proxy_remote_host: "http://127.0.0.1:8008"
+synapse_domain: '{{ domain }}'
 ldap_server: 'ldap1.dmz.{{ domain }}'
 ldap_domain: '{{ domain }}'
 ldap_basedn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
-turn_integration: true
-turn_host: 'matrix'
-turn_fqdn: 'turn.{{ domain }}'
-turn_port: '3478'
+ldap_tls_server_ca: '{{ tls_root_ca }}'
+synapse_coturn_integration: true
+coturn_host: 'matrix'
+coturn_fqdn: 'turn.{{ domain }}'
+coturn_port: '3478'
+...
