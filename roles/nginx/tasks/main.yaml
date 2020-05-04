@@ -1,6 +1,5 @@
 ---
-- include_role:
-    name: 'service'
+- import_role: name='service'
   vars:
     service_name: 'nginx'
     service_packages:

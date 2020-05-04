@@ -1,6 +1,5 @@
 ---
-- include_role:
-    name: 'service'
+- import_role: name='service'
   vars:
     service_name: 'nscd'
     service_packages: 'nscd'
@@ -17,8 +16,7 @@
     - { question: 'slapd/dump_database', value: 'when needed' }
     - { question: 'shared/organization', value: '{{ ldap_organization }}' }
 
-- include_role:
-    name: 'service'
+- import_role: name='service'
   vars:
     service_name: 'slapd'
     service_packages:

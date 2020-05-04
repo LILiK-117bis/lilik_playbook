@@ -1,6 +1,6 @@
 ---
 - name: 'install coturn'
-  include_role: name='service'
+  import_role: name='service'
   vars:
     service_name: 'coturn'
     service_packages:
