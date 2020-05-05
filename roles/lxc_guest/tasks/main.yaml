@@ -86,7 +86,7 @@
 
 - name: 'MONITORING | add to monitored hosts'
   block:
-    - name: 'MONITORING | add HOST/{{ host_fqdn }} to monitored hosts'
+    - name: 'MONITORING | add to monitored hosts'
       set_fact:
         lxc_monitoring_entry: >
           {{ { host_fqdn: { 'address': ansible_host } } }}

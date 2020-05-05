@@ -10,7 +10,8 @@
 - name: 'CA_MANAGER | sending json signing request'
   include: 'ca-dialog.yaml'
 
-- set_fact:
+- name: 'CA_MANAGER | read ca answer'
+  set_fact:
     request_output: '{{ request_result.stdout | string | from_json }}'
 
 - debug:
@@ -22,7 +23,8 @@
       type: 'get_certificate'
       requestID: '{{ request_output.requestID }}'
 
-- debug:
+- name: 'CA_MANAGER | print request id'
+  debug:
     msg: >
       Please manually confirm sign request with id
       {{ request_output.requestID }}
@@ -30,12 +32,9 @@
 - name: 'CA_MANAGER | waiting for certificate...'
   include: 'ca-dialog.yaml'
 
-- set_fact:
+- name: 'CA MANAGER | read certificate'
+  set_fact:
     cert_key: '{{ request_result.stdout | string | from_json }}'
-
-- debug:
-    var: request_result
-    verbosity: 2
 
 - name: 'CA_MANAGER | saving certificate'
   copy:

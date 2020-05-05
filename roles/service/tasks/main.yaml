@@ -1,6 +1,6 @@
 ---
 - block:
-  - name: 'install {{ service_name }}'
+  - name: 'DEBIAN | install {{ service_name }}'
     apt:
       pkg: '{{ service_packages }}'
       state: 'present'
@@ -10,14 +10,14 @@
     tags:
       - 'packages'
 
-  - name: 'start {{ service_name }} at boot'
+  - name: 'DEBIAN | start {{ service_name }} at boot'
     service:
       name: '{{ service_name }}'
       enabled: true
   when: ansible_distribution != 'openwrt'
 
 - block:
-  - name: 'install {{ service_name }}'
+  - name: 'OPENWRT | install {{ service_name }}'
     opkg:
       name: '{{ service_packages | join(" ") }}'
       state: 'present'

@@ -1,5 +1,6 @@
 ---
-- command: 'php occ {{ occ_args }}'
+- name: 'exec occ command'
+  command: 'php occ {{ occ_args }}'
   become: true
   become_user: 'www-data'
   args:
@@ -7,7 +8,8 @@
   register: occ_out_raw
   changed_when: occ_out_raw.changed and (not ignore_changes|default(false))
 
-- set_fact:
+- name: 'read occ output'
+  set_fact:
     occ_out: '{{ occ_out_raw.stdout | from_json }}'
   when: nojson is not defined
 ...

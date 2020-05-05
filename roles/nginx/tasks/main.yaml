@@ -35,9 +35,9 @@
     state: 'link'
   notify: 'restart nginx'
 
-- name: 'MONITORNIG | add service HTTP/{{ server_fqdn }}'
+- name: 'MONITORNIG | add HTTP services'
   block:
-    - name: 'MONITORING | fetch monitored HTTP for current host'
+    - name: 'MONITORING | add HTTP/nginx to monitored service'
       set_fact:
         vhosts: >
           {{ hostvars[monitoring_host]['monitoring_facts'][host_fqdn]['vhosts']

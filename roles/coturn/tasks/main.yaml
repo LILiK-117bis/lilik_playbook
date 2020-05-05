@@ -16,7 +16,8 @@
       slurp:
         path: '/etc/coturn_rest.secret'
       register: coturn_secret_slurp
-    - set_fact:
+    - name: 'set shared secret'
+      set_fact:
         shared_secret: '{{ coturn_secret_slurp.content | b64decode }}'
   when: (not renew_shared_secret) and (coturn_secret_stat.stat.exists)
 
@@ -24,10 +25,12 @@
     - name: 'generate new shared secret'
       gen_passwd: 'length=32'
       register: new_passwd
-    - copy:
+    - name: 'store new shared secret'
+      copy:
         content: '{{ new_passwd.passwd }}'
         dest: '/etc/coturn_rest.secret'
-    - set_fact:
+    - name: 'set shared secret'
+      set_fact:
         shared_secret: '{{ new_passwd.passwd }}'
   when: (renew_shared_secret) or (not coturn_secret_stat.stat.exists)
   tags:
