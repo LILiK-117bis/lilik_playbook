@@ -8,7 +8,7 @@
   register: ca_request
 
 - name: 'CA_MANAGER | sending json signing request'
-  include: 'ca-dialog.yaml'
+  import_tasks: 'ca-dialog.yaml'
 
 - name: 'CA_MANAGER | read ca answer'
   set_fact:
