@@ -6,6 +6,10 @@ object Host "{{ item.key }}" {
   vars.os = "Linux"
   vars.sla = "24x7"
 
+{% if ('agent_type' in item.value) and (item.value.agent_type == 'ssh') %}
+  vars.agent_type = "ssh"
+{% endif %}
+
 {% if 'vhosts' in item.value %}
 {% for vhost in item.value.vhosts %}
   vars.http_vhosts["{{ vhost }}"] = {
