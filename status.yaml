@@ -1,16 +1,17 @@
-- hosts: biff
+---
+- import_playbook: 'prepare_lxc_guest.yaml'
+  vars:
+    host: 'status'
+    vm_size: '2G'
+
+- hosts: 'status'
   roles:
-    - role: lxc_guest
-      vm_name: status
-      distro: stretch
-    - role: ssh_server
-      ansible_connection: ssh_lxc
-      ansible_ssh_lxc_name: status
-- hosts: status
+      - role: 'dns_record'
+      - role: 'reverse_proxy'
+      - role: 'icinga2'
+
+
+- hosts: 'status'
   roles:
-      - role: dns_record
-      - role: icinga2
-      - role: reverse_proxy
-- hosts: status
-  roles:
-    - role: icinga2-monitoring
+    - role: 'icinga2-monitoring'
+...
