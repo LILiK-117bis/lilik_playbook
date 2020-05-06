@@ -199,4 +199,23 @@
     nojson: true
   tags:
     - 'service_password'
+- name: 'MONITORING | add HTTP service'
+  block:
+    - name: 'MONITORING | add service to monitoring entry'
+      set_fact:
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+             'address': ansible_host,
+             'vhosts_uri': { nextcloud_nginx_fqdn: {'/': 'nextcloud.com'} },
+             }, recursive=true) }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine({host_fqdn: monitoring_entry}) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
 ...
