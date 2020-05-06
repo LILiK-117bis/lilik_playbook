@@ -1,0 +1,3 @@
+---
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
+...
