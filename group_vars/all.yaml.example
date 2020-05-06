@@ -1,23 +1,31 @@
 ---
-# Put here the public ip for your organisation
 public_ip: 0.0.0.0
-# Put here the domain for your organisation
 domain: "example.com"
-# Put here an email address to receive Let's Encrypt communications.
+organization: 'ExampleOrg'
 letsencrypt_email: 'admin@example.com'
 
-# Put the TLS X.509 Subject Prefix (before OU=)
-x509_subject_prefix: '/C=IT/L=Firenze/O=Example'
-# Here the same in LDAP (and reversed) format
-x509_ldap_suffix: 'o=Example,l=Firenze,c=it'
+# Put the TLS X.509 Subject Prefix elements (before OU)
+x509_subj_prefix:
+  C: 'IT'
+  #ST: ''
+  L: 'Firenze'
+  O: '{{ organization }}'
 
 # Put here the public key of the user CAs.
 # The first one will be used also to check if host certificate are
 # updated.
-user_ca_keys:
-  - "ssh-ed25519 AAAA(...) Active Production key"
+ssh_user_ca:
+  - "ssh-ed25519 AAAA(...) SSH User CA - Active Production key"
   - "ssh-ed25519 AAAA(...) Older not-expired key"
 #  - "ssh-ed25519 AAAA(...) Revoked key"
+
+ssh_server_ca: "ssh-ed25519 AAAA(...) SSH Server CA - Active Production key"
+
+monitoring_host: 'status'
+
+# Do not change -> probably will soon be moved elsewhere
+openssl_x509_prefix: >-
+  {% for k, v in x509_subj_prefix.items() %}/{{k}}={{v}}{% endfor %}
 
 # Put TLS Certificate of your Root Certification Authority
 tls_root_ca: |
@@ -25,13 +33,16 @@ tls_root_ca: |
   #########################
   -----END CERTIFICATE-----
 # Put TLS Certificate for OpenVPN Server Intermediate CA
-tls_vpn_user_ca: |
+tls_intermediate_server_ca: |
   -----BEGIN CERTIFICATE-----
   #########################
   -----END CERTIFICATE-----
 # Put TLS Certificate for OpenVPN Users Intermediate CA
-tls_vpn_server_ca: |
+tls_intermediate_user_ca: |
   -----BEGIN CERTIFICATE-----
   ##########################
   -----END CERTIFICATE-----
 
+# Optionals customization
+#openvpn_tls_server_ca: '{{ tls_intermediate_server_ca }}'
+#openvpn_tls_user_ca: '{{ tls_intermediate_server_ca }}'
