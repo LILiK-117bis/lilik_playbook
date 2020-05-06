@@ -19,17 +19,15 @@
 - block:
   - name: 'OPENWRT | install {{ service_name }}'
     opkg:
-      name: '{{ service_packages | join(" ") }}'
+      name: '{{ item }}'
       state: 'present'
       update_cache: true
+    loop: '{{ service_packages }}'
     tags:
       - 'packages'
 
-  - set_fact:
-      service_name: 'sshd'
-    when: service_name == 'ssh'
-
-  - openwrt_init:
-      name: '{{ service_name }}'
+  - name: 'OPENWRT | start {{ service_name }} at boot'
+    openwrt_init:
+      name: '{{ service_name }}{{ "d" if service_name=="ssh" }}'
       enabled: true
   when: ansible_distribution == 'openwrt'
