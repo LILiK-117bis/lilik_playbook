@@ -12,14 +12,24 @@ object Host "{{ item.key }}" {
 
 {% if 'vhosts' in item.value %}
 {% for vhost in item.value.vhosts %}
-  vars.http_vhosts["{{ vhost }}"] = {
-    http_uri = "/"
+  vars.http_vhosts["https cert: {{ vhost }}"] = {
+    http_ssl = true
     http_vhost = "{{ vhost }}"
-    http_onredirect = "follow"
+    http_onredirect = "sticky"
     http_sni = true
     /* Check remaining days before cert expiration */
     http_certificate = "30,20"
   }
+{% for uri, content in (item.value.vhosts_uri[vhost]|d({'/': ''})).items() %}
+  vars.http_vhosts["https service: {{ vhost }}{{ uri }}"] = {
+    http_ssl = true
+    http_vhost = "{{ vhost }}"
+    http_onredirect = "sticky"
+    http_sni = true
+    http_uri = "{{ uri }}"
+    {% if content != '' %}http_string = "{{ content|replace('"','\\"') }}"{% endif %}
+  }
+{% endfor %}
 {% endfor %}
 {% endif %}
 }
