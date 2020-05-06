@@ -41,7 +41,15 @@
     group: 'nagios'
     mode: '0770'
 
-# ToDo: more icinga2/conf.d customization
+- name: 'customize icinga2 host conf.d'
+  copy:
+    src: 'icinga2/{{ item }}'
+    dest: '/etc/icinga2/conf.d/{{ item }}'
+  notify: 'reload icinga2'
+  loop:
+    - 'templates.conf'
+    - 'services.conf'
+    - 'ssh_services.conf'
 
 # ***** IcingaWeb2 *****
 - name: 'PGSQL | IcingaWeb2 tunings'
