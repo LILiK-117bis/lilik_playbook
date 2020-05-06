@@ -91,34 +91,35 @@
   block:
     - name: 'MONITORING | add HTTP/gitlab to monitored service'
       set_fact:
-        vhosts: >
-          {{ hostvars[monitoring_host]['monitoring_facts'][host_fqdn]['vhosts']
-               | default([]) }}
+        monitoring_vhosts: '{{ monitoring_vhosts + [gitlab_nginx_main_fqdn] }}'
+      when: gitlab_enable_https
     - name: 'MONITORING | add HTTP/mattermost to monitored service'
       set_fact:
-        vhosts: '{{ vhosts + [gitlab_fqdn] }}'
-      when: enable_https
-    - name: 'MONITORING | update host monitoring entry'
+        monitoring_vhosts: '{{ monitoring_vhosts + [gitlab_nginx_mattermost_fqdn] }}'
+        when: gitlab_enable_mattermost
+    - name: 'MONITORING | add vhosts to host monitoring entry'
       set_fact:
-        vhosts: '{{ vhosts + [mattermost_fqdn] }}'
-        when: enable_mattermost
-    - name: 'MONITORING | create host monitoring entry'
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+               'address': ansible_host,
+               'vhosts': monitoring_vhosts,
+               }) }}
+    - name: 'MONITORING | add vhosts_uri to host monitoring entry'
       set_fact:
-        gitlab_monitoring_entry: >
-          {{ {
-               host_fqdn: {
-                            'address': ansible_host,
-                            'vhosts': vhosts,
-                          }
-             } }}
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+               'address': ansible_host,
+               'vhosts_uri': { gitlab_nginx_main_fqdn: {'/': 'Sign in · GitLab'},
+                              gitlab_nginx_mattermost_fqdn: { '/': '<title>Mattermost</title>' } },
+               }, recursive=true) }}
     - name: 'MONITORING | update monitoring facts'
       set_fact:
         monitoring_facts: >
           {{ hostvars[monitoring_host]['monitoring_facts']
                | default({})
-               | combine(gitlab_monitoring_entry, recursive=true) }}
-        delegate_facts: true
-        delegate_to: '{{ monitoring_host }}'
+               | combine({host_fqdn: monitoring_entry}) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
   tags:
     - 'monitoring'
 ...

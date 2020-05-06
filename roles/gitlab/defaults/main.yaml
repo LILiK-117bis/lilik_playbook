@@ -1,5 +1,6 @@
 ---
 host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
+monitoring_vhosts: []
 gitlab_nginx_main_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 gitlab_nginx_mattermost_fqdn: 'mattermost.{{ domain }}'
 gitlab_ssh_port: 8022
