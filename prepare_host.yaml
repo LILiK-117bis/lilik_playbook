@@ -28,7 +28,7 @@
 
     - name: 'autoload xfs module'
       copy:
-        content: 'xfs\n'
+        content: 'xfs'
         dest: '/etc/modules-load.d/xfs.conf'
       notify: 'load xfs module'
 
