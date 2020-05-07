@@ -2,6 +2,7 @@
 - hosts: 'vm_hosts'
   roles:
     - role: 'ssh_server'
+    - role: 'monitoring-agent'
   vars:
     management_vlan: 9
     virtual_machine_vlan: 5
