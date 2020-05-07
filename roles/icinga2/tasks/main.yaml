@@ -51,6 +51,57 @@
     - 'services.conf'
     - 'ssh_services.conf'
 
+- name: 'create icinga2 ssh config dir'
+  file:
+    path: '/var/lib/nagios/.ssh'
+    owner: 'nagios'
+    group: 'nagios'
+    mode: '0700'
+    state: 'directory'
+  tags:
+    - 'ssh_certs'
+
+- name: 'upload user ssh ca'
+  copy:
+    content: |
+      {% for ca in ssh_user_ca %}
+      {{ ca }}
+      {% endfor %}
+    dest: '/var/lib/nagios/.ssh/user_ca.pub'
+  tags:
+    - 'ssh_certs'
+
+- name: 'upload host ssh ca'
+  copy:
+    content: |
+      {% for ca in ssh_server_ca %}
+      @cert-authority *.dmz.{{ domain }} {{ ca }}
+      {% endfor %}
+    dest: '/var/lib/nagios/.ssh/known_hosts'
+    owner: 'nagios'
+    group: 'nagios'
+  tags:
+    - 'ssh_certs'
+
+- name: 'generate and sign ssh user cert for icinga'
+  import_role: name='ca_cert'
+  vars:
+    ca_cert_common_name: 'icinga'
+    ca_cert_proto: 'ssh'
+    ca_cert_client: true
+    ca_cert_ssh_ca_path: '/var/lib/nagios/.ssh/user_ca.pub'
+    ca_cert_ssh_key_path: '/var/lib/nagios/.ssh/id_ed25519'
+  tags:
+    - 'ssh_certs'
+
+- name: 'set private key ownership'
+  file:
+    path: '/var/lib/nagios/.ssh/id_ed25519'
+    owner: 'nagios'
+    group: 'nagios'
+  tags:
+    - 'ssh_certs'
+
 # ***** IcingaWeb2 *****
 - name: 'PGSQL | IcingaWeb2 tunings'
   block:
@@ -196,3 +247,4 @@
     dest: "/etc/nginx/locations/{{ icingaweb2_nginx_fqdn }}/service.conf"
   notify:
     - 'reload nginx'
+...
