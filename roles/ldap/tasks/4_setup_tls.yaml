@@ -1,3 +1,4 @@
+---
 - name: 'install openssl'
   apt:
     pkg: 'openssl'
@@ -7,13 +8,29 @@
   tags:
     - 'packages'
 
-- name: 'create slapd private key'
-  shell:
-    cmd: >
-      openssl genpkey
-      -algorithm ED25519
-      -out /etc/ldap/slapd.key
-    creates: '/etc/ldap/slapd.key'
+- name: 'update tls server ca'
+  copy:
+    content: '{{ ldap_tls_server_ca }}{{ tls_root_ca }}'
+    dest: '/etc/ldap/server_ca.crt'
+  tags:
+    - 'tls_int'
+
+- name: 'update tls user ca'
+  copy:
+    content: '{{ ldap_tls_user_ca }}{{ tls_root_ca }}'
+    dest: '/etc/ldap/user_ca.crt'
+  tags:
+    - 'tls_int'
+
+- name: 'generete and sign slapd tls certificate'
+  import_role: name='ca_cert'
+  vars:
+    ca_cert_common_name: '{{ host_fqdn }}'
+    ca_cert_proto: 'tls'
+    ca_cert_tls_ca_path: '/etc/ldap/server_ca.crt'
+    ca_cert_tls_key_path: '/etc/ldap/slapd.key'
+    ca_cert_tls_cert_path: '/etc/ldap/slapd.crt'
+    ca_cert_tls_csr_path: '/etc/ldap/slapd.csr'
   tags:
     - 'tls_int'
 
@@ -23,51 +40,6 @@
     owner: 'openldap'
     group: 'openldap'
     mode: '600'
-
-- name: 'update tls server ca'
-  copy:
-    content: '{{ ldap_tls_server_ca }}'
-    dest: '/etc/ldap/server_ca.crt'
-  tags:
-    - 'tls_int'
-
-- name: 'update tls user ca'
-  copy:
-    content: '{{ ldap_tls_user_ca }}'
-    dest: '/etc/ldap/user_ca.crt'
-
-- name: 'check slapd cert against server ca'
-  command: >
-    openssl verify
-    -CAfile /etc/ldap/server_ca.crt
-    -untrusted /etc/ldap/slapd.crt
-    /etc/ldap/slapd.crt
-  register: slapd_cert_is_valid
-  changed_when: false
-  failed_when: false
-  tags:
-    - 'tls_int'
-
-- name: 'create slapd cert request'
-  shell:
-    cmd: >
-      openssl req
-      -new
-      -subj '{{ openssl_x509_prefix }}/OU=Server/CN={{ host_fqdn }}'
-      -key /etc/ldap/slapd.key
-      -out /etc/ldap/slapd.csr
-  when: slapd_cert_is_valid.rc != 0
-  tags:
-    - 'tls_int'
-
-- import_tasks: 'ca-signing-request.yaml'
-  vars:
-    host: '{{ host_fqdn }}'
-    request_path: '/etc/ldap/slapd.csr'
-    output_path: '/etc/ldap/slapd.crt'
-  when: slapd_cert_is_valid.rc != 0
-  tags:
-    - 'tls_int'
 
 # !BUG! Fixed in Ansible dev using ldap_attrs instead of ldap_attr
 # Setting the parameters twice in a row fix the problem.
@@ -110,3 +82,4 @@
   notify: 'restart slapd'
   tags:
     - 'tls_int'
+...

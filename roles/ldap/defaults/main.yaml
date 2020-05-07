@@ -6,8 +6,8 @@ ldap_organization: '{{ organization }}'
 ldap_check_tree: true
 ldap_tls_enabled: true
 
-ldap_tls_server_ca: '{{ tls_root_ca }}'
-ldap_tls_user_ca: '{{ tls_root_ca }}'
+ldap_tls_server_ca: '{{ tls_intermediate_server_ca }}'
+ldap_tls_user_ca: '{{ tls_intermediate_user_ca }}'
 
 ldap_server_accounts:
   - 'projects.dmz.{{ domain }}'

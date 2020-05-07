@@ -1,108 +1,54 @@
 ---
-- include: 'roles/service/tasks/main.yaml'
+- import_role: name='service'
   vars:
     service_name: 'ssh'
     service_packages:
       - 'openssh-server'
       - 'openssh-sftp-server'
 
-- name: 'update user ca certs'
-  template:
-    src: 'user_ca.pub.j2'
-    dest: '/etc/ssh/user_ca.pub'
+- name: 'upload user and server ca'
+  copy:
+    content: |
+      {% for ca in item.1 %}
+      {{ ca }}
+      {% endfor %}
+    dest: '/etc/ssh/{{ item.0 }}_ca.pub'
+  vars:
+    cas: '{{ item.1 }}'
   notify: 'restart ssh'
+  loop:
+    - [ 'user', '{{ ssh_user_ca }}' ]
+    - [ 'server', '{{ ssh_server_ca }}' ]
   tags:
-    - ssh_certs
+    - 'ssh_certs'
 
-- name: 'validate ssh cert if present'
-  ssh_cert:
-  register: ssh_verification
-  ignore_errors: yes
+- name: 'generate and sign host certificate'
+  import_role: name='ca_cert'
+  vars:
+    ca_cert_common_name: '{{ host_fqdn }}'
+    ca_cert_proto: 'ssh'
+    ca_cert_ssh_ca_path: '/etc/ssh/server_ca.pub'
+    ca_cert_ssh_key_path: '/etc/ssh/ssh_host_ed25519_key'
   tags:
-    - ssh_certs
+    - 'ssh_certs'
 
-- debug:
-    var: ssh_verification
-    verbosity: 2
-  tags:
-    - ssh_certs
-
-- block:
-    - name: 'generate host cert request'
-      cert_request:
-        host: '{{ host_fqdn }}'
-        path: '/etc/ssh/ssh_host_ed25519_key.pub'
-        proto: 'ssh'
-      register: ca_request
-
-    - name: 'start sign request'
-      include: 'ca-dialog.yaml'
-      vars:
-        ansible_connection: 'ssh'
-
-    - debug:
-        var: request_result
-        verbosity: 2
-
-    - set_fact:
-        request_output: '{{ request_result.stdout | from_json }}'
-
-    - debug:
-        var: request_output
-        verbosity: 2
-
-    - name: 'generate get request'
-      set_fact:
-        ca_request:
-          type: 'get_certificate'
-          requestID: '{{ request_output.requestID }}'
-
-    - debug:
-        var: ca_request
-        verbosity: 2
-
-    - debug:
-        msg: 'Please manualy confirm sign request with id {{ request_output.requestID }}'
-
-    - name: 'wait for cert'
-      include: 'ca-dialog.yaml'
-      vars:
-        ansible_connection: 'ssh'
-
-    - debug:
-        var: request_result
-        verbosity: 2
-
-    - set_fact:
-          cert_key: '{{ request_result.stdout | string | from_json }}'
-
-    - name: 'write certificate to container'
-      copy:
-        content: '{{ cert_key.result }}'
-        dest: '/etc/ssh/ssh_host_ed25519_key-cert.pub'
-      register: set_pub_key
-      notify: 'restart ssh'
-  when: ssh_verification.failed
-  tags:
-    - ssh_certs
-
-- name: 'add certificate to sshd config'
+- name: 'add host certificate to sshd config'
   lineinfile:
     line: 'HostCertificate /etc/ssh/ssh_host_ed25519_key-cert.pub'
     dest: '/etc/ssh/sshd_config'
     regexp: '^HostCertificate *'
   notify: 'restart ssh'
   tags:
-    - ssh_certs
+    - 'ssh_certs'
 
-- name: 'trust user ca key'
+- name: 'add user ca to sshd config'
   lineinfile:
     line: 'TrustedUserCAKeys /etc/ssh/user_ca.pub'
     dest: '/etc/ssh/sshd_config'
     regexp: '^TrustedUserCAKeys *'
   notify: 'restart ssh'
   tags:
-    - ssh_certs
+    - 'ssh_certs'
 
 - name: 'permit root login only with certificate'
   lineinfile:

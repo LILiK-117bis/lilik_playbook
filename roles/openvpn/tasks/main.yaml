@@ -6,18 +6,6 @@
   tags:
     - 'packages'
 
-- name: 'create openvpn private key'
-  shell:
-    cmd: >
-      openssl genpkey
-      -algorithm ed25519
-      -out /etc/openvpn/openvpn.key
-  args:
-    creates: '/etc/openvpn/openvpn.key'
-  notify: 'reload openvpn'
-  tags:
-    - 'tls_int'
-
 # Shouldn't be required for TLSv1.3
 #
 #- name: create openvpn dh2048
@@ -41,37 +29,15 @@
   tags:
     - 'tls_int'
 
-- name: 'check openvpn cert status'
-  command: >-
-    openssl verify
-    -CAfile /etc/openvpn/server_ca.crt
-    /etc/openvpn/openvpn.crt
-  register: openvpn_cert_is_valid
-  changed_when: false
-  failed_when: false
-  tags:
-    - 'tls_int'
-
-- name: 'create openvpn cert request'
-  shell: >
-    openssl req
-    -new
-    -subj "{{ openssl_x509_prefix }}/OU=Server/CN={{ host_fqdn }}"
-    -key /etc/openvpn/openvpn.key
-    -out /etc/openvpn/openvpn.csr
-  when: openvpn_cert_is_valid.rc != 0
-  tags:
-    - 'tls_int'
-
-- import_tasks: 'ca-signing-request.yaml'
+- name: 'generate and sign server certificate'
+  import_role: name='ca_cert'
   vars:
-    host: '{{ host_fqdn }}'
-    request_path: '/etc/openvpn/openvpn.csr'
-    output_path: '/etc/openvpn/openvpn.crt'
-  when: openvpn_cert_is_valid.rc != 0
-  notify: 'reload openvpn'
-  tags:
-    - 'tls_int'
+    ca_cert_common_name: '{{ host_fqdn }}'
+    ca_cert_proto: 'tls'
+    ca_cert_tls_ca_path: '/etc/openvpn/server_ca.crt'
+    ca_cert_tls_key_path: '/etc/openvpn/openvpn.key'
+    ca_cert_tls_csr_path: '/etc/openvpn/openvpn.csr'
+    ca_cert_tls_cert_path: '/etc/openvpn/openvpn.crt'
 
 - name: 'write openvpn configuration'
   template:
@@ -87,3 +53,4 @@
   shell: 'uci commit openvpn'
   notify: 'reload openvpn'
   when: config_updated.changed
+...

@@ -1,17 +1,10 @@
+### DEPRECATED -> import role `ca_cert` instead
 - debug:
-    msg: "Sending certificate request to {{ hostvars | ip_from_inventory('authorities_request') }}"
-
-- debug:
-    var: ca_request
-    verbosity: 2
+    msg: "Warning, deprecated"
 
 - name: 'CA_MANAGER | sending request to ca...'
   raw: '{{ ca_request | to_json }}'
   delegate_to: 'authorities_request'
   delegate_facts: True
   register: request_result
-
-- debug:
-    var: request_result
-    verbosity: 2
   failed_when: '( request_result.stdout | from_json ).failed'
