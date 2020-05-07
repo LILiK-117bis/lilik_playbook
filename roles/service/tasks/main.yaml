@@ -22,7 +22,7 @@
       name: '{{ item }}'
       state: 'present'
       update_cache: true
-    loop: '{{ service_packages }}'
+    loop: '{{ service_packages|flatten(levels=1) }}'
     tags:
       - 'packages'
 
