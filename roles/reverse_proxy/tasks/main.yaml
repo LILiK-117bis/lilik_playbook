@@ -35,9 +35,8 @@
               proxy_protocol {{ 'on' if reverse_proxy_proxy_protocol else 'off' }};
           }
       }
-
   delegate_to: 'reverse_proxy'
-  notify: 'reload nginx'
+  notify: 'reload reverse proxy'
 
 - name: 'configure nginx http 80 forwarder'
   lineinfile:
@@ -45,14 +44,14 @@
     insertafter: '^http {'
     line: 'include /etc/nginx/http.conf.d/*.conf;'
   delegate_to: 'reverse_proxy'
-  notify: 'reload nginx'
+  notify: 'reload reverse proxy'
 
 - name: 'create configuration directories for sites'
   file:
     state: 'directory'
     dest: '/etc/nginx/{{ item }}'
   delegate_to: 'reverse_proxy'
-  notify: 'reload nginx'
+  notify: 'reload reverse proxy'
   loop:
     - 'http.conf.d'
     - 'map.conf.d'
@@ -63,7 +62,7 @@
     src: 'http.conf.j2'
     dest: '/etc/nginx/http.conf.d/{{ ansible_hostname }}.conf'
   delegate_to: 'reverse_proxy'
-  notify: 'reload nginx'
+  notify: 'reload reverse proxy'
 
 - name: 'configure upstream server spec'
   copy:
@@ -75,18 +74,18 @@
       }
     dest: '/etc/nginx/upstream.conf.d/{{ ansible_hostname }}.conf'
   delegate_to: 'reverse_proxy'
-  notify: 'reload nginx'
+  notify: 'reload reverse proxy'
 
 - name: 'configure sni-upstream mapping'
   copy:
     content: |
-      {% for site_fqdn in reverse_proxy_site_fqdns %}
+      {% for site_fqdn in [reverse_proxy_site_fqdn] | flatten(levels=1)  %}
       {{ site_fqdn }} {{ ansible_hostname }}_https;
       {% endfor %}
     dest: '/etc/nginx/map.conf.d/{{ ansible_hostname }}.conf'
   delegate_to: 'reverse_proxy'
-  notify: 'reload nginx'
+  notify: 'reload reverse proxy'
 
--  meta: 'flush_handlers'
+- meta: 'flush_handlers'
 
 

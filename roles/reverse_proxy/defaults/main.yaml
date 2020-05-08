@@ -1,6 +1,5 @@
 ---
-reverse_proxy_site_fqdns:
-  - '{{ ansible_hostname }}.{{ domain }}'
-  - 'www.{{ ansible_hostname }}.{{ domain }}'
+reverse_proxy_site_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 reverse_proxy_proxy_protocol: true
+reverse_proxy_www_redir: false
 ...

@@ -8,7 +8,7 @@
   roles:
     - role: 'dns_record'
     - role: 'reverse_proxy'
-      reverse_proxy_site_fqdns:
+      reverse_proxy_site_fqdn:
         - 'matrix.{{ domain }}'
         - 'riot.{{ domain }}'
     - role: 'coturn'
