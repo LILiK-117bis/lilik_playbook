@@ -1,15 +1,4 @@
 ---
-- when: ldap_passwd is not defined
-  block:
-    - name: 'get plaintext admin password'
-      slurp:
-        path: '/etc/slapd.secret'
-      register: slapd_secret
-
-    - name: 'set ldap_passwd'
-      set_fact:
-        ldap_passwd: '{{ slapd_secret.content | b64decode }}'
-
 - name: 'populate tree - organization units'
   ldap_entry:
     dn: 'ou={{ item }},{{ ldap_basedn }}'
@@ -126,9 +115,4 @@
     bind_dn: 'cn=admin,{{ ldap_basedn }}'
     bind_pw: '{{ ldap_passwd }}'
   loop: '{{ ldap_server_accounts }}'
-
-#- name: templating ACLs
-#  template:
-#    src: "global.acl.j2"
-#    dest: "/etc/ldap/{{ item }}"
 ...

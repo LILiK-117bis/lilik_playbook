@@ -25,6 +25,7 @@
     values: >-
       {{ new_passwd_hash.stdout }}
     state: 'exact'
+  diff: false
   no_log: true
 
 - name: 'renewing admin password - calling ldappasswd'
@@ -33,11 +34,4 @@
     passwd: '{{ ldap_passwd }}'
     bind_dn: 'cn=admin,{{ ldap_basedn }}'
     bind_pw: '{{ ldap_passwd }}'
-
-- name: 'renewing admin password - storing plaintext'
-  copy:
-    content: '{{ ldap_passwd }}'
-    dest: '/etc/slapd.secret'
-  when: test_env is defined and test_env
-  no_log: true
 ...

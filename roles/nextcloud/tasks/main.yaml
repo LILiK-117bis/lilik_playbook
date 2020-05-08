@@ -85,13 +85,18 @@
     - name: 'create random root password'
       gen_passwd: length=20
       register: 'nextcloud_password'
+      no_log: true
     - name: 'set initial root password'
       set_fact:
         nextcloud_initial_root_password: '{{ nextcloud_password.passwd }}'
+      no_log: true
     - name: 'store root password plaintext'
       copy:
         content: '{{ nextcloud_initial_root_password }}'
         dest: '/etc/nextcloud.secret'
+        mode: '0700'
+      no_log: true
+      diff: false
     - name: 'emit warning for initial_root_password not set'
       fail:
         msg: >-
@@ -177,6 +182,9 @@
   gen_passwd: 'length=32'
   register: 'nextcloud_ldap_passwd'
   no_log: true
+  when:
+    - ldap_admin_dn is defined
+    - ldap_admin_pw is defined
   tags:
     - 'service_password'
 
@@ -189,14 +197,18 @@
     start_tls: '{{ ldap_tls_enabled }}'
     bind_dn: '{{ ldap_admin_dn }}'
     bind_pw: '{{ ldap_admin_pw }}'
-  no_log: true
+  when: nextcloud_ldap_passwd.changed
+  register: nextcloud_ldap_passwd_result
   tags:
     - 'service_password'
 
-- import_tasks: 'occ.yaml'
+- name: 'configure nextcloud ldap password with occ'
+  import_tasks: 'occ.yaml'
   vars:
     occ_args: 'ldap:set-config s01 ldapAgentPassword {{ nextcloud_ldap_passwd.passwd }}'
     nojson: true
+  no_log: true
+  when: nextcloud_ldap_passwd_result.changed
   tags:
     - 'service_password'
 - name: 'MONITORING | add HTTP service'
