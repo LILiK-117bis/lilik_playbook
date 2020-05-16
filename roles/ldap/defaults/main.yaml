@@ -11,9 +11,11 @@ ldap_tls_user_ca: '{{ tls_intermediate_user_ca }}'
 
 ldap_server_accounts:
   - 'projects.dmz.{{ domain }}'
-  - 'cloud.dmz.{{ domain }}'
+  - 'login.dmz.{{ domain }}'
+  - 'nextcloud.dmz.{{ domain }}'
   - 'matrix.dmz.{{ domain }}'
   - 'status.dmz.{{ domain }}'
+  - 'etherpad.dmz.{{ domain }}'
 
 ldap_groups_name:
   - 'admin'
