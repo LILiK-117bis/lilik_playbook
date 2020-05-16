@@ -177,8 +177,16 @@
     command: 'config:app:set'
     key: 'user_ldap enabled'
     value: 'yes'
+  register: nextcloud_ldap_was_disabled
   tags:
     - 'service_password'
+
+- name: 'insall app user_ldap'
+  import_tasks: 'occ.yaml'
+  vars:
+    occ_args: 'app:enable user_ldap'
+    nojson: true
+    ignore_changes: true
 
 - name: 'configure user_ldap'
   occ:
@@ -197,12 +205,17 @@
       ldap_base_groups: 'ou=Group,{{ ldap_basedn }}'
       ldap_login_filter: '(&(cn=%uid)(authorizedService=nextcloud))'
       ldap_user_filter: '(authorizedService=nextcloud)'
+      ldap_group_filter: '(objectClass=groupOfNames)'
+      ldap_group_member_assoc_attribute: 'member'
       ldap_attributes_for_user_search: 'cn'
       ldap_attributes_for_group_search: 'cn'
+      ldap_display_name: 'sn'
       ldap_email_attr: 'mail'
       ldap_tls: '{{ 1 if ldap_tls_enabled else 0 }}'
       ldap_experienced_admin: '1'
       ldap_configuration_active: '1'
+  tags:
+    - 'ldap'
 
 - name: 'generate nextcloud ldap password'
   gen_passwd: 'length=32'
