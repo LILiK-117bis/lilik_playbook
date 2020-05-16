@@ -162,14 +162,15 @@
   block:
     - name: 'MONITORING | add to monitored hosts'
       set_fact:
-        lxc_monitoring_entry: >
-          {{ { host_fqdn: { 'address': ansible_host } } }}
+        monitoring_entry: >
+          {{ { 'address': ansible_host,
+               'host_type': 'lxc_vm' } }}
     - name: 'MONITORING | update monitoring facts'
       set_fact:
         monitoring_facts: >
           {{ hostvars[monitoring_host]['monitoring_facts']
                | default({})
-               | combine(lxc_monitoring_entry) }}
+               | combine({host_fqdn: monitoring_entry}) }}
       delegate_facts: true
       delegate_to: '{{ monitoring_host }}'
   tags:

@@ -109,8 +109,8 @@
         monitoring_entry: >
           {{ monitoring_entry | default({}) | combine({
                'address': ansible_host,
-               'vhosts_uri': { gitlab_nginx_main_fqdn: {'/': 'Sign in · GitLab'},
-                              gitlab_nginx_mattermost_fqdn: { '/': '<title>Mattermost</title>' } },
+               'vhosts_uri': { gitlab_nginx_main_fqdn: {'/': { 'content': 'Sign in · GitLab'} },
+                               gitlab_nginx_mattermost_fqdn: { '/': { 'content': '<title>Mattermost</title>' } } },
                }, recursive=true) }}
     - name: 'MONITORING | update monitoring facts'
       set_fact:

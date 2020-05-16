@@ -257,7 +257,7 @@
         monitoring_entry: >
           {{ monitoring_entry | default({}) | combine({
              'address': ansible_host,
-             'vhosts_uri': { nextcloud_nginx_fqdn: {'/': 'nextcloud.com'} },
+             'vhosts_uri': { nextcloud_nginx_fqdn: {'/': { 'content': 'nextcloud.com'}} },
              }, recursive=true) }}
     - name: 'MONITORING | update monitoring facts'
       set_fact:

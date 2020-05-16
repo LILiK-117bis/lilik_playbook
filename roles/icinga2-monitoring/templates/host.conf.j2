@@ -10,8 +10,14 @@ object Host "{{ item.key }}" {
   vars.agent_type = "ssh"
 {% endif %}
 
+  vars.host_type = "{{ item.value.host_type | d('physical') }}"
+
+{% for var in item.value.vars|d({})|dict2items %}
+  vars.{{ var.key }} = "{{ var.value }}"
+{% endfor %}
+
 {% if 'vhosts' in item.value %}
-{% for vhost in item.value.vhosts %}
+{%   for vhost in item.value.vhosts %}
   vars.http_vhosts["https cert: {{ vhost }}"] = {
     http_ssl = true
     http_vhost = "{{ vhost }}"
@@ -20,17 +26,17 @@ object Host "{{ item.key }}" {
     /* Check remaining days before cert expiration */
     http_certificate = "30,20"
   }
-{% for uri, content in (item.value.vhosts_uri[vhost]|d({'/': ''})).items() %}
+{%     for uri, prop in (item.value.vhosts_uri[vhost]|d({'/': {}})).items() %}
   vars.http_vhosts["https service: {{ vhost }}{{ uri }}"] = {
     http_ssl = true
     http_vhost = "{{ vhost }}"
-    http_onredirect = "sticky"
+    http_onredirect = "{{ prop.onredirect|d('sticky') }}"
     http_sni = true
     http_uri = "{{ uri }}"
-    {% if content != '' %}http_string = "{{ content|replace('"','\\"') }}"{% endif %}
+    {% if prop.content|d('') != '' %}http_string = "{{ prop.content|replace('"','\\"') }}"{% endif %}
   }
-{% endfor %}
-{% endfor %}
+{%     endfor %}
+{%   endfor %}
 {% endif %}
 }
 

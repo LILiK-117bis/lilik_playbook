@@ -8,6 +8,12 @@
   tags:
     - 'packages'
 
+- name: 'add monitoring plugin - check_mem.pl'
+  copy:
+    src: 'check_mem.pl'
+    dest: '/usr/lib/nagios/plugins/check_mem.pl'
+    mode: '0755'
+
 - name: 'create monitoring user'
   user:
     name: 'icinga'
