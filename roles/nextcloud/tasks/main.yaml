@@ -76,11 +76,11 @@
 
 - name: 'unpack nextcloud'
   unarchive:
+    remote_src: true
     src: '/opt/nextcloud.tar.bz2'
     dest: '/opt'
     owner: 'www-data'
     group: 'www-data'
-    copy: no
   when: nextcloud_new_download.changed
   tags:
     - 'packages'
@@ -96,7 +96,7 @@
   template:
     src: 'nextcloud.conf.j2'
     dest: '/etc/nginx/locations/{{ nextcloud_nginx_fqdn }}/nextcloud.conf'
-  notify: 'restart nginx'
+  notify: 'reload nginx'
 
 - import_tasks: 'occ.yaml'
   vars:
@@ -142,7 +142,7 @@
        --database-host '/var/run/postgresql'
        --database-user 'www-data'
        --database-pass ''
-       --admin-pass '{{ initial_root_password }}'
+       --admin-pass '{{ nextcloud_initial_root_password }}'
        --data-dir '/opt/nextcloud_data'
        --no-interaction
      nojson: true
