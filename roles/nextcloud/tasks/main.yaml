@@ -3,6 +3,22 @@
     pkg:
       - 'sudo'
       - 'bzip2'
+      #- 'ffmpeg'
+      - 'postgresql'
+      - 'postgresql-contrib'
+      - 'python3-psycopg2'
+      - 'ca-certificates'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
+
+- name: 'install php'
+  import_role: name='service'
+  vars:
+    service_name: 'php7.3-fpm'
+    service_packages:
       - 'php-fpm'
       - 'php-common'
       - 'php-xml'
@@ -16,16 +32,6 @@
       - 'php-intl'
       - 'php-bz2'
       #- 'php7.3.-imagick'
-      #- 'ffmpeg'
-      - 'postgresql'
-      - 'postgresql-contrib'
-      - 'python3-psycopg2'
-      - 'ca-certificates'
-    state: 'present'
-    update_cache: true
-    cache_valid_time: 3600
-  tags:
-    - 'packages'
 
 - block:
     - name: 'create nextcloud DB'
@@ -39,6 +45,26 @@
   become: true
   become_method: 'su'
   become_user: 'postgres'
+
+
+- name: 'configure php-fpm'
+  lineinfile:
+    path: '/etc/php/7.3/fpm/pool.d/www.conf'
+    line: '{{ item.line }}'
+    regexp: '{{ item.regexp }}'
+  loop:
+    - { line: 'env[PATH] = /usr/local/bin:/usr/bin:/bin', regexp: '^env\[PATH\] = ' }
+    - { line: 'env[TEMP] = /tmp', regexp: '^env\[TEMP\] = ' }
+    - { line: 'env[TMP] = /tmp', regexp: '^env\[TMP\] = ' }
+    - { line: 'env[TMPDIR] = /tmp', regexp: '^env\[TMPDIR\] = ' }
+  notify: 'restart php7.3-fpm'
+
+- name: 'configure php.ini'
+  lineinfile:
+    path: '/etc/php/7.3/fpm/php.ini'
+    line: 'memory_limit = 512M'
+    regexp: '^memory_limit ='
+  notify: 'restart php7.3-fpm'
 
 - name: 'download nextcloud'
   get_url:
