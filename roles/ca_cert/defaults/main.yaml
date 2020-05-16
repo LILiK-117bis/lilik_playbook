@@ -8,6 +8,7 @@ ca_cert_renew_private_key: true
 ca_cert_tls_subj: '{{ openssl_x509_prefix}}/OU=Server/CN={{ ca_cert_common_name }}'
 ca_cert_tls_ca_path: '/etc/ssl/root_ca.crt'
 ca_cert_tls_key_path: '/etc/ssl/{{ ca_cert_common_name }}.key'
+ca_cert_tls_key_algorithm: 'ed25519'
 ca_cert_tls_csr_path: '/etc/ssl/{{ ca_cert_common_name }}.csr'
 ca_cert_tls_cert_path: '/etc/ssl/{{ ca_cert_common_name }}.crt'
 ca_cert_ssh_ca_path: '/etc/ssh/user_ca.pub'

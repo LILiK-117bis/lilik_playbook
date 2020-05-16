@@ -3,6 +3,7 @@
   command: >
     openssl verify
     -CAfile {{ ca_cert_tls_ca_path }}
+    -untrusted {{ ca_cert_tls_cert_path }}
     -verify_hostname {{ ca_cert_common_name }}
     {{ ca_cert_tls_cert_path }}
   register: ca_cert_tls_cert_is_valid
@@ -68,7 +69,7 @@
     - name: 'RENEW | TLS | create private key (if not exists)'
       command: >
         openssl genpkey
-        -algorithm ed25519
+        -algorithm {{ ca_cert_tls_key_algorithm }}
         -out {{ ca_cert_tls_key_path }}
       args:
         creates: >-
