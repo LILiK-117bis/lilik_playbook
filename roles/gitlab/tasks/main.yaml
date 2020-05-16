@@ -6,6 +6,9 @@
     pkg:
       - 'gnupg'
       - 'ca-certificates'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
   tags:
     - 'packages'
 
@@ -21,6 +24,7 @@
   apt_repository:
     repo: '{{ item }}'
     state: 'present'
+    update_cache: true
   loop:
     - 'deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ buster main'
     - 'deb-src https://packages.gitlab.com/gitlab/gitlab-ce/debian/ buster main'
