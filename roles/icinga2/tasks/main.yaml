@@ -31,7 +31,7 @@
       - 'icingacli'
       - 'icinga2-ido-pgsql'
       - 'monitoring-plugins'
-      - 'nagios-plugins-contrib'
+#      - 'nagios-plugins-contrib'
 
 - name: 'create directory for hosts configuration'
   file:
