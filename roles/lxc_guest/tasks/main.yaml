@@ -21,7 +21,7 @@
     - 'lxc'
 
 - block:
-    - name: 'create the lxc container'
+    - name: 'privileged | create lxc container'
       lxc_container:
         name: '{{ vm_name }}'
         backing_store: 'lvm'
@@ -37,11 +37,71 @@
       # leaking when lvm is invoked
       environment:
         LVM_SUPPRESS_FD_WARNINGS: 1
+      when: not unprivileged
+
+    - name: 'unprivileged | upload bash script'
+      copy:
+        src: 'find_subxid.sh'
+        dest: 'find_subxid.sh'
+      when: unprivileged
+
+    - name: 'unprivileged | get free subxid mappings'
+      command: 'bash find_subxid.sh'
+      register: avail_subxid
+      when: unprivileged
+
+    - name: 'unprivileged | set subxid mappings'
+      set_fact:
+        subuidmap: '{{ avail_subxid.stdout_lines[0] }}'
+        subgidmap: '{{ avail_subxid.stdout_lines[1] }}'
+      when: unprivileged
+
+    - name: 'unprivileged | create system subxid mappings'
+      command: >-
+        usermod
+        -v {{ '{}-{}'.format(subuidmap.split(' ')[0],
+                             subuidmap.split(' ')[0]|int+subuidmap.split(' ')[1]|int-1) }}
+        -w {{ '{}-{}'.format(subgidmap.split(' ')[0],
+                             subgidmap.split(' ')[0]|int+subgidmap.split(' ')[1]|int-1) }}
+        root
+
+    - name: 'unprivileged | create config seed'
+      copy:
+        content: |
+          lxc.idmap = u 0 {{ subuidmap }}
+          lxc.idmap = g 0 {{ subgidmap }}
+        dest: '/tmp/lxc_unpriv_config'
+      when: unprivileged
+
+    - name: 'unprivileged | create lxc container'
+      lxc_container:
+        name: '{{ vm_name }}'
+        backing_store: 'lvm'
+        fs_type: 'xfs'
+        fs_size: '{{ vm_size }}'
+        vg_name: '{{ vg_name }}'
+        lv_name: 'vm_{{ vm_name }}'
+        container_log: true
+        template: 'download'
+        template_options: '-d debian -r {{ distro }} -a amd64'
+        config: '/tmp/lxc_unpriv_config'
+        state: 'stopped'
+      when: unprivileged
 
     - name: 'deploy container config'
       template:
         src: 'config.j2'
         dest: '/var/lib/lxc/{{ vm_name }}/config'
+
+    - name: 'unprivileged | tweak config'
+      lxc_container:
+        name: '{{ vm_name }}'
+        container_command: |
+          echo 'nameserver {{ hostvars | ip_from_inventory('vm_gateway') }}' > /etc/resolv.conf
+          apt update
+          apt install -y python3 python3-apt
+          systemctl mask systemd-journald-audit.socket
+        state: 'stopped'
 
     - name: 'start container'
       lxc_container:
@@ -51,6 +111,20 @@
   when: not (container_exists.exists and container_dir.stat.isdir)
   tags:
     - 'lxc'
+
+- name: 'read unprivileged status from config'
+  command: >-
+    grep -e '^lxc.idmap = ' /var/lib/lxc/{{ vm_name }}/config
+  register: unpriv_status
+  changed_when: false
+  failed_when: unpriv_status.rc > 1
+
+- name: 'set unprivileged status from config'
+  set_fact:
+    unprivileged: true
+    subuidmap: '{{ unpriv_status.stdout_lines[0] | replace("lxc.idmap = u 0 ", "") }}'
+    subgidmap: '{{ unpriv_status.stdout_lines[1] | replace("lxc.idmap = g 0 ", "") }}'
+  when: unpriv_status.rc == 0
 
 - name: 'update container config'
   template:

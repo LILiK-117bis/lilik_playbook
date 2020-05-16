@@ -1,7 +1,23 @@
-lxc.include = /usr/share/lxc/config/debian.common.conf
+{% if unprivileged %}
+# Distribution configuration (unprivileged)
+lxc.include = /usr/share/lxc/config/common.conf
+lxc.include = /usr/share/lxc/config/userns.conf
+lxc.arch = linux64
 
-lxc.uts.name = {{ vm_name }}
-lxc.rootfs.path = lvm:/dev/{{ vg_name }}/vm_{{ vm_name }}
+lxc.mount.entry = /sys/kernel/debug sys/kernel/debug none bind,optional 0 0
+lxc.mount.entry = /sys/kernel/security sys/kernel/security none bind,optional 0 0
+lxc.mount.entry = /sys/fs/pstore sys/fs/pstore none bind,optional 0 0
+lxc.mount.entry = mqueue dev/mqueue mqueue rw,relatime,create=dir,optional 0 0
+
+lxc.apparmor.profile = generated
+
+# Container specific configuration
+lxc.idmap = u 0 {{ subuidmap }}
+lxc.idmap = g 0 {{ subgidmap }}
+
+{% else %}
+# Distribution configuration (privileged)
+lxc.include = /usr/share/lxc/config/debian.common.conf
 
 lxc.apparmor.profile = generated
 lxc.apparmor.allow_nesting = 1
@@ -10,6 +26,12 @@ lxc.tty.max = 4
 lxc.arch = amd64
 lxc.pty.max = 1024
 
+# Container specific configuration
+{% endif %}
+lxc.uts.name = {{ vm_name }}
+lxc.rootfs.path = lvm:/dev/{{ vg_name }}/vm_{{ vm_name }}
+
+# Network configuration
 lxc.net.0.type = veth
 lxc.net.0.flags = up
 lxc.net.0.link = br0

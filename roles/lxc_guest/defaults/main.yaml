@@ -5,4 +5,5 @@ distro: 'buster'
 vm_size: '5G'
 vg_name: '{{ hostvars[ansible_lxc_host]["vg_name"] | default(ansible_lxc_host+"-vg") }}'
 host_fqdn: '{{ inventory_hostname }}.dmz.{{ domain }}'
+unprivileged: false
 ...
