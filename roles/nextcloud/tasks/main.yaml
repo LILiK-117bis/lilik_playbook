@@ -197,6 +197,7 @@
   vars:
     ldap_settings:
       has_memberof_filter_support: '1'
+      use_memberof_to_detect_membership: '0'
       ldap_host: '{{ ldap_server }}'
       ldap_port: '389'
       ldap_dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
