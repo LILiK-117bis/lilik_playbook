@@ -70,6 +70,19 @@
         regexp: '^\s*.+wipe_signatures_when_zeroing_new_lvs = '
       notify: 'restart lvm'
 
+    - name: 'set monitoring max procs'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine({host_fqdn: { "vars": { "procs_warning": 2500,
+                                                 "procs_critical": 4000 } }
+                         }, recursive=true) }}
+      delegate_to: '{{ monitoring_host }}'
+      delegate_facts: true
+      tags:
+        - 'monitoring'
+~
   handlers:
     - name: 'restart networking'
       service:
