@@ -215,6 +215,7 @@
       ldap_tls: '{{ 1 if ldap_tls_enabled else 0 }}'
       ldap_experienced_admin: '1'
       ldap_configuration_active: '1'
+      ldap_expert_username_attr: 'cn'
   tags:
     - 'ldap'
 
