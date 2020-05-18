@@ -41,25 +41,11 @@
     group: 'openldap'
     mode: '600'
 
-# !BUG! Fixed in Ansible dev using ldap_attrs instead of ldap_attr
-# Setting the parameters twice in a row fix the problem.
-# Ref: https://github.com/ansible/ansible/issues/25665
-# **ToDO: Find the right combination, is still failing at the first run
-# but works on the second iteration
-- name: 'configuring TLS options (workaround)'
-  ldap_attr:
-    dn: 'cn=config'
-    name: '{{ item.name }}'
-    values: '{{ item.value }}'
-  loop:
-    - { name: 'olcTLSCertificateFile', value: '/etc/ldap/slapd.crt' }
-    - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
-    - { name: 'olcTLSCACertificateFile', value: '/etc/ldap/user_ca.crt' }
-  failed_when: false
-  tags:
-    - 'tls_int'
 
+## BROKEN! WAITING FOR ANSIBLE 2.10 ldap_attrs
+## Currently you have to run 2-3 times to get proper configuration.
 - name: 'configuring TLS options'
+## Remove after update to Ansible 2.10 --->
   ldap_attr:
     dn: 'cn=config'
     name: '{{ item.name }}'
@@ -71,6 +57,17 @@
     - { name: 'olcTLSCertificateKeyFile', value: '/etc/ldap/slapd.key' }
     - { name: 'olcTLSVerifyClient', value: 'try' }  # TLS Client Auth
     - { name: 'olcTLSCipherSuite', value: 'SECURE:-VERS-ALL:+VERS-TLS1.3' } # TLSv1.3 Only
+## <---
+## Uncomment after update to Ansible 2.10 --->
+#  ldap_attrs:
+#    dn: 'cn=config'
+#    attributes:
+#      olcTLSCACertificateFile: '/etc/ldap/user_ca.crt'
+#      olcTLSCertificateFile: '/etc/ldap/slapd.crt'
+#      olcTLSCertificateKeyFile: '/etc/ldap/slapd.key'
+#      olcTLSVerifyClient: 'try'
+#      olcTLSCipherSuite: 'SECURE:-VERS-ALL:+VERS-TLS1.3'
+## <---
   tags:
     - 'tls_int'
 
