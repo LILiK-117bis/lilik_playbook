@@ -12,7 +12,7 @@ server {
     real_ip_header proxy_protocol;
 {% endif %}
 
-    server_name {{ nginx_site_fqdn }};
+    server_name {{ nginx_site_fqdn }} {{ nginx_site_alternate_fqdns | join(' ') }};
 
     # Do not advertise nginx version number
     server_tokens off;
