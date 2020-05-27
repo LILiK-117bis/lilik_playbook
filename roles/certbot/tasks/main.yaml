@@ -11,11 +11,13 @@
   tags:
     - 'packages'
 
-- name: Shutdown webservers
-  service:
-    name: "{{ webserver_name }}"
-    state: stopped
-  ignore_errors: yes
+# Standard nginx installation should not listen on port 80
+# -> This is probably not required.
+#- name: 'shutdown webservers'
+#  service:
+#    name: '{{ webserver_name }}'
+#    state: 'stopped'
+#  ignore_errors: true
 
 - name: 'request certificate'
   command: >
@@ -35,11 +37,11 @@
   tags:
     - 'tls_pub'
 
-- name: Restart webservers
-  service:
-    name: "{{ webserver_name }}"
-    state: started
-  ignore_errors: yes
+#- name: 'restart webservers'
+#  service:
+#    name: '{{ webserver_name }}'
+#    state: 'started'
+#  ignore_errors: true
 
 - name: 'add systemd timer for cert renewal'
   template:
