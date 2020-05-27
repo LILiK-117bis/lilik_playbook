@@ -233,5 +233,22 @@
 #         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
 #         by dn.children=ou=Server,{{ ldap_basedn }} read
       # [5] :: ou=Kerberos - Wi
+
+
+- name: 'MONITORING | set ldap_server'
+  set_fact:
+    monitoring_facts: >
+      {{ hostvars[monitoring_host]["monitoring_facts"]
+          | default({})
+          | combine({
+                      host_fqdn: {
+                        "address": ansible_host,
+                        "vars": { "ldap_base": ldap_basedn }
+                      }
+                    }, recursive=True) }}
+  delegate_to: '{{ monitoring_host }}'
+  delegate_facts: true
+  tags:
+    - 'monitoring'
 ...
 
