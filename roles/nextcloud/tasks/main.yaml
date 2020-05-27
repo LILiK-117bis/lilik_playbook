@@ -153,9 +153,7 @@
     command: 'config:system:set'
     key: 'trusted_domains {{ idx }}'
     value: '{{ item }}'
-  loop:
-    - 'localhost'
-    - '{{ nextcloud_nginx_fqdn }}'
+  loop: '{{ [ "localhost", nextcloud_nginx_fqdn ] + nextcloud_nginx_alternate_fqdns }}'
   loop_control:
     index_var: idx
 
