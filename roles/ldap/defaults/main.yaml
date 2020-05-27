@@ -33,7 +33,7 @@ ldap_users_admin:
       - 'icinga2'
 
 ldap_users_common:
-  pippo:
+  test_user:
     password: 'pippopippo'
     sn: 'Utente Pippo'
     mail: 'pippo@zolfa.nl'
@@ -41,10 +41,8 @@ ldap_users_common:
       - 'nextcloud'
       - 'matrix'
       - 'gitlab'
-  pluto:
-    password: 'plutopluto'
-    sn: 'Utente Pluto'
-    mail: 'pluto@zolfa.nl'
+      - 'etherpad'
+      - 'icinga2'
 
 ldap_basedn: 'dc={{ ldap_domain.replace(".", ",dc=") }}'
 ldap_x509_suffix: >-
