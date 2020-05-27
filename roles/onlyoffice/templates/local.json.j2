@@ -1,0 +1,23 @@
+{
+    "services": {
+        "CoAuthoring": {
+            "secret": {
+                "inbox": {
+                    "string": "{{ onlyoffice_integration_secret.passwd }}"
+                },
+                "outbox": {
+                    "string": "{{ onlyoffice_integration_secret.passwd }}"
+                }
+            },
+            "token": {
+                "enable": {
+                    "browser": true,
+                    "request": {
+                        "inbox": true,
+                        "outbox": true
+                    }
+                }
+            }
+        }
+    }
+}

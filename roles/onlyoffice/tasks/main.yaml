@@ -1,0 +1,196 @@
+---
+- name: 'install requirements'
+  apt:
+    pkg:
+      - 'postgresql'
+      - 'postgresql-contrib'
+      - 'python3-psycopg2'
+      - 'ca-certificates'
+      - 'redis-server'
+      - 'rabbitmq-server'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: 'USERS | create onlyoffice'
+  user:
+    name: 'onlyoffice'
+    system: true
+    home: '/opt/onlyoffice'
+
+- name: 'USERS | add www-data to onlyoffice'
+  user:
+    name: 'www-data'
+    groups: 'onlyoffice'
+    append: true
+
+- block:
+    - name: 'PGSQL | create onlyoffice DB'
+      postgresql_db:
+        name: 'onlyoffice'
+    - name: 'PGSQL | create onlyoffice DB user'
+      postgresql_user:
+        name: 'onlyoffice'
+        db: 'onlyoffice'
+#        password: '{{ onlyoffice_pgsql_passwd.passwd }}'
+        priv: 'ALL'
+  become: true
+  become_method: 'su'
+  become_user: 'postgres'
+
+#- name: 'install onlyoffice'
+#  apt:
+#    pkg: 'onlyoffice-documentserver'
+#    state: 'present'
+#    update_cache: true
+#    cache_valid_time: 3600
+- name: 'create onlyoffice folders'
+  file:
+    path: '{{ item }}'
+    state: 'directory'
+    owner: 'onlyoffice'
+    group: 'onlyoffice'
+  loop:
+    - '/opt/onlyoffice'
+    - '/etc/onlyoffice'
+    - '/etc/onlyoffice/documentserver/'
+    - '/etc/onlyoffice/documentserver/log4js'
+    - '/var/lib/onlyoffice'
+    - '/var/lib/onlyoffice/documentserver/'
+
+- name: 'extract onlyoffice documentserver'
+  unarchive:
+    remote_src: true
+    src: '/opt/documentserver.tar.gz'
+    dest: '/opt/onlyoffice'
+    owner: 'onlyoffice'
+    group: 'onlyoffice'
+    mode: '0750'
+    creates: '/opt/onlyoffice/documentserver/'
+
+- name: 'PGSQL | init DB'
+  shell:
+    cmd: 'psql -d onlyoffice < /opt/onlyoffice/documentserver/server/schema/postgresql/createdb.sql'
+  register: onlyoffice_pgsql_init
+  changed_when: onlyoffice_pgsql_init.stdout != 'CREATE TABLE\nCREATE TABLE\nCREATE FUNCTION'
+  become: true
+  become_method: 'su'
+  become_user: 'onlyoffice'
+
+- name: 'ONLYOFFICE | copy configs'
+  copy:
+    src: '{{ item.src }}'
+    dest: '/etc/onlyoffice/documentserver/{{ item.dest }}'
+  notify: 'restart onlyoffice'
+  loop:
+    - { src: 'production-linux.json', dest: 'production-linux.json' }
+    - { src: 'production.json', dest: 'log4js/production.json' }
+    - { src: 'default.json', dest: 'default.json' }
+
+- name: 'ONLYOFFICE | generate integration secret'
+  gen_passwd: 'length=32'
+  register: 'onlyoffice_integration_secret'
+  no_log: true
+
+- name: 'ONLYOFFICE | template configs'
+  template:
+    src: 'local.json.j2'
+    dest: '/etc/onlyoffice/documentserver/local.json'
+  notify: 'restart onlyoffice'
+  no_log: true
+
+- block:
+    - name: 'ONLYOFFICE | generate fonts'
+      shell:
+        cmd: |
+          ${PWD}/server/tools/allfontsgen \
+            --input="${PWD}/core-fonts" \
+            --allfonts-web="${PWD}/sdkjs/common/AllFonts.js" \
+            --allfonts="${PWD}/server/FileConverter/bin/AllFonts.js" \
+            --images="${PWD}/sdkjs/common/Images" \
+            --selection="${PWD}/server/FileConverter/bin/font_selection.bin" \
+            --output-web='fonts' \
+            --use-system="true"
+        chdir: '/opt/onlyoffice/documentserver'
+      notify: 'restart onlyoffice'
+    - name: 'ONLYOFFICE | generate themes'
+      shell:
+        cmd: |
+          ${PWD}/server/tools/allthemesgen \
+            --converter-dir="${PWD}/server/FileConverter/bin" \
+            --src="${PWD}/sdkjs/slide/themes" \
+            --output="${PWD}/sdkjs/common/Images"
+        chdir: '/opt/onlyoffice/documentserver'
+      notify: 'restart onlyoffice'
+  environment:
+    LD_LIBRARY_PATH: '/opt/onlyoffice/documentserver/server/FileConverter/bin'
+  become: true
+  become_method: 'su'
+  become_user: 'onlyoffice'
+
+- name: 'SYSTEMD | create services'
+  copy:
+    src: '{{ item }}'
+    dest: '/etc/systemd/system/{{ item }}'
+  loop:
+    - 'onlyoffice-ds-docservice.service'
+    - 'onlyoffice-ds-converter.service'
+    - 'onlyoffice-ds-spellchecker.service'
+    - 'onlyoffice-ds.target'
+  notify: 'restart onlyoffice'
+
+- name: 'NGINX | create onlyoffice upstreams'
+  copy:
+    src: 'onlyoffice-ds-http.conf'
+    dest: '/etc/nginx/conf.d/onlyoffice-ds-http.conf'
+  notify: 'reload nginx'
+
+- name: 'NGINX | create onlyoffice locations'
+  copy:
+    src: '{{ item }}'
+    dest: '/etc/nginx/locations/{{ onlyoffice_nginx_fqdn }}/{{ item }}'
+  loop:
+    - 'onlyoffice-ds-common.conf'
+    - 'onlyoffice-ds-docservice.conf'
+    - 'onlyoffice-ds-spellchecker.conf'
+  notify: 'reload nginx'
+
+- block:
+    - name: 'NEXTCLOUD | get installed apps'
+      import_tasks: 'roles/nextcloud/tasks/occ.yaml'
+      vars:
+        occ_args: 'app:list --output json'
+
+    - name: 'NEXTCLOUD | install onlyoffice integration'
+      import_tasks: 'roles/nextcloud/tasks/occ.yaml'
+      vars:
+        occ_args: 'app:install onlyoffice --no-interaction'
+        nojson: true
+      when:
+        - not 'onlyoffice' in occ_out.enabled
+        - not 'onlyoffice' in occ_out.disabled
+
+    - name: 'NEXTCLOUD | enable onlyoffice integration'
+      import_tasks: 'roles/nextcloud/tasks/occ.yaml'
+      vars:
+        occ_args: 'app:enable onlyoffice'
+        nojson: true
+      when:
+        - true and 'onlyoffice' in occ_out.disabled
+
+    - name: 'NEXTCLOUD | configure onlyoffice integration'
+      occ:
+        command: 'config:app:set'
+        key: 'onlyoffice {{ item.key }}'
+        value: '{{ item.value }}'
+      loop: '{{ onlyoffice_nextcloud_settings|dict2items }}'
+      vars:
+        onlyoffice_nextcloud_settings:
+          DocumentServerUrl: 'https://{{ onlyoffice_nginx_fqdn }}/'
+          jwt_secret: '{{ onlyoffice_integration_secret.passwd }}'
+      no_log: true
+
+  delegate_to: '{{ nextcloud_host }}'
+  tags:
+    - integration
+...
