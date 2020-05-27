@@ -31,7 +31,18 @@
       - 'icingacli'
       - 'icinga2-ido-pgsql'
       - 'monitoring-plugins'
+      - 'libnet-ldap-perl'
 #      - 'nagios-plugins-contrib'
+
+- name: 'install extra monitoring plugins'
+  copy:
+    src: '{{ item }}'
+    dest: '/usr/lib/nagios/plugins/{{ item }}'
+    mode: '0755'
+    owner: 'nagios'
+    group: 'nagios'
+  loop:
+    - 'check_ldap_syncrepl_status.pl'
 
 - name: 'create directory for hosts configuration'
   file:
@@ -50,6 +61,7 @@
     - 'templates.conf'
     - 'services.conf'
     - 'apt.conf'
+    - 'command-ldapsync.conf'
 
 - name: 'disable local host conf.d'
   file:
