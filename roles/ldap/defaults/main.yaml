@@ -6,6 +6,10 @@ ldap_organization: '{{ organization }}'
 ldap_check_tree: true
 ldap_tls_enabled: true
 
+ldap_syncrepl_is_consumer: false
+ldap_syncrepl_is_provider: false
+ldap_syncrepl_target_providers: []
+
 ldap_tls_server_ca: '{{ tls_intermediate_server_ca }}'
 ldap_tls_user_ca: '{{ tls_intermediate_user_ca }}'
 

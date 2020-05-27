@@ -124,6 +124,9 @@
       - >-
        {1} ^mail=[^,]+,cn=([^,]+),ou=People,{{ ldap_x509_suffix }}$
        cn=$1,ou=People,{{ ldap_basedn }}
+      - >-
+       {2} ^cn=([^,]+),ou=LDAP,{{ ldap_x509_suffix }}$
+       cn=$1,ou=LDAP,{{ ldap_basedn }}
 
 - name: 'configure main tree acls'
   ldap_attr:
@@ -131,10 +134,21 @@
     name: 'olcAccess'
     state: 'exact'
     values:
+      # TOFIX: Remove hardcoded IP
+      - >-
+        {0} to dn.exact={{ ldap_basedn }} attrs=entry,objectClass,contextCSN
+        by peername.regex=10\.150\.42\..* read
+        by * break
+      - >-
+        {1} to dn.subtree={{ ldap_basedn }}
+        {% if ldap_syncrepl_is_provider %}
+        by dn.children=ou=LDAP,{{ ldap_basedn }} tls_ssf=256 read
+        {% endif %}
+        by * break
       # [0] -> Admins can proxy-auth to RootDN
       # /proxy-auth is not required for routine user-management operations
       - >-
-        {0} to dn.exact=cn=admin,{{ ldap_basedn }} attrs=authzFrom
+        {2} to dn.exact=cn=admin,{{ ldap_basedn }} attrs=authzFrom
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} auth
         by * none
       # [1] :: ou=People
@@ -142,21 +156,21 @@
       #       -> People can edit their `userPassword`
       #       -> Anyone can auth with `userPassword` if using strong TLS.
       - >-
-        {1} to dn.one=ou=People,{{ ldap_basedn }} attrs=userPassword
+        {3} to dn.one=ou=People,{{ ldap_basedn }} attrs=userPassword
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by self write
         by anonymous {{ 'tls_ssf=256 ' if ldap_tls_enabled }}auth
         by * none
       # [1.1] -> Admins can add/remove People entries
       - >-
-        {2} to dn.exact=ou=People,{{ ldap_basedn }} attrs=children
+        {4} to dn.exact=ou=People,{{ ldap_basedn }} attrs=children
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by * none
 
       # [1.2] -> Admins can list the full People tree
       #       -> Servers can perform search on People tree
       - >-
-        {3} to dn.exact=ou=People,{{ ldap_basedn }}
+        {5} to dn.exact=ou=People,{{ ldap_basedn }}
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} read
         by dn.children=ou=Server,{{ ldap_basedn }} search
         by * none
@@ -165,51 +179,51 @@
       #       -> People can read all their attributes
       #       -> Break: over privileges may be accorded later (i.e.: servers)
       - >-
-        {4} to dn.one=ou=People,{{ ldap_basedn }}
+        {6} to dn.one=ou=People,{{ ldap_basedn }}
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by dn.children=ou=Server,{{ ldap_basedn }} read
         by self read
         by * break
       # [1.5] -> No other access to People tree
       - >-
-        {5} to dn.subtree=ou=People,{{ ldap_basedn }}
+        {7} to dn.subtree=ou=People,{{ ldap_basedn }}
         by * none
       # [2] :: ou=Group
       # [2.1] -> Admins can list groups
       #       -> Servers can list groups
       - >-
-        {6} to dn.exact=ou=Group,{{ ldap_basedn }} attrs=entry
+        {8} to dn.exact=ou=Group,{{ ldap_basedn }} attrs=entry
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} read
         by dn.children=ou=Server,{{ ldap_basedn }} read
         by * none
       # [2.2] -> Admins can create/delete groups
       - >-
-        {7} to dn.exact=ou=Group,{{ ldap_basedn }} attrs=children
+        {9} to dn.exact=ou=Group,{{ ldap_basedn }} attrs=children
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by * none
       # [2.3] -> Admins can edit group members
       #       -> Server can list group members
       - >-
-        {8} to dn.one=ou=Group,{{ ldap_basedn }}
+        {10} to dn.one=ou=Group,{{ ldap_basedn }}
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by dn.children=ou=Server,{{ ldap_basedn }} read
         by * none
       # [2.2] -> No other access to Group tree
       - >-
-        {9} to dn.children=ou=Group,{{ ldap_basedn }}
+        {11} to dn.children=ou=Group,{{ ldap_basedn }}
         by * none
       # [3] :: ou=Server
       # [3.0] -> Local servers can simple-bind their entries if using TLS
       # /Server using TLS-client Auth with OU=Server are automatically authenticated
       ## TODO: Add peername.ip filtering on server subnet
       - >-
-        {10} to dn.children=ou=Server,{{ ldap_basedn }} attrs=userPassword
+        {12} to dn.children=ou=Server,{{ ldap_basedn }} attrs=userPassword
         by anonymous {{ 'tls_ssf=256 ' if ldap_tls_enabled }}auth
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by * none
       # [3.1] -> No other access to Server tree
       - >-
-        {11} to dn.subtree=ou=Server,{{ ldap_basedn }}
+        {13} to dn.subtree=ou=Server,{{ ldap_basedn }}
         by * none
       # [4] :: ou=VirtualDomains - WiP
       # [4.0] -> Admins can write whole subtree

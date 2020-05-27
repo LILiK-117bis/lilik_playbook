@@ -13,4 +13,7 @@
 - name: 'including tls tasks'
   import_tasks: '4_setup_tls.yaml'
   when: ldap_tls_enabled
+
+- name: 'including replication tasks'
+  import_tasks: '5_configure_replication.yaml'
 ...
