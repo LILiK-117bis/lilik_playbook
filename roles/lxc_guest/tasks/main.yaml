@@ -156,6 +156,19 @@
   connection: 'ssh_lxc'
   notify: 'restart container'
 
+- name: 'update container apt config'
+  lineinfile:
+    path: '/etc/apt/apt.conf.d/02periodic'
+    line: '{{ item.key }} "{{ item.value }}";'
+    regexp: '^{{ item.key }} '
+    create: true
+  loop:
+    - { key: 'APT::Periodic::Enable', value: '1' }
+    - { key: 'APT::Periodic::Update-Package-Lists', value: '1' }
+    - { key: 'APT::Periodic::Verbose', value: '2' }
+  delegate_to: '{{ vm_name }}'
+  connection: 'ssh_lxc'
+
 - meta: 'flush_handlers'
 
 - name: 'MONITORING | add to monitored hosts'
