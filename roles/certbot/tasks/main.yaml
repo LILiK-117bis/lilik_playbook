@@ -26,6 +26,9 @@
         --email {{ letsencrypt_email }}
         --preferred-challenges http
         -d {{ certbot_site_fqdn }}
+    {% for fqdn in certbot_site_alternate_fqdns %}
+        -d {{ fqdn }}
+    {% endfor %}
         -n
   args:
     creates: '/etc/letsencrypt/live/{{ certbot_site_fqdn }}/cert.pem'
