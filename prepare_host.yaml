@@ -93,7 +93,6 @@
       delegate_facts: true
       tags:
         - 'monitoring'
-~
   handlers:
     - name: 'restart networking'
       service:
