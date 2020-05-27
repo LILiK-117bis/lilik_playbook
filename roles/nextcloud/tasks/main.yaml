@@ -81,6 +81,7 @@
     dest: '/opt'
     owner: 'www-data'
     group: 'www-data'
+    mode: '0750'
   when: nextcloud_new_download.changed
   tags:
     - 'packages'
