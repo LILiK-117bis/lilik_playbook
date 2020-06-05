@@ -1,6 +1,6 @@
 [icingaweb2-users-ldap]
 type = "ldap"
-hostname = "{{ ldap_server }}"
+hostname = "{{ ldap_server }}{% for s in ldap_backup_servers %} {{s}}{%endfor%}"
 port = "389"
 encryption = "starttls"
 root_dn = "{{ ldap_basedn }}"
