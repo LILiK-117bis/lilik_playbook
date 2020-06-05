@@ -16,9 +16,20 @@ object Host "{{ item.key }}" {
   vars.{{ var.key }} = "{{ var.value }}"
 {% endfor %}
 
-{% if 'vhosts' in item.value %}
-{%   for vhost in item.value.vhosts %}
-  vars.http_vhosts["https cert: {{ vhost }}"] = {
+{% for vhost in item.value.vhosts|d([]) %}
+object Host "{{ vhost }}" {
+  import "generic-host"
+
+  check_command = "dummy"
+  display_name = "www/{{ vhost }}"
+
+  vars.sla = "24x7"
+  vars.host_type = "web service"
+
+  vars.dns_a_record = "{{ public_ip }}"
+
+  vars.http_vhosts["https cert"] = {
+    http_address = "{{ item.value.address }}"
     http_ssl = true
     http_vhost = "{{ vhost }}"
     http_onredirect = "sticky"
@@ -26,8 +37,9 @@ object Host "{{ item.key }}" {
     /* Check remaining days before cert expiration */
     http_certificate = "30,20"
   }
-{%     for uri, prop in (item.value.vhosts_uri[vhost]|d({'/': {}})).items() %}
-  vars.http_vhosts["https service: {{ vhost }}{{ uri }}"] = {
+{%   for uri, prop in (item.value.vhosts_uri[vhost]|d({'/': {}})).items() %}
+  vars.http_vhosts["https service"] = {
+    http_address = "{{ item.value.address }}"
     http_ssl = true
     http_vhost = "{{ vhost }}"
     http_onredirect = "{{ prop.onredirect|d('sticky') }}"
@@ -35,9 +47,9 @@ object Host "{{ item.key }}" {
     http_uri = "{{ uri }}"
     {% if prop.content|d('') != '' %}http_string = "{{ prop.content|replace('"','\\"') }}"{% endif %}
   }
-{%     endfor %}
 {%   endfor %}
-{% endif %}
 }
+
+{% endfor %}
 
 
