@@ -66,7 +66,7 @@
     owner: 'onlyoffice'
     group: 'onlyoffice'
     mode: '0750'
-    creates: '/opt/onlyoffice/documentserver/'
+#    creates: '/opt/onlyoffice/documentserver/'
 
 - name: 'PGSQL | init DB'
   shell:
