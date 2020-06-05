@@ -1,0 +1,11 @@
+- hosts: black_vm:black
+  tasks:
+    - apt:
+       update_cache: true
+       upgrade: 'dist'
+      when: ansible_distribution == 'Debian'
+    - apk:
+       available: true
+       upgrade: true
+       update_cache: true
+      when: ansible_distribution == 'Alpine'
