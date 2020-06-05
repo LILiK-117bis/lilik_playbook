@@ -15,8 +15,9 @@
 
 - name: 'check if release is supported'
   assert:
-    that: distro in [ 'bullseye', 'sid', 'buster' ]
-    msg: 'release {{ distro }} not supported by debian template'
+    that: release in [ 'bullseye', 'sid', 'buster' ]
+    msg: 'release {{ release }} not supported by debian template'
+  when: distro == 'debian'
   tags:
     - 'lxc'
 
@@ -37,7 +38,7 @@
       # leaking when lvm is invoked
       environment:
         LVM_SUPPRESS_FD_WARNINGS: 1
-      when: not unprivileged
+      when: (not unprivileged) and distro == 'debian'
 
     - name: 'unprivileged | upload bash script'
       copy:
@@ -83,7 +84,7 @@
         lv_name: 'vm_{{ vm_name }}'
         container_log: true
         template: 'download'
-        template_options: '-d debian -r {{ distro }} -a amd64'
+        template_options: '-d {{ distro }} -r {{ release }} -a amd64'
         config: '/tmp/lxc_unpriv_config'
         state: 'stopped'
       when: unprivileged
@@ -92,6 +93,30 @@
       template:
         src: 'config.j2'
         dest: '/var/lib/lxc/{{ vm_name }}/config'
+
+    - block:
+        - name: 'unprivilaged | alpine | start for tweak'
+          lxc_container:
+            name: '{{ vm_name }}'
+            state: 'restarted'
+        - name: 'unprivileged | alpine | tweak'
+          raw: |
+            rm /etc/network/interfaces
+            echo 'nameserver {{ hostvars | ip_from_inventory('vm_gateway') }}' > /etc/resolv.conf
+          delegate_to: '{{ vm_name }}'
+          connection: 'ssh_lxc'
+        - name: 'unprivileged | alpine | restart'
+          lxc_container:
+            name: '{{ vm_name }}'
+            state: 'restarted'
+        - name: 'unprivileged | alpine | install python'
+          raw: |
+            apk update
+            apk upgrade
+            apk add python3
+          delegate_to: '{{ vm_name }}'
+          connection: 'ssh_lxc'
+      when: distro == 'alpine'
 
     - name: 'unprivileged | tweak config'
       lxc_container:
@@ -167,6 +192,7 @@
     - { key: 'APT::Periodic::Update-Package-Lists', value: '1' }
     - { key: 'APT::Periodic::Verbose', value: '2' }
   delegate_to: '{{ vm_name }}'
+  when: distro == 'debian'
   connection: 'ssh_lxc'
 
 - meta: 'flush_handlers'
