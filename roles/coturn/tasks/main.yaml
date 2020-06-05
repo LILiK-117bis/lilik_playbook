@@ -1,4 +1,8 @@
 ---
+- name: 'alpine links'
+  file: path='/etc/init.d/coturn' src='turnserver' state='link' force=true
+  when: ansible_distribution == 'Alpine'
+
 - name: 'install coturn'
   import_role: name='service'
   vars:
@@ -57,4 +61,12 @@
   notify: 'restart coturn'
   tags:
     - 'service_password'
-...
+
+- name: 'alpine links'
+  file: path='/etc/coturn/turnserver.conf' src='../turnserver.conf' state='link'
+  when: ansible_distribution == 'Alpine'
+  notify: 'restart coturn'
+
+- name: 'alpine init fix 1'
+  lineinfile: path='/etc/init.d/turnserver' line='command_user=root' regexp='^command_user='
+  notify: 'restart coturn'

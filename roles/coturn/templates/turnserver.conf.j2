@@ -50,3 +50,7 @@ syslog
 #secure-stun
 no-cli
 
+{% if ansible_distribution == 'Alpine' %}
+proc-user=turnserver
+proc-group=turnserver
+{% endif %}
