@@ -85,7 +85,7 @@
     dn: 'cn=config'
     name: 'olcLogLevel'
     state: 'exact'
-    values: 'conns acl'
+    values: 'stats acl'
 
 - name: 'activate auditlog overlay'
   ldap_entry:

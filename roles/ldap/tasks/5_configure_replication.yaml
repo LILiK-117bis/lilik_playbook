@@ -17,6 +17,7 @@
     path: '/etc/ldap/syncrepl.key'
     owner: 'openldap'
     group: 'openldap'
+  when: ldap_syncrepl_is_consumer
 
 - name: 'SYNC | activate syncprov module'
   ldap_attr:
