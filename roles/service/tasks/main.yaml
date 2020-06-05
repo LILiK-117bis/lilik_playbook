@@ -14,7 +14,19 @@
     service:
       name: '{{ service_name }}'
       enabled: true
-  when: ansible_distribution != 'openwrt'
+  when: ansible_distribution == 'Debian'
+
+- block:
+    - name: 'ALPINE | install package'
+      apk:
+        name: '{{ service_packages|join(",") }}'
+        state: 'present'
+        update_cache: true
+    - name: 'ALPINE | start service at boot'
+      service:
+        name: '{{ service_name }}'
+        enabled: true
+  when: ansible_distribution == 'Alpine'
 
 - block:
   - name: 'OPENWRT | install {{ service_name }}'
