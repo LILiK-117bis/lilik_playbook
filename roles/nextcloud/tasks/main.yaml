@@ -209,7 +209,7 @@
   loop: '{{ ldap_settings|dict2items }}'
   vars:
     ldap_settings:
-      has_memberof_filter_support: '1'
+      has_memberof_filter_support: '0'
       use_memberof_to_detect_membership: '0'
       ldap_host: '{{ ldap_server }}'
       ldap_port: '389'
@@ -219,7 +219,9 @@
       ldap_base_groups: 'ou=Group,{{ ldap_basedn }}'
       ldap_login_filter: '(&(cn=%uid)(authorizedService=nextcloud))'
       ldap_user_filter: '(authorizedService=nextcloud)'
+      ldap_userlist_filter: '(authorizedService=nextcloud)'
       ldap_group_filter: '(objectClass=groupOfNames)'
+      ldap_group_display_name: 'description'
       ldap_group_member_assoc_attribute: 'member'
       ldap_attributes_for_user_search: 'cn'
       ldap_attributes_for_group_search: 'cn'
@@ -229,6 +231,7 @@
       ldap_experienced_admin: '1'
       ldap_configuration_active: '1'
       ldap_expert_username_attr: 'cn'
+      ldap_paging_size: '0'
   tags:
     - 'ldap'
 
@@ -265,6 +268,7 @@
   when: nextcloud_ldap_passwd_result.changed
   tags:
     - 'service_password'
+
 - name: 'MONITORING | add HTTP service'
   block:
     - name: 'MONITORING | add service to monitoring entry'
