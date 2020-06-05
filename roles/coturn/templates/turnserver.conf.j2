@@ -8,7 +8,7 @@ external-ip={{ public_ip }}
 min-port={{ min_relay_port }}
 max-port={{ max_relay_port }}
 
-#fingerprint
+fingerprint
 #lt-cred-mech
 
 use-auth-secret
@@ -28,7 +28,9 @@ total-quota=1200
 #no-udp-relay
 no-tcp-relay
 
-denied-peer-ip=10.0.0.0-10.255.255.255
+denied-peer-ip=0.0.0.0-255.255.255.255
+allowed-peer-ip={{ public_ip }}
+allowed-peer-ip={{ ansible_host }}
 
 no-tlsv1
 no-tlsv1_1
