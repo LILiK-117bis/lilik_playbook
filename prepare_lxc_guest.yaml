@@ -17,9 +17,12 @@
       tags:
         - 'always'
 
-    - name: 'ssh server offline configuration'
-      import_role: name='ssh_server'
+    - block:
+        - name: 'ssh server offline configuration'
+          import_role: name='ssh_server'
 
-    - name: 'CONNECTION | use ssh [now host is online]'
-      set_fact: ansible_connection='ssh'
+        - name: 'CONNECTION | use ssh [now host is online]'
+          set_fact: ansible_connection='ssh'
+
+      when: configure_ssh|d(true)
 ...
