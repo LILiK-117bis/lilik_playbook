@@ -17,21 +17,23 @@
 - name: 'install php'
   import_role: name='service'
   vars:
-    service_name: 'php7.3-fpm'
+    service_name: 'php7.4-fpm'
     service_packages:
-      - 'php-fpm'
-      - 'php-common'
-      - 'php-xml'
-      - 'php-gd'
-      - 'php-json'
-      - 'php-mbstring'
-      - 'php-zip'
-      - 'php-pgsql'
-      - 'php-ldap'
-      - 'php-curl'
-      - 'php-intl'
-      - 'php-bz2'
-      #- 'php7.3.-imagick'
+      - 'php7.4-fpm'
+      - 'php7.4-common'
+      - 'php7.4-xml'
+      - 'php7.4-gd'
+      - 'php7.4-json'
+      - 'php7.4-mbstring'
+      - 'php7.4-zip'
+      - 'php7.4-pgsql'
+      - 'php7.4-ldap'
+      - 'php7.4-curl'
+      - 'php7.4-intl'
+      - 'php7.4-bz2'
+      - 'php7.4-redis'
+      - 'php7.4-apcu'
+      - 'php-imagick'
 
 - block:
     - name: 'create nextcloud DB'
@@ -46,25 +48,37 @@
   become_method: 'su'
   become_user: 'postgres'
 
-
 - name: 'configure php-fpm'
   lineinfile:
-    path: '/etc/php/7.3/fpm/pool.d/www.conf'
+    path: '/etc/php/7.4/fpm/pool.d/www.conf'
     line: '{{ item.line }}'
     regexp: '{{ item.regexp }}'
   loop:
-    - { line: 'env[PATH] = /usr/local/bin:/usr/bin:/bin', regexp: '^env\[PATH\] = ' }
-    - { line: 'env[TEMP] = /tmp', regexp: '^env\[TEMP\] = ' }
-    - { line: 'env[TMP] = /tmp', regexp: '^env\[TMP\] = ' }
-    - { line: 'env[TMPDIR] = /tmp', regexp: '^env\[TMPDIR\] = ' }
-  notify: 'restart php7.3-fpm'
+    - { line: 'env[PATH] = /usr/local/bin:/usr/bin:/bin', regexp: '^;?env\[PATH\] = ' }
+    - { line: 'env[TEMP] = /tmp', regexp: '^;?env\[TEMP\] = ' }
+    - { line: 'env[TMP] = /tmp', regexp: '^;?env\[TMP\] = ' }
+    - { line: 'env[TMPDIR] = /tmp', regexp: '^;?env\[TMPDIR\] = ' }
+    - { line: 'pm = dynamic', regexp: '^;?pm = ' }
+    - { line: 'pm.max_children = 120', regexp: '^;?pm.max_children = ' }
+    - { line: 'pm.start_servers = 12', regexp: '^;?pm.start server = ' }
+    - { line: 'pm.min_spare_servers = 6', regexp: '^;?pm.min_spare_servers = ' }
+    - { line: 'pm.max_spare_servers = 18', regexp: '^;?pm.max_spare_servers = ' }
+  notify: 'restart php7.4-fpm'
 
 - name: 'configure php.ini'
   lineinfile:
-    path: '/etc/php/7.3/fpm/php.ini'
-    line: 'memory_limit = 512M'
-    regexp: '^memory_limit ='
-  notify: 'restart php7.3-fpm'
+    path: '/etc/php/7.4/fpm/php.ini'
+    line: '{{ item.line }}'
+    regexp: '{{ item.regexp }}'
+  loop:
+    - { line: 'memory_limit = 512M', regexp: '^memory_limit =' }
+    - { line: 'opcache.enable=1', regexp: '^[;]?opcache_enable=' }
+    - { line: 'opcache.interned_strings_buffer=8', regexp: '^;?opcache.interned_strings_buffer=' }
+    - { line: 'opcache.max_accelerated_files=10000', regexp: '^;?opcache.max_accelerated_files=' }
+    - { line: 'opcache.memory_consumption=128', regexp: '^;?opcache.memory_consumption=' }
+    - { line: 'opcache.save_comments=1', regexp: '^;?opcache.save_comments=' }
+    - { line: 'opcache.revalidate_freq=1', regexp: '^;?opcache.revalidate_freq=' }
+  notify: 'restart php7.4-fpm'
 
 - name: 'download nextcloud'
   get_url:
