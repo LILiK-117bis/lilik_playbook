@@ -16,6 +16,16 @@ object Host "{{ item.key }}" {
   vars.{{ var.key }} = "{{ var.value }}"
 {% endfor %}
 
+
+{% for repo in item.value.borg_repos|d({})|dict2items %}
+  vars.backup_repos["{{ repo.key }}"] = {
+{%   for v in repo.value|dict2items %}
+     {{ v.key }} = "{{ v.value }}"
+{%   endfor %}
+  }
+{% endfor %}
+}
+
 {% for vhost in item.value.vhosts|d([]) %}
 object Host "{{ vhost }}" {
   import "generic-host"

@@ -8,11 +8,16 @@
   tags:
     - 'packages'
 
-- name: 'add monitoring plugin - check_mem.pl'
+- name: 'add monitoring plugins'
   copy:
-    src: 'check_mem.pl'
-    dest: '/usr/lib/nagios/plugins/check_mem.pl'
+    src: '{{ item }}'
+    dest: '/usr/lib/nagios/plugins/{{ item }}'
     mode: '0755'
+  loop:
+    - 'check_mem.pl'
+    - 'check_backup.sh'
+  tags:
+    - 'monitoring'
 
 - name: 'create monitoring user'
   user:

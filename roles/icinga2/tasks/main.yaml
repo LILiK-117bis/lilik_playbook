@@ -43,6 +43,7 @@
     group: 'nagios'
   loop:
     - 'check_ldap_syncrepl_status.pl'
+    - 'check_backup.sh'
 
 - name: 'create directory for hosts configuration'
   file:
@@ -62,7 +63,7 @@
     - 'services.conf'
     - 'apt.conf'
     - 'command-ldapsync.conf'
-
+    - 'command-backup.conf'
 - name: 'disable local host conf.d'
   file:
     path: '/etc/icinga2/conf.d/hosts.conf'
