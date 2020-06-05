@@ -3,13 +3,29 @@
   vars:
     host: 'status'
     vm_size: '2G'
+    unprivileged: true
 
 - hosts: 'status'
+  vars:
+    nginx_proxy_protocol: false
+    reverse_proxy_proxy_protocol: false
   roles:
       - role: 'dns_record'
       - role: 'reverse_proxy'
       - role: 'icinga2'
-
+        ldap_backup_servers:
+          - 'status.dmz.{{ domain }}'
+      - role: 'ldap'
+        virtual_domains:
+          - '{{ domain }}'
+        ldap_syncrepl_is_provider: false
+        ldap_syncrepl_is_consumer: true
+        ldap_syncrepl_server_id: 2
+        ldap_syncrepl_target_providers:
+          - { rid: '1', url: 'ldap://ldap1.dmz.lilik.it' }
+        ldap_check_tree: false
+        tags:
+          - 'role::ldap'
 
 - hosts: 'status'
   roles:
