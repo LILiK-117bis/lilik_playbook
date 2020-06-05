@@ -1,0 +1,167 @@
+---
+- name: 'install borg'
+  apt:
+    pkg: 'borgbackup'
+    state: 'latest'
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: 'create .ssh folder'
+  file:
+    path: '/root/.ssh'
+    mode: '0700'
+    state: 'directory'
+
+- name: 'create backup keypair'
+  openssh_keypair:
+    path: '/root/.ssh/id_ed25519_BORG'
+    force: '{{ borgrepo_force_new_key }}'
+    type: 'ed25519'
+    comment: 'backup@{{ host_fqdn }}'
+  register: ssh_keypair
+
+- name: 'create host repos namespace'
+  file:
+    path: '/home/backup/repos/{{ host_fqdn }}'
+    owner: 'backup'
+    group: 'backup'
+    mode: '0700'
+    state: 'directory'
+  delegate_to: '{{ borgrepo_backup_host }}'
+
+- name: 'authorize host key'
+  lineinfile:
+    path: '/home/backup/.ssh/authorized_keys'
+    owner: 'backup'
+    group: 'backup'
+    mode: '0600'
+    create: yes
+    line: >-
+      command="cd {{ repodir }}; borg serve --append-only --restrict-to-path {{ repodir }}",restrict
+      {{ ssh_keypair.public_key }}
+    regexp: '{{ ssh_keypair.comment }}$'
+    state: 'present'
+  vars:
+    repodir: '/home/backup/repos/{{ host_fqdn }}'
+  delegate_to: '{{ borgrepo_backup_host }}'
+
+
+- name: 'upload host ssh ca'
+  copy:
+    content: |
+      {% for ca in ssh_server_ca %}
+      @cert-authority *.dmz.{{ domain }} {{ ca }}
+      {% endfor %}
+    dest: '/root/.ssh/known_hosts'
+    mode: '0600'
+
+##ToDo setup encryption
+- name: 'initialize repo'
+  shell:
+    cmd: >
+      borg init -e none backup@{{ borgrepo_backup_host }}.dmz.{{ domain }}:{{ item.key }}
+  register: borgrepo_init_cmd
+  failed_when:
+    - borgrepo_init_cmd.rc != 0
+    - borgrepo_init_cmd.stderr !='A repository already exists at backup@backup.dmz.lilik.it:'+item.key+'.'
+  changed_when: borgrepo_init_cmd.rc == 0
+  environment:
+    BORG_RSH: 'ssh -i /root/.ssh/id_ed25519_BORG'
+  loop: '{{ borgrepo_repos|dict2items }}'
+
+- name: 'create backup directory'
+  file:
+    path: '/etc/backup'
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0700'
+
+- name: 'create log backup directory'
+  file:
+    path: '/var/log/backup-status'
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+
+- name: 'create repo log directory'
+  file:
+    path: '/var/log/backup-status/{{ item.key }}'
+    state: 'directory'
+    owner: 'root'
+    group: 'root'
+    mode: '0755'
+  loop: '{{ borgrepo_repos|dict2items }}'
+
+- name: 'create backup scripts'
+  template:
+    src: 'backupscript.sh.j2'
+    dest: '/etc/backup/{{ item.key }}.sh'
+    owner: 'root'
+    group: 'root'
+    mode: '0700'
+  loop: '{{ borgrepo_repos|dict2items }}'
+
+- name: 'create systemd service'
+  template:
+    src: 'backupservice.service'
+    dest: '/etc/systemd/system/borg-backup@.service'
+  notify: reload systemd
+
+- name: 'create systemd timers'
+  copy:
+    content: |
+      [Unit]
+      Description=BorgBackup %I repo timer.
+
+      [Timer]
+      WakeSystem=false
+      OnCalendar=*-*-* 02:00:00
+      RandomizedDelaySec=20min
+
+      [Install]
+      WantedBy=timers.target
+    dest: '/etc/systemd/system/borg-backup@.timer'
+  notify: reload systemd
+
+- name: 'enable systemd timers'
+  systemd:
+    name: 'borg-backup@{{ item.key }}.timer'
+    daemon_reload: true
+    enabled: true
+    state: 'restarted'
+  loop: '{{ borgrepo_repos|dict2items }}'
+
+- name: 'MONITORING | create entry'
+  set_fact:
+    borg_monitoring_repos: >
+      {{ borg_monitoring_repos|d({})|combine({
+                     item.key:
+                       {
+                          "backup_wage": item.value.interval|d(86400)|int,
+                          "backup_cage": (item.value.interval|d(86400)|int+7200)*2
+                       }
+      }) }}
+  loop: '{{ borgrepo_repos|dict2items }}'
+  tags:
+    - 'monitoring'
+
+- name: 'MONITORING | update facts'
+  set_fact:
+    monitoring_facts: >
+      {{ hostvars[monitoring_host]["monitoring_facts"]
+          | default({})
+          | combine({
+                      host_fqdn:
+                        {
+                           "address": ansible_host,
+                           "borg_repos": borg_monitoring_repos
+                        }
+                    }, recursive=True) }}
+  delegate_to: '{{ monitoring_host }}'
+  delegate_facts: true
+  loop: '{{ borgrepo_repos|dict2items }}'
+  tags:
+    - 'monitoring'
+...
