@@ -129,12 +129,14 @@
        cn=$1,ou=LDAP,{{ ldap_basedn }}
 
 - name: 'configure main tree acls'
+  tags:
+    - 'ldap::acl'
   ldap_attr:
     dn: 'olcDatabase={1}mdb,cn=config'
     name: 'olcAccess'
     state: 'exact'
     values:
-      # TOFIX: Remove hardcoded IP
+      # TODO: Remove hardcoded IP
       - >-
         {0} to dn.exact={{ ldap_basedn }} attrs=entry,objectClass,contextCSN
         by peername.regex=10\.150\.42\..* read
@@ -152,14 +154,17 @@
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} auth
         by * none
       # [1] :: ou=People
-      # [1.0] -> Admins can edit People `userPassword`
+      # [1.0] -> Admins can reset People `userPassword`
+      #       -> Group admins can reset subordinate `userPassword`
       #       -> People can edit their `userPassword`
       #       -> Anyone can auth with `userPassword` if using strong TLS.
       - >-
         {3} to dn.one=ou=People,{{ ldap_basedn }} attrs=userPassword
-        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
-        by self write
+        by anonymous peername.regex=10\.150\.42\..* {{ 'tls_ssf=128 ' if ldap_tls_enabled }}auth
         by anonymous {{ 'tls_ssf=256 ' if ldap_tls_enabled }}auth
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} =azd
+        by set="this/manager/owner & user" =azd
+        by self =azd
         by * none
       # [1.1] -> Admins can add/remove People entries
       - >-
@@ -171,8 +176,9 @@
       #       -> Servers can perform search on People tree
       - >-
         {5} to dn.exact=ou=People,{{ ldap_basedn }}
-        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} read
         by dn.children=ou=Server,{{ ldap_basedn }} search
+        by dn.children=ou=People,{{ ldap_basedn }} search
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} read
         by * none
       # [1.3] -> Admins can edit all People attributes
       #       -> Servers can read all People attributes (except userPassword)
@@ -182,6 +188,7 @@
         {6} to dn.one=ou=People,{{ ldap_basedn }}
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by dn.children=ou=Server,{{ ldap_basedn }} read
+        by set="this/manager/owner & user" read
         by self read
         by * break
       # [1.5] -> No other access to People tree
@@ -195,6 +202,7 @@
         {8} to dn.exact=ou=Group,{{ ldap_basedn }} attrs=entry
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} read
         by dn.children=ou=Server,{{ ldap_basedn }} read
+        by dn.children=ou=People,{{ ldap_basedn }} read
         by * none
       # [2.2] -> Admins can create/delete groups
       - >-
@@ -207,6 +215,7 @@
         {10} to dn.one=ou=Group,{{ ldap_basedn }}
         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by dn.children=ou=Server,{{ ldap_basedn }} read
+        by set="this/owner & user" write
         by * none
       # [2.2] -> No other access to Group tree
       - >-
@@ -215,15 +224,16 @@
       # [3] :: ou=Server
       # [3.0] -> Local servers can simple-bind their entries if using TLS
       # /Server using TLS-client Auth with OU=Server are automatically authenticated
-      ## TODO: Add peername.ip filtering on server subnet
+      ## TODO: Remove hardcoded ip
       - >-
         {12} to dn.children=ou=Server,{{ ldap_basedn }} attrs=userPassword
-        by anonymous {{ 'tls_ssf=256 ' if ldap_tls_enabled }}auth
-        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
+        by anonymous peername.regex=10\.150\.42\..* {{ 'tls_ssf=128 ' if ldap_tls_enabled }}auth
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} =azd
         by * none
       # [3.1] -> No other access to Server tree
       - >-
         {13} to dn.subtree=ou=Server,{{ ldap_basedn }}
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
         by * none
       # [4] :: ou=VirtualDomains - WiP
       # [4.0] -> Admins can write whole subtree
