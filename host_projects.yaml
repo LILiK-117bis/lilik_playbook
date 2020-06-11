@@ -2,16 +2,19 @@
 - import_playbook: 'prepare_lxc_guest.yaml'
   vars:
     host: 'projects'
-    vm_size: '4G'
+    vm_size: '20G'
+    unprivileged: true
 
 - hosts: 'projects'
+  vars:
+     reverse_proxy_proxy_protocol: false
+     nginx_proxy_protocol: false
   roles:
     - role: 'dns_record'
     - role: 'reverse_proxy'
       reverse_proxy_site_fqdn:
         - 'projects.{{ domain }}'
-        - 'mattermost.{{ domain }}'
-    - role: 'gitlab'
+    - role: 'gitea'
     - role: 'monitoring-agent'
 
 - hosts: 'monitoring_hosts'

@@ -8,7 +8,7 @@
     - role: 'ssh_server'
       ansible_distribution: 'openwrt'
 
-- hosts: 'status'
+- hosts: 'monitoring_hosts'
   roles:
     - role: 'icinga2-monitoring'
 ...

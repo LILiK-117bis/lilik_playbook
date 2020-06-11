@@ -1,0 +1,21 @@
+---
+- import_playbook: 'prepare_lxc_guest.yaml'
+  vars:
+    host: 'login'
+    vm_size: '1G'
+    unprivileged: true
+
+- hosts: 'login'
+  vars:
+    reverse_proxy_proxy_protocol: false
+    nginx_proxy_protocol: false
+  roles:
+    - role: 'dns_record'
+    - role: 'reverse_proxy'
+    - role: 'login-new'
+    - role: 'monitoring-agent'
+
+- hosts: 'monitoring_hosts'
+  roles:
+    - role: 'icinga2-monitoring'
+...

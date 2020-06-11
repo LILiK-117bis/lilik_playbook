@@ -2,7 +2,7 @@
 - import_playbook: 'prepare_lxc_guest.yaml'
   vars:
     host: 'matrix'
-    vm_size: '2G'
+    vm_size: '10G'
 
 - hosts: 'matrix'
   roles:
@@ -10,9 +10,9 @@
     - role: 'reverse_proxy'
       reverse_proxy_site_fqdn:
         - 'matrix.{{ domain }}'
-        - 'riot.{{ domain }}'
-    - role: 'coturn'
-    - role: 'matrix-synapse'
+        - 'riot.sestograd.org'
+    #- role: 'coturn'
+    #- role: 'matrix-synapse'
     - role: 'riot-web'
     - role: 'monitoring-agent'
 
