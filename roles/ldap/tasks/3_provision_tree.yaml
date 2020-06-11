@@ -67,7 +67,7 @@
 
 - name: 'provisioning tree - test users'
   ldap_entry:
-    dn: 'cn={{ item.key }},ou=People,{{ ldap_basedn }}'
+    dn: 'uid={{ item.key }},ou=People,{{ ldap_basedn }}'
     objectClass:
       - 'inetOrgPerson'
       - 'authorizedServiceObject'
@@ -80,7 +80,7 @@
 
 - name: 'provisioning tree - test users passwd'
   ldap_passwd:
-    dn: 'cn={{ item.key }},ou=People,{{ ldap_basedn }}'
+    dn: 'uid={{ item.key }},ou=People,{{ ldap_basedn }}'
     passwd: '{{ item.value.password }}'
     bind_dn: 'cn=admin,{{ ldap_basedn }}'
     bind_pw: '{{ ldap_passwd }}'
@@ -88,7 +88,7 @@
 
 - name: 'provisioning tree - authorizedService'
   ldap_attr:
-    dn: 'cn={{ item.key }},ou=People,{{ ldap_basedn }}'
+    dn: 'uid={{ item.key }},ou=People,{{ ldap_basedn }}'
     name: 'authorizedService'
     values: '{{ item.value.authorizedServices }}'
     bind_dn: 'cn=admin,{{ ldap_basedn }}'
@@ -100,7 +100,7 @@
   ldap_attr:
     dn: 'cn=admin,ou=Group,{{ ldap_basedn }}'
     name: 'member'
-    values: 'cn={{ item.key }},ou=People,{{ ldap_basedn }}'
+    values: 'uid={{ item.key }},ou=People,{{ ldap_basedn }}'
     bind_dn: 'cn=admin,{{ ldap_basedn }}'
     bind_pw: '{{ ldap_passwd }}'
   loop: '{{ ldap_users_admin|dict2items }}'

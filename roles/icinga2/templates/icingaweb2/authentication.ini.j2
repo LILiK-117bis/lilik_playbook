@@ -1,7 +1,7 @@
 [ldap-user-auth]
 user_class = "inetOrgPerson"
 filter = "authorizedService=icinga2"
-user_name_attribute = "cn"
+user_name_attribute = "uid"
 backend = "ldap"
 base_dn = "ou=People,{{ ldap_basedn }}"
 resource = "icingaweb2-users-ldap"

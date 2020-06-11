@@ -1561,7 +1561,7 @@ password_providers:
         start_tls: true
         base: "ou=People,{{ ldap_basedn }}"
         attributes:
-           uid: "cn"
+           uid: "uid"
            mail: "mail"
            name: "sn"
         bind_dn: "cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}"
