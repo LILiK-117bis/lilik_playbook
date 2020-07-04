@@ -1,6 +1,6 @@
 # Based on https://github.com/vector-im/riot-web/releases
 ---
-riot_web_version: "v1.6.0-rc.4"
+riot_web_version: "v1.6.8"
 riot_web_nginx_fqdn: "riot.{{ domain }}"
 synapse_nginx_fqdn: "matrix.{{ domain }}"
 synapse_domain: "{{ domain }}"
