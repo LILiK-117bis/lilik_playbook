@@ -4,12 +4,20 @@
     service_name: 'nginx'
     service_packages:
       - 'nginx'
+  tags:
+    - 'install'
+    - 'role::nginx'
+    - 'role::nginx::install'
 
 - name: 'disable nginx default configuration'
   file:
     path: '/etc/nginx/sites-enabled/default'
     state: 'absent'
   notify: 'restart nginx'
+  tags:
+    - 'install'
+    - 'role::nginx'
+    - 'role::nginx::install'
 
 - name: 'create nginx location configuration directory'
   file:
@@ -21,12 +29,22 @@
   loop:
     - '/etc/nginx/locations/'
     - '/etc/nginx/locations/{{ nginx_site_fqdn }}/'
+  tags:
+    - 'configure'
+    - 'role::nginx'
+    - 'role::nginx::configure'
+
 
 - name: 'upload nginx configuration'
   template:
     src: 'base.j2'
     dest: '/etc/nginx/sites-available/{{ nginx_site_fqdn }}.conf'
   notify: 'restart nginx'
+  tags:
+    - 'configure'
+    - 'role::nginx'
+    - 'role::nginx::configure'
+
 
 - name: 'enable nginx configurations'
   file:
@@ -34,6 +52,11 @@
     dest: '/etc/nginx/sites-enabled/{{ nginx_site_fqdn }}.conf'
     state: 'link'
   notify: 'restart nginx'
+  tags:
+    - 'configure'
+    - 'role::nginx'
+    - 'role::nginx::configure'
+
 
 - name: 'MONITORNIG | add HTTP vhost'
   block:
@@ -56,5 +79,6 @@
       delegate_facts: true
       delegate_to: '{{ monitoring_host }}'
   tags:
+    - 'role::nginx'
     - 'monitoring'
 ...

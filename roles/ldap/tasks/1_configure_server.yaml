@@ -3,6 +3,9 @@
   vars:
     service_name: 'nscd'
     service_packages: 'nscd'
+  tags:
+    - 'install'
+    - 'role::ldap::install'
 
 - name: 'set debconf values'
   debconf:
@@ -15,6 +18,9 @@
     - { question: 'slapd/domain', value: '{{ ldap_domain }}' }
     - { question: 'slapd/dump_database', value: 'when needed' }
     - { question: 'shared/organization', value: '{{ ldap_organization }}' }
+  tags:
+    - 'install'
+    - 'role::ldap::install'
 
 - import_role: name='service'
   vars:
@@ -25,6 +31,9 @@
         - 'libpam-ldap'
         - 'python3-ldap'
         - 'sudo'
+  tags:
+    - 'install'
+    - 'role::ldap::install'
 
 - name: 'delete old backups'
   file:
@@ -32,16 +41,25 @@
     state: 'absent'
   with_fileglob: '/var/backups/*.ldapdb'
   when: debconfs.results[0].changed
+  tags:
+    - 'install'
+    - 'role::ldap::install'
 
 - name: 'backup old database and re-create'
   command: 'dpkg-reconfigure -p critical slapd'
   when: debconfs.results[0].changed
+  tags:
+    - 'install'
+    - 'role::ldap::install'
 
 - name: 'start slapd service'
   service:
       name: 'slapd'
       enabled: true
       state: 'started'
+  tags:
+    - 'install'
+    - 'role::ldap::install'
 
 - name: 'copy schemas'
   copy:
@@ -52,6 +70,10 @@
     - 'kerberos.ldif'
     - 'phamm.ldif'
     - 'phamm-vacation.ldif'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+    - 'role::ldap::schemas'
 
 - name: 'activate schemas'
   command:
@@ -62,6 +84,10 @@
     - 'kerberos.ldif'
     - 'phamm.ldif'
     - 'phamm-vacation.ldif'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+    - 'role::ldap::schemas'
 
 - name: 'activate modules'
   ldap_attr:
@@ -72,6 +98,9 @@
       - '{1}pw-sha2'
       - '{2}auditlog'
       - '{3}memberof'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
 
 - name: 'create log dir'
   file:
@@ -79,6 +108,10 @@
     owner: 'openldap'
     group: 'openldap'
     state: 'directory'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+
 
 - name: 'set loglevel'
   ldap_attr:
@@ -86,6 +119,9 @@
     name: 'olcLogLevel'
     state: 'exact'
     values: 'stats acl'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
 
 - name: 'activate auditlog overlay'
   ldap_entry:
@@ -98,6 +134,9 @@
   loop:
     - { db: '{0}config', logfile: 'audit_config.ldif' }
     - { db: '{1}mdb', logfile: 'audit_mdb.ldif' }
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
 
 - name: 'activate memberof overlay'
   ldap_entry:
@@ -105,12 +144,18 @@
     objectClass:
       - 'olcOverlayConfig'
       - 'olcMemberOf'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
 
 - name: 'set default password hash'
   ldap_attr:
     dn: 'olcDatabase={-1}frontend,cn=config'
     name: 'olcPasswordHash'
     values: '{SSHA512}'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
 
 - name: 'configure TLS x509 <-> ldap dn translation'
   ldap_attr:
@@ -127,10 +172,11 @@
       - >-
        {2} ^cn=([^,]+),ou=LDAP,{{ ldap_x509_suffix }}$
        cn=$1,ou=LDAP,{{ ldap_basedn }}
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
 
 - name: 'configure main tree acls'
-  tags:
-    - 'ldap::acl'
   ldap_attr:
     dn: 'olcDatabase={1}mdb,cn=config'
     name: 'olcAccess'
@@ -243,6 +289,10 @@
 #         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
 #         by dn.children=ou=Server,{{ ldap_basedn }} read
       # [5] :: ou=Kerberos - Wi
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+    - 'role::ldap::acls'
 
 
 - name: 'MONITORING | set ldap_server'

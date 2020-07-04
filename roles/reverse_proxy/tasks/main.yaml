@@ -37,6 +37,10 @@
       }
   delegate_to: 'reverse_proxy'
   notify: 'reload reverse proxy'
+  tags:
+    - 'install'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::install'
 
 - name: 'configure nginx http 80 forwarder'
   lineinfile:
@@ -45,6 +49,10 @@
     line: 'include /etc/nginx/http.conf.d/*.conf;'
   delegate_to: 'reverse_proxy'
   notify: 'reload reverse proxy'
+  tags:
+    - 'install'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::install'
 
 - name: 'create configuration directories for sites'
   file:
@@ -56,6 +64,10 @@
     - 'http.conf.d'
     - 'map.conf.d'
     - 'upstream.conf.d'
+  tags:
+    - 'install'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::install'
 
 - name: 'configure http proxy for https redirect and acme challenge'
   template:
@@ -63,6 +75,10 @@
     dest: '/etc/nginx/http.conf.d/{{ ansible_hostname }}.conf'
   delegate_to: 'reverse_proxy'
   notify: 'reload reverse proxy'
+  tags:
+    - 'configure'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::configure'
 
 - name: 'configure upstream server spec'
   copy:
@@ -75,6 +91,10 @@
     dest: '/etc/nginx/upstream.conf.d/{{ ansible_hostname }}.conf'
   delegate_to: 'reverse_proxy'
   notify: 'reload reverse proxy'
+  tags:
+    - 'configure'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::configure'
 
 - name: 'configure sni-upstream mapping'
   copy:
@@ -85,6 +105,10 @@
     dest: '/etc/nginx/map.conf.d/{{ ansible_hostname }}.conf'
   delegate_to: 'reverse_proxy'
   notify: 'reload reverse proxy'
+  tags:
+    - 'configure'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::configure'
 
 - meta: 'flush_handlers'
 

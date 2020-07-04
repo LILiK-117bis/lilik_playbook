@@ -11,6 +11,9 @@
     ca_cert_tls_csr_path: '/etc/ldap/syncrepl.csr'
     ca_cert_tls_cert_path: '/etc/ldap/syncrepl.crt'
   when: ldap_syncrepl_is_consumer
+  tags:
+    - 'pki'
+    - 'pki::tls'
 
 - name: 'SYNC | set key ownership'
   file:
@@ -18,6 +21,9 @@
     owner: 'openldap'
     group: 'openldap'
   when: ldap_syncrepl_is_consumer
+  tags:
+    - 'pki'
+    - 'pki::tls'
 
 - name: 'SYNC | activate syncprov module'
   ldap_attr:

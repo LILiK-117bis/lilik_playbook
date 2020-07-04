@@ -9,7 +9,9 @@
     update_cache: true
     cache_valid_time: 3600
   tags:
-    - 'packages'
+    - 'install'
+    - 'role::certbot'
+    - 'role::certbot::install'
 
 # Standard nginx installation should not listen on port 80
 # -> This is probably not required.
@@ -35,7 +37,10 @@
   args:
     creates: '/etc/letsencrypt/live/{{ certbot_site_fqdn }}/cert.pem'
   tags:
-    - 'tls_pub'
+    - 'configure'
+    - 'role::certbot::configure'
+    - 'pki'
+    - 'pki::acme'
 
 #- name: 'restart webservers'
 #  service:
@@ -48,14 +53,18 @@
     src: 'certbot.timer'
     dest: '/etc/systemd/system/certbot.timer'
   tags:
-    - 'tls_pub'
+    - 'install'
+    - 'role::certbot'
+    - 'role::certbot::install'
 
 - name: 'add systemd service for cert renewal'
   template:
     src: 'certbot.service'
     dest: '/etc/systemd/system/certbot.service'
   tags:
-    - 'tls_pub'
+    - 'install'
+    - 'role::certbot'
+    - 'role::certbot::install'
 
 - name: 'enable timer'
   systemd:
@@ -64,5 +73,7 @@
     enabled: true
     daemon_reload: true
   tags:
-    - 'tls_pub'
+    - 'install'
+    - 'role::certbot'
+    - 'role::certbot::install'
 ...

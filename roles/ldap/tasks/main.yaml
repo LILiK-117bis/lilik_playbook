@@ -1,19 +1,41 @@
 ---
 - name: 'including configuration tasks'
   import_tasks: '1_configure_server.yaml'
+  tags:
+    - 'role::ldap'
 
 - name: 'including password renewal tasks'
   import_tasks: '2_renew_rootpw.yaml'
   tags: service_password
+  tags:
+    - 'install'
+    - 'service_password'
+    - 'role::ldap'
+    - 'role::ldap::install'
 
 - name: 'including tree provisionig tasks'
   import_tasks: '3_provision_tree.yaml'
   when: ldap_check_tree
+  tags:
+    - 'install'
+    - 'role::ldap'
+    - 'role::ldap::install'
+    - 'role::ldap::init_tree'
 
 - name: 'including tls tasks'
   import_tasks: '4_setup_tls.yaml'
   when: ldap_tls_enabled
+  tags:
+    - 'configure'
+    - 'role::ldap'
+    - 'role::ldap::configure'
+    - 'pki'
+    - 'pki::tls'
 
 - name: 'including replication tasks'
   import_tasks: '5_configure_replication.yaml'
+  tags:
+    - 'configure'
+    - 'role::ldap'
+    - 'role::ldap::replicaton'
 ...
