@@ -206,23 +206,43 @@
     dest: '/etc/ldap/ldap.conf'
   when: ldap_tls_enabled
 
-- name: 'LDAP | generate client service password'
-  gen_passwd: 'length=32'
-  register: 'icingaweb2_ldap_passwd'
+- name: 'try to read LDAP service password'
+  command: 'sed -n "s/^bind_pw\s\?=\s\?\"\(.\+\)\"$/\1/p" /etc/icingaweb2/resources.ini'
+  register: icingaweb2_read_ldap_passwd
+  failed_when: icingaweb2_read_ldap_passwd.rc > 2
   no_log: true
   tags:
     - 'service_password'
 
-- name: 'LDAP | set client service password on server'
-  delegate_to: 'localhost'
-  ldap_passwd:
-    dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
-    passwd: '{{ icingaweb2_ldap_passwd.passwd }}'
-    server_uri: 'ldap://{{ ldap_server }}'
-    start_tls: '{{ ldap_tls_enabled }}'
-    bind_dn: '{{ ldap_admin_dn }}'
-    bind_pw: '{{ ldap_admin_pw }}'
+- name: 'set LDAP service password'
+  set_fact:
+    icingaweb2_ldap_passwd: '{{ icingaweb2_read_ldap_passwd.stdout | d("") }}'
   no_log: true
+  tags:
+    - 'service_password'
+
+- block:
+    - name: 'LDAP | generate client service password'
+      gen_passwd: 'length=32'
+      register: 'icingaweb2_ldap_gen_passwd'
+      no_log: true
+      tags:
+        - 'service_password'
+    - name: 'LDAP | set client service password on server'
+      delegate_to: 'localhost'
+      ldap_passwd:
+        dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+        passwd: '{{ icingaweb2_ldap_gen_passwd.passwd }}'
+        server_uri: 'ldap://{{ ldap_server }}'
+        start_tls: '{{ ldap_tls_enabled }}'
+        bind_dn: '{{ ldap_admin_dn }}'
+        bind_pw: '{{ ldap_admin_pw }}'
+      no_log: true
+    - name: 'LDAP | set client service password on client'
+      set_fact:
+        icingaweb2_ldap_passwd: '{{ icingaweb2_ldap_gen_passwd.passwd }}'
+      no_log: true
+  when: icingaweb2_ldap_passwd == '' or ldap_renew_secret
   tags:
     - 'service_password'
 
@@ -259,6 +279,8 @@
     - 'resources.ini'
     - 'authentication.ini'
     - 'groups.ini'
+  tags:
+    - 'service_password'
 
 - name: 'NGINX | configure IcingaWeb2 locations'
   template:

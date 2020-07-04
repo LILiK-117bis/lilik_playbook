@@ -6,4 +6,5 @@ ldap_backup_servers: []
 ldap_basedn: 'dc={{ domain.replace(".", ",dc=") }}'
 ldap_tls_enabled: true
 ldap_tls_server_ca: '{{ tls_root_ca }}'
+ldap_renew_secret: false
 ...

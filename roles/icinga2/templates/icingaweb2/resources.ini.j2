@@ -5,7 +5,7 @@ port = "389"
 encryption = "starttls"
 root_dn = "{{ ldap_basedn }}"
 bind_dn = "cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}"
-bind_pw = "{{ icingaweb2_ldap_passwd.passwd }}"
+bind_pw = "{{ icingaweb2_ldap_passwd }}"
 
 [icingaweb2-ido-pgsql]
 type = "db"
