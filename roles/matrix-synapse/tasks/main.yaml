@@ -20,8 +20,8 @@
     repo: '{{ item }}'
     state: 'present'
   loop:
-    - 'deb https://packages.matrix.org/debian/ buster main'
-    - 'deb-src https://packages.matrix.org/debian/ buster main'
+    - 'deb https://packages.matrix.org/debian/ bullseye main'
+    - 'deb-src https://packages.matrix.org/debian/ bullseye main'
   tags:
     - 'packages'
 
