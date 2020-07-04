@@ -16,6 +16,22 @@
         - 'projects.{{ domain }}'
     - role: 'gitea'
     - role: 'monitoring-agent'
+    - role: 'borgrepo'
+      borgrepo_repos:
+        core:
+          folders:
+            gitea_conf:
+              path: '/etc/gitea'
+            gitea_repositories:
+              path: '/home/git/gitea-repositories'
+            gitea_data:
+              path: '/var/lib/gitea/data'
+              excludes:
+                - '/var/lib/gitea/data/tmp'
+          pgsql_dbs:
+            gitea_db:
+              dbname: 'gitea'
+      tags: borg
 
 - hosts: 'monitoring_hosts'
   roles:
