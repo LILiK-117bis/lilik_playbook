@@ -1563,9 +1563,9 @@ password_providers:
         attributes:
            uid: "uid"
            mail: "mail"
-           name: "sn"
+           name: "cn"
         bind_dn: "cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}"
-        bind_password: "{{ synapse_ldap_passwd.passwd }}"
+        bind_password: "{{ synapse_ldap_passwd }}"
         filter: "(authorizedService=matrix)"
 
 

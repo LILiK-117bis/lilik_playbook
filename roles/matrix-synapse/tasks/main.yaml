@@ -43,14 +43,14 @@
       - 'python3-psycopg2'
 
 - block:
-    - name: 'create synapse DB'
+    - name: 'PGSQL | create synapse DB'
       postgresql_db:
         name: 'synapse'
         encoding: 'UTF-8'
         lc_collate: 'C'
         lc_ctype: 'C'
         template: 'template0'
-    - name: 'create synapse DB user'
+    - name: 'PGSQL | create synapse DB user'
       postgresql_user:
         name: 'matrix-synapse'
         db: 'synapse'
@@ -79,30 +79,50 @@
     nginx_proxy_location_path: '{{ synapse_nginx_proxy_location_path }}'
   notify: 'restart nginx'
 
-- name: 'generate matrix ldap password'
-  gen_passwd: 'length=32'
-  register: synapse_ldap_passwd
+- name: 'try to read LDAP service password'
+  command: 'sed -n "s/^\s\+bind_password: \"\(.\+\)\"$/\1/p" /etc/matrix-synapse/homeserver.yaml'
+  register: synapse_read_ldap_passwd
+  no_log: true
   tags:
     - 'service_password'
 
-- name: 'set matrix ldap password in ldap'
-  delegate_to: 'localhost'
-  ldap_passwd:
-    dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
-    passwd: '{{ synapse_ldap_passwd.passwd }}'
-    server_uri: 'ldap://{{ ldap_server }}'
-    start_tls: true
-    bind_dn: '{{ ldap_admin_dn }}'
-    bind_pw: '{{ ldap_admin_pw }}'
+- name: 'set LDAP service password'
+  set_fact:
+    synapse_ldap_passwd: '{{ synapse_read_ldap_passwd.stdout | d("") }}'
+  no_log: true
   tags:
     - 'service_password'
 
-- name: 'update ldap tls server ca'
+- block:
+    - name: 'LDAP | generate client service password'
+      gen_passwd: 'length=32'
+      register: 'synapse_ldap_gen_passwd'
+      no_log: true
+      tags:
+        - 'service_password'
+    - name: 'LDAP | set client service password on server'
+      delegate_to: 'localhost'
+      ldap_passwd:
+        dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+        passwd: '{{ synapse_ldap_gen_passwd.passwd }}'
+        server_uri: 'ldap://{{ ldap_server }}'
+        start_tls: '{{ ldap_tls_enabled }}'
+        bind_dn: '{{ ldap_admin_dn }}'
+        bind_pw: '{{ ldap_admin_pw }}'
+    - name: 'LDAP | set client service password on client'
+      set_fact:
+        synapse_ldap_passwd: '{{ synapse_ldap_gen_passwd.passwd }}'
+      no_log: true
+  when: synapse_ldap_passwd == '' or ldap_renew_secret
+  tags:
+    - 'service_password'
+
+- name: 'LDAP | update client root ca'
   copy:
     content: '{{ ldap_tls_server_ca }}'
     dest: '/etc/ldap/server_ca.crt'
 
-- name: 'configure ldap client'
+- name: 'LDAP | configure client'
   copy:
     src: 'ldap.conf'
     dest: '/etc/ldap/ldap.conf'
