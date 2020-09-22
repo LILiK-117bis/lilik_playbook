@@ -34,6 +34,8 @@
       - 'php7.4-redis'
       - 'php7.4-apcu'
       - 'php-imagick'
+      - 'php7.4-bcmath'
+      - 'php7.4-gmp'
 
 - block:
     - name: 'create nextcloud DB'
