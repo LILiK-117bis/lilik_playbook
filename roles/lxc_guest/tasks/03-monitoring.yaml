@@ -11,6 +11,6 @@
       {{ hostvars[monitoring_host]['monitoring_facts']
           | default({})
           | combine({host_fqdn: monitoring_entry}) }}
-    delegate_facts: true
-    delegate_to: '{{ monitoring_host }}'
+  delegate_facts: true
+  delegate_to: '{{ monitoring_host }}'
 ...
