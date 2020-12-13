@@ -42,6 +42,18 @@
   connection: 'ssh_lxc'
   notify: 'restart container'
 
+- name: 'configure | Debian | APT Unattended Upgrades'
+  apt:
+    pkg:
+      - 'unattended-upgrades'
+      - 'apt-listchanges'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  delegate_to: '{{ vm_name }}'
+  when: distro == 'debian'
+  connection: 'ssh_lxc'
+
 - name: 'configure | Debian | APT Periodic'
   lineinfile:
     path: '/etc/apt/apt.conf.d/02periodic'
@@ -51,10 +63,26 @@
   loop:
     - { key: 'APT::Periodic::Enable', value: '1' }
     - { key: 'APT::Periodic::Update-Package-Lists', value: '1' }
+    - { key: 'APT::Periodic::Download-Upgradeable-Packages', value: '1' }
+    - { key: 'APT::Periodic::Unattended-Upgrade', value: '1' }
+    - { key: 'APT::Periodic::AutocleanInterval', value: '21' }
     - { key: 'APT::Periodic::Verbose', value: '2' }
   delegate_to: '{{ vm_name }}'
   when: distro == 'debian'
   connection: 'ssh_lxc'
+
+- name: 'configure | Debian | APT Periodic | Upgrade immediately after download'
+  blockinfile:
+    path: '/lib/systemd/system/apt-daily.service'
+    insertafter: '^After='
+    marker: '# {mark} LILiK-FIX [AnsibleManaged]: Install updates immediately after download'
+    block: |
+        Before=apt-daily-upgrade.service
+        Wants=apt-daily-upgrade.service
+  delegate_to: '{{ vm_name }}'
+  when: distro == 'debian'
+  connection: 'ssh_lxc'
+  notify: 'systemd daemon-reload'
 
 - meta: 'flush_handlers'
 ...

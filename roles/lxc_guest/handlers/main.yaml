@@ -4,4 +4,10 @@
       name: '{{ vm_name }}'
       state: 'restarted'
   register: container_restart
+
+- name: 'systemd daemon-reload'
+  systemd:
+    daemon_reload: true
+  delegate_to: '{{ vm_name }}'
+  connection: 'ssh_lxc'
 ...
