@@ -8,7 +8,6 @@ Nice=19
 IOSchedulingClass=2
 IOSchedulingPriority=7
 Environment=BORG_RSH="ssh -i /root/.ssh/id_ed25519_BORG"
-ExecStartPre=/usr/bin/borg break-lock backup@{{ borgrepo_backup_host }}.dmz.{{ domain }}:%i
 ExecStart=/etc/backup/%i.sh
 PIDFile=/tmp/borg_backup_%i.pid
 User=root

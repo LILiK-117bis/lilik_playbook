@@ -1,18 +1,19 @@
 #!/bin/bash
 
-REPO="backup@{{ borgrepo_backup_host }}.dmz.{{ domain }}:{{ item.key }}"
+REPO="backup@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}"
 
 export BORG_RSH="ssh -i /root/.ssh/id_ed25519_BORG"
-export BORG_PASSPHRASE=""
+export BORG_PASSPHRASE="{{ item[1].encryption_passphrase | d('') }}"
 
 export BORG_RELOCATED_REPO_ACCESS_IS_OK="no"
 export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK="no"
 
 borg --version
 
+borg break-lock backup@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}
 
 
-{% for folder in item.value.folders|d({})|dict2items %}
+{% for folder in item[0].value.folders|d({})|dict2items %}
 ##### Folder {{ folder.key }}
 BEGIN_EPOCH=$(date +%s)
 DATE="folder-{{ folder.key }}-$(date --iso-8601)-$(hostname)"
@@ -59,12 +60,12 @@ else
     fi
 fi
 
-echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item.key }}/folder-{{ folder.key }}
+echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item[0].key }}.{{ item[1].ansible_host }}/folder-{{ folder.key }}
 
 {% endfor %}
 #####
 
-{% for db in item.value.pgsql_dbs|d({})|dict2items %}
+{% for db in item[0].value.pgsql_dbs|d({})|dict2items %}
 ##### pgSQL DB {{ db.key }}
 DATE="pgsqldb-{{ db.key }}-$(date --iso-8601)-$(hostname)"
 echo "Starting backup for $DATE"
@@ -107,12 +108,12 @@ else
     fi
 fi
 
-echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item.key }}/pgsqldb-{{ db.key }}
+echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item[0].key }}.{{ item[1].ansible_host }}/pgsqldb-{{ db.key }}
 
 {% endfor %}
 
 
-{% for db in item.value.ldap_dbs|d({})|dict2items %}
+{% for db in item[0].value.ldap_dbs|d({})|dict2items %}
 ##### LDAP DB {{ db.key }}
 DATE="ldapdb-{{ db.key }}-$(date --iso-8601)-$(hostname)"
 echo "Starting backup for $DATE"
@@ -155,6 +156,6 @@ else
     fi
 fi
 
-echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item.key }}/ldapdb-{{ db.key }}
+echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item[0].key }}.{{ item[1].ansible_host }}/ldapdb-{{ db.key }}
 
 {% endfor %}

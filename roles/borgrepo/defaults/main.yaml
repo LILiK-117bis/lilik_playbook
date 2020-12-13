@@ -1,10 +1,9 @@
 ---
 host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
 borgrepo_force_new_key: false
-borgrepo_backup_host: 'backup'
-borgrepo_repos:
-  picture:
-    folder: a
-  baobab:
-    pgsq: fff
+#borgrepo_backup_host: 'backup'
+borgrepo_servers:
+  - ansible_host: 'backup'
+    encryption: 'none'
+    encryption_passphrase: ''
 ...

@@ -27,7 +27,8 @@
     group: 'backup'
     mode: '0700'
     state: 'directory'
-  delegate_to: '{{ borgrepo_backup_host }}'
+  delegate_to: '{{ item.ansible_host }}'
+  loop: '{{ borgrepo_servers }}'
 
 - name: 'authorize host key'
   lineinfile:
@@ -43,7 +44,8 @@
     state: 'present'
   vars:
     repodir: '/home/backup/repos/{{ host_fqdn }}'
-  delegate_to: '{{ borgrepo_backup_host }}'
+  delegate_to: '{{ item.ansible_host }}'
+  loop: '{{ borgrepo_servers }}'
 
 
 - name: 'upload host ssh ca'
@@ -59,15 +61,16 @@
 - name: 'initialize repo'
   shell:
     cmd: >
-      borg init -e none backup@{{ borgrepo_backup_host }}.dmz.{{ domain }}:{{ item.key }}
+      borg init -e {{ item[1].encryption }} backup@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}
   register: borgrepo_init_cmd
   failed_when:
     - borgrepo_init_cmd.rc != 0
-    - borgrepo_init_cmd.stderr !='A repository already exists at backup@backup.dmz.lilik.it:'+item.key+'.'
+    - borgrepo_init_cmd.stderr !='A repository already exists at backup@'+item[1].ansible_host+'.dmz.'+domain+':'+item[0].key+'.'
   changed_when: borgrepo_init_cmd.rc == 0
   environment:
     BORG_RSH: 'ssh -i /root/.ssh/id_ed25519_BORG'
-  loop: '{{ borgrepo_repos|dict2items }}'
+    BORG_PASSPHRASE: '{{ item[1].encryption_passphrase | d("") }}'
+  loop: '{{ borgrepo_repos|dict2items | product(borgrepo_servers) | list }}'
 
 - name: 'create backup directory'
   file:
@@ -87,21 +90,21 @@
 
 - name: 'create repo log directory'
   file:
-    path: '/var/log/backup-status/{{ item.key }}'
+    path: '/var/log/backup-status/{{ item[0].key }}.{{ item[1].ansible_host }}'
     state: 'directory'
     owner: 'root'
     group: 'root'
     mode: '0755'
-  loop: '{{ borgrepo_repos|dict2items }}'
+  loop: '{{ borgrepo_repos|dict2items | product(borgrepo_servers) | list}}'
 
 - name: 'create backup scripts'
   template:
     src: 'backupscript.sh.j2'
-    dest: '/etc/backup/{{ item.key }}.sh'
+    dest: '/etc/backup/{{ item[0].key }}.{{ item[1].ansible_host }}.sh'
     owner: 'root'
     group: 'root'
     mode: '0700'
-  loop: '{{ borgrepo_repos|dict2items }}'
+  loop: '{{ borgrepo_repos|dict2items | product(borgrepo_servers) | list}}'
 
 - name: 'create systemd service'
   template:
@@ -127,23 +130,23 @@
 
 - name: 'enable systemd timers'
   systemd:
-    name: 'borg-backup@{{ item.key }}.timer'
+    name: 'borg-backup@{{ item[0].key }}.{{ item[1].ansible_host }}.timer'
     daemon_reload: true
     enabled: true
     state: 'restarted'
-  loop: '{{ borgrepo_repos|dict2items }}'
+  loop: '{{ borgrepo_repos|dict2items | product(borgrepo_servers) | list }}'
 
 - name: 'MONITORING | create entry'
   set_fact:
     borg_monitoring_repos: >
       {{ borg_monitoring_repos|d({})|combine({
-                     item.key:
+                     item[0].key+"."+item[1].ansible_host:
                        {
-                          "backup_wage": item.value.interval|d(86400)|int,
-                          "backup_cage": (item.value.interval|d(86400)|int+7200)*2
+                          "backup_wage": item[0].value.interval|d(86400)|int,
+                          "backup_cage": (item[0].value.interval|d(86400)|int+7200)*2
                        }
       }) }}
-  loop: '{{ borgrepo_repos|dict2items }}'
+  loop: '{{ borgrepo_repos|dict2items | product(borgrepo_servers) | list }}'
   tags:
     - 'monitoring'
 
@@ -161,7 +164,6 @@
                     }, recursive=True) }}
   delegate_to: '{{ monitoring_host }}'
   delegate_facts: true
-  loop: '{{ borgrepo_repos|dict2items }}'
   tags:
     - 'monitoring'
 ...
