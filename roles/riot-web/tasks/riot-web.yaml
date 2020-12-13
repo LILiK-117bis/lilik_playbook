@@ -1,0 +1,55 @@
+---
+- name: 'create riot-web folder'
+  file:
+    path: '/srv/riot-web'
+    state: 'directory'
+    mode: '0755'
+    owner: 'www-data'
+    group: 'www-data'
+  tags:
+    - 'packages'
+
+- name: 'download riot-web'
+  unarchive:
+    src: "https://github.com/vector-im/element-web/releases/download/\
+      {{ riot_web_version }}/element-{{ riot_web_version }}.tar.gz"
+    dest: '/srv/riot-web'
+    remote_src: true
+    owner: 'www-data'
+    group: 'www-data'
+  tags:
+    - 'packages'
+
+- name: 'configure nginx location'
+  template:
+    src: 'riot.conf'
+    dest: '/etc/nginx/locations/{{ riot_web_nginx_fqdn }}/riot.conf'
+  notify:
+    - 'reload nginx'
+
+- name: 'configure riot web'
+  template:
+    src: 'config.json.j2'
+    dest: '/srv/riot-web/riot-{{ riot_web_version }}/config.json'
+
+- name: 'MONITORING | add HTTP service'
+  block:
+    - name: 'MONITORING | add service to monitoring entry'
+      set_fact:
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+             'address': ansible_host,
+             'vhosts_uri': { riot_web_nginx_fqdn: {'/': '<title>Riot</title>'} },
+             }, recursive=true) }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine({host_fqdn: monitoring_entry}) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
+...
+
