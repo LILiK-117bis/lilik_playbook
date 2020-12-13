@@ -56,6 +56,8 @@
     mode: '750'
     owner: 'root'
     group: 'git'
+  notify:
+    - 'restart gitea'
 
 - block:
    - name: 'create gitea DB'
