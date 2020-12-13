@@ -1,6 +1,6 @@
 ---
 host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
-nextcloud_version: '19.0.3'
+nextcloud_version: '20.0.3'
 nextcloud_nginx_fqdn: '{{ ansible_hostname }}.{{ domain }}'
 nextcloud_nginx_alternate_fqdns: []
 ldap_server: 'ldap1.dmz.{{ domain }}'
