@@ -15,9 +15,12 @@
       reverse_proxy_site_fqdn:
         - 'matrix.{{ domain }}'
         - 'riot.sestograd.org'
-    #- role: 'coturn'
-    #- role: 'matrix-synapse'
+    - role: 'matrix-synapse'
+      coturn_host: 'turn'
+      coturn_port: '88'
+      coturn_fqdn: '{{ domain }}'
     - role: 'riot-web'
+      riot_web_nginx_fqdn: "riot.sestograd.org"
     - role: 'monitoring-agent'
 
 - hosts: 'monitoring_hosts'
