@@ -2,7 +2,7 @@
 - import_playbook: 'prepare_lxc_guest.yaml'
   vars:
     host: 'matrix'
-    vm_size: '10G'
+    vm_size: '20G'
 
 - hosts: 'matrix'
   vars:
