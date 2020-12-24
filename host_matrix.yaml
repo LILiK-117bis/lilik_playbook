@@ -5,6 +5,9 @@
     vm_size: '10G'
 
 - hosts: 'matrix'
+  vars:
+    nginx_proxy_protocol: true
+    reverse_proxy_proxy_protocol: true
   roles:
     - role: 'dns_record'
     - role: 'reverse_proxy'

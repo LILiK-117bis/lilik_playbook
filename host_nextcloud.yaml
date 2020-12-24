@@ -7,8 +7,8 @@
 
 - hosts: 'nextcloud'
   vars:
-    reverse_proxy_proxy_protocol: false
-    nginx_proxy_protocol: false
+    reverse_proxy_proxy_protocol: true
+    nginx_proxy_protocol: true
     nginx_tls_1_2: true
   roles:
     - role: 'dns_record'
