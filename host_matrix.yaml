@@ -22,6 +22,18 @@
     - role: 'riot-web'
       riot_web_nginx_fqdn: "riot.sestograd.org"
     - role: 'monitoring-agent'
+    - role: 'borgrepo'
+      borgrepo_repos:
+        core:
+          folders:
+            synapse_data:
+              path: '/var/lib/matrix-synapse'
+            synapse_conf:
+              path: '/etc/matrix-synapse'
+          pgsql_dbs:
+            synapse_db:
+              dbname: 'synapse'
+      tags: borg
 
 - hosts: 'monitoring_hosts'
   roles:
