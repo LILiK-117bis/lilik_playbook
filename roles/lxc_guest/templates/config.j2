@@ -12,6 +12,7 @@ lxc.mount.entry = mqueue dev/mqueue mqueue rw,relatime,create=dir,optional 0 0
 {%   endif %}
 
 lxc.apparmor.profile = generated
+lxc.apparmor.allow_nesting = 1
 
 # Container specific configuration
 lxc.idmap = u 0 {{ subuidmap }}
