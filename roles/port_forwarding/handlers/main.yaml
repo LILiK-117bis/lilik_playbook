@@ -1,0 +1,11 @@
+---
+- name: 'uci commit firewall'
+  command: 'uci commit firewall'
+  delegate_to: '{{ firewall }}'
+
+- name: 'reload firewall'
+  openwrt_init:
+    name: 'firewall'
+    state: 'reloaded'
+  delegate_to: '{{ firewall }}'
+...

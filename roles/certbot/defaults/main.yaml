@@ -1,2 +1,4 @@
 ---
-webserver_name: nginx
+webserver_name: 'nginx'
+certbot_site_alternate_fqdns: []
+...

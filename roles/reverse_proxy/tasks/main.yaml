@@ -1,77 +1,115 @@
 ---
-- name: add https configs to nginx
+- name: 'configure nginx tcp 443 forwarder'
   blockinfile:
-    dest: /etc/nginx/nginx.conf
+    dest: '/etc/nginx/nginx.conf'
     block: |
-            stream {
+      stream {
+          # Get upstream $name rom TLS SNI Header
+          map $ssl_preread_server_name $name {
+              include /etc/nginx/map.conf.d/*.conf;
+          }
 
-                map $ssl_preread_server_name $name {
-                    include /etc/nginx/map.conf.d/*.conf;
-                }
-                include /etc/nginx/upstream.conf.d/*.conf;
+          # Include upstream definitions
+          include /etc/nginx/upstream.conf.d/*.conf;
 
-                log_format stream_routing '$remote_addr [$time_local] '
-                                      'with SNI name "$ssl_preread_server_name" '
-                                      'proxying to "$name" '
-                                      '$protocol $status $bytes_sent $bytes_received '
-                                      '$session_time';
-                server {
-                    listen {{ public_ip }}:443;
-                    ssl_preread on;
-                    proxy_pass $name;
-                    access_log /var/log/nginx/stream_443.log stream_routing;
-                }
+          log_format stream_routing '$remote_addr [$time_local] '
+                                    'with SNI name "$ssl_preread_server_name" '
+                                    'proxying to "$name" '
+                                    '$protocol $status $bytes_sent $bytes_received '
+                                    '$session_time';
 
-            }
-  delegate_to: reverse_proxy
-  notify: reload nginx
+          server {
+              listen {{ public_ip }}:443;
 
-- name: add http configs to nginx
+              # Inspect TLS Headers
+              ssl_preread on;
+              # Proxy connection to upstream $name
+              proxy_pass $name;
+
+              # Log connection
+              access_log /var/log/nginx/stream_443.log stream_routing;
+
+              # If on send PROXY Protocol headers to EVERY upstream
+              # servers. WARNING: It will break connection to upstreams
+              # not configured to accept PROXY Protocol!
+              proxy_protocol {{ 'on' if reverse_proxy_proxy_protocol else 'off' }};
+          }
+      }
+  delegate_to: 'reverse_proxy'
+  notify: 'reload reverse proxy'
+  tags:
+    - 'install'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::install'
+
+- name: 'configure nginx http 80 forwarder'
   lineinfile:
-    dest: /etc/nginx/nginx.conf
+    dest: '/etc/nginx/nginx.conf'
     insertafter: '^http {'
     line: 'include /etc/nginx/http.conf.d/*.conf;'
-  delegate_to: reverse_proxy
-  notify: reload nginx
+  delegate_to: 'reverse_proxy'
+  notify: 'reload reverse proxy'
+  tags:
+    - 'install'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::install'
 
-- name: Create the http.conf directory for nginx
+- name: 'create configuration directories for sites'
   file:
-    state: directory
-    dest: "/etc/nginx/http.conf.d"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+    state: 'directory'
+    dest: '/etc/nginx/{{ item }}'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload reverse proxy'
+  loop:
+    - 'http.conf.d'
+    - 'map.conf.d'
+    - 'upstream.conf.d'
+  tags:
+    - 'install'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::install'
 
-- name: Upload http to reverse proxy
+- name: 'configure http proxy for https redirect and acme challenge'
   template:
-    src: http.j2
-    dest: "/etc/nginx/http.conf.d/http_{{ hostname }}.conf"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+    src: 'http.conf.j2'
+    dest: '/etc/nginx/http.conf.d/{{ ansible_hostname }}.conf'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload reverse proxy'
+  tags:
+    - 'configure'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::configure'
 
-- name: Create the map.conf directory for nginx
-  file:
-    state: directory
-    dest: "/etc/nginx/map.conf.d"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+- name: 'configure upstream server spec'
+  copy:
+    content: |
+      upstream {{ ansible_hostname }}_https {
+        server {{ hostvars|ip_from_inventory(ansible_hostname) }}:{{
+          "10443" if reverse_proxy_proxy_protocol else "443"
+        }};
+      }
+    dest: '/etc/nginx/upstream.conf.d/{{ ansible_hostname }}.conf'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload reverse proxy'
+  tags:
+    - 'configure'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::configure'
 
-- name: Create the upstream.conf directory for nginx
-  file:
-    state: directory
-    dest: "/etc/nginx/upstream.conf.d"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+- name: 'configure sni-upstream mapping'
+  copy:
+    content: |
+      {% for site_fqdn in [reverse_proxy_site_fqdn] | flatten(levels=1)  %}
+      {{ site_fqdn }} {{ ansible_hostname }}_https;
+      {% endfor %}
+    dest: '/etc/nginx/map.conf.d/{{ ansible_hostname }}.conf'
+  delegate_to: 'reverse_proxy'
+  notify: 'reload reverse proxy'
+  tags:
+    - 'configure'
+    - 'role::reverse_proxy'
+    - 'role::reverse_proxy::configure'
 
-- name: Upload mappings to reverse proxy
-  template:
-    src: map.j2
-    dest: "/etc/nginx/map.conf.d/map_{{ hostname }}.conf"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+- meta: 'flush_handlers'
 
-- name: Upload upstream to reverse proxy
-  template:
-    src: upstream.j2
-    dest: "/etc/nginx/upstream.conf.d/upstream_{{ hostname }}.conf"
-  delegate_to: reverse_proxy
-  notify: reload nginx
+

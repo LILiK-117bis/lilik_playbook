@@ -1,0 +1,7 @@
+---
+renew_shared_secret: false
+turn_port: 3478
+min_relay_port: 49152
+max_relay_port: 65535
+firewall: 'vm_gateway'
+...

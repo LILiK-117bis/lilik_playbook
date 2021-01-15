@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 DOCUMENTATION = '''
@@ -39,7 +39,7 @@ def main():
     valid_chars = string.ascii_uppercase + string.ascii_lowercase + \
             string.digits
 
-    passwd = [rng.choice(valid_chars) for _ in xrange(length)]
+    passwd = [rng.choice(valid_chars) for _ in range(length)]
 
     result['passwd'] = ''.join(passwd)
 

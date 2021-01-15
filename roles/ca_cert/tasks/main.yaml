@@ -1,0 +1,157 @@
+---
+- name: 'TLS | verify if cert is valid'
+  command: >
+    openssl verify
+    -CAfile {{ ca_cert_tls_ca_path }}
+    -untrusted {{ ca_cert_tls_cert_path }}
+    -verify_hostname {{ ca_cert_common_name }}
+    {{ ca_cert_tls_cert_path }}
+  register: ca_cert_tls_cert_is_valid
+  check_mode: false
+  changed_when: ca_cert_tls_cert_is_valid.rc != 0
+  failed_when: false
+  when: ca_cert_proto == 'tls'
+
+- name: 'SSH | verify if cert is valid and get info'
+  ssh_cert:
+    path: '{{ ca_cert_ssh_key_path }}-cert.pub'
+    ca_path: '{{ ca_cert_ssh_ca_path }}'
+    principals: [ '{{ ca_cert_common_name }}' ]
+  register: ca_cert_ssh_cert_is_valid
+  changed_when: ca_cert_ssh_cert_is_valid.rc != 0
+  ignore_errors: true
+  check_mode: false
+  when: ca_cert_proto == 'ssh'
+
+- name: 'TLS | get remaining validity'
+  shell: >
+    {% if ansible_distribution != 'OpenWrt' %}
+    echo $(( ($(date -d "$(openssl x509 -in {{ ca_cert_tls_cert_path }} -enddate -noout | sed "s/.*=\(.*\)/\1/")" +%s)-$(date -d now +%s))/86400 ))
+    {% else %}
+    echo $(( ($(date -D '%b %e %H:%M:%S %Y' -d "$(openssl x509 -in {{ ca_cert_tls_cert_path }} -enddate -noout | sed "s/.*=\(.*\)/\1/")" +%s)-$(date +%s))/86400 ))
+    {% endif %}
+  register: ca_cert_cert_remaining_days
+  changed_when: false
+  check_mode: false
+  when: ca_cert_proto == 'tls' and not ca_cert_tls_cert_is_valid.changed
+
+- name: 'set cert validity'
+  set_fact:
+    ca_cert_cert_is_valid: >-
+      {% if ca_cert_proto == 'tls' %}{{ ca_cert_tls_cert_is_valid }}{%
+       elif ca_cert_proto == 'ssh' %}{{ ca_cert_ssh_cert_is_valid }}{% endif %}
+
+- name: 'set remaning validity'
+  set_fact:
+    ca_cert_cert_remaining_days: >-
+      {% if ca_cert_proto == 'tls' %}{{ ca_cert_cert_remaining_days.stdout }}{%
+       elif ca_cert_proto == 'ssh' %}{{ ca_cert_cert_is_valid.certificate.valid.remaining_days }}{% endif %}
+  when: ca_cert_cert_is_valid.rc|d(1) == 0
+
+- name: 'renew'
+  block:
+    - name: 'RENEW | backup existing private keys'
+      copy:
+        remote_src: true
+        src: '{{ item }}'
+        dest: '{{ item }}-backup'
+      failed_when: false
+      register: ca_cert_key_backup
+      loop: '{{ keypair[ca_cert_proto] }}'
+      vars:
+        keypair:
+          ssh:
+            - '{{ ca_cert_ssh_key_path }}'
+            - '{{ ca_cert_ssh_key_path }}.pub'
+          tls:
+            - '{{ ca_cert_tls_key_path }}'
+
+    - name: 'RENEW | TLS | create private key (if not exists)'
+      command: >
+        openssl genpkey
+        -algorithm {{ ca_cert_tls_key_algorithm }}
+        -out {{ ca_cert_tls_key_path }}
+      args:
+        creates: >-
+          {{ "" if ca_cert_renew_private_key else ca_cert_tls_key_path }}
+      when: ca_cert_proto == 'tls'
+
+    - name: 'RENEW | SSH | create key pair'
+      openssh_keypair:
+        force: '{{ ca_cert_renew_private_key }}'
+        path: '{{ ca_cert_ssh_key_path }}'
+        type: 'ed25519'
+      when: ca_cert_proto == 'ssh'
+
+    - name: 'RENEW | TLS | create cert signing request'
+      command: >
+        openssl req
+        -new
+        -subj '{{ ca_cert_tls_subj }}'
+        -key '{{ ca_cert_tls_key_path }}'
+        -out '{{ ca_cert_tls_csr_path }}'
+      when: ca_cert_proto == 'tls'
+
+    - name: 'RENEW | CA_MANAGER | generate json signing request'
+      cert_request:
+        host: '{{ ca_cert_common_name }}'
+        path: >-
+          {% if ca_cert_proto == 'tls' %}{{ ca_cert_tls_csr_path }}{%
+           elif ca_cert_proto == 'ssh' %}{{ ca_cert_ssh_key_path+'.pub' }}{% endif %}
+        proto: '{{ "ssl" if ca_cert_proto == "tls" else ca_cert_proto }}'
+        client: '{{ ca_cert_client }}'
+      register: ca_cert_signing_request
+
+    - name: 'RENEW | CA_MANAGER | send signing request'
+      raw: '{{ ca_cert_signing_request | to_json }}'
+      delegate_to: '{{ ca_cert_ca_manager_host }}'
+      delegate_facts: true
+      register: ca_cert_signing_request_results
+      failed_when: (ca_cert_signing_request_results.stdout|from_json).failed
+
+    - name: 'RENEW | CA_MANAGER | set signing request id'
+      set_fact:
+        ca_cert_request_id: >-
+          {{ (ca_cert_signing_request_results.stdout|from_json).requestID }}
+
+    - name: 'RENEW | CA_MANAGER | generate json get request'
+      set_fact:
+        ca_cert_get_request:
+          type: 'get_certificate'
+          requestID: '{{ ca_cert_request_id }}'
+
+    - name: 'RENEW | CA_MANAGER | prompt for signature'
+      debug:
+        msg: >-
+          Please manually confirm sign request with id {{ ca_cert_request_id }}.
+
+    - name: 'RENEW | CA_MANAGER | send get request'
+      raw: '{{ ca_cert_get_request | to_json }}'
+      delegate_to: '{{ ca_cert_ca_manager_host }}'
+      delegate_facts: true
+      register: ca_cert_get_request_results
+      failed_when: (ca_cert_get_request_results.stdout|from_json).failed
+
+    - name: 'RENEW | store new certificate'
+      copy:
+        content: '{{ (ca_cert_get_request_results.stdout|from_json).result }}'
+        dest: >-
+          {% if ca_cert_proto == 'tls' %}{{ ca_cert_tls_cert_path }}{%
+           elif ca_cert_proto == 'ssh' %}{{ ca_cert_ssh_key_path }}-cert.pub{% endif %}
+  rescue:
+    - name: 'RENEW FAILED | restore backup'
+      copy:
+        remote_src: true
+        src: '{{ item.dest }}'
+        dest: '{{ item.src }}'
+      when: not item.failed
+      loop: '{{ ca_cert_key_backup.results }}'
+  always:
+    - name: 'RENEW | clean backup'
+      file:
+        path: '{{ item.dest }}'
+        state: 'absent'
+      when: not item.failed
+      loop: '{{ ca_cert_key_backup.results }}'
+  when: ca_cert_cert_is_valid.changed or ca_cert_cert_remaining_days|int < ca_cert_min_days_validity
+...

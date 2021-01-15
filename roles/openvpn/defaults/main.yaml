@@ -1,0 +1,5 @@
+---
+host_fqdn: '{{ inventory_hostname }}.dmz.{{ domain }}'
+openvpn_tls_server_ca: '{{ tls_intermediate_server_ca }}'
+openvpn_tls_user_ca: '{{ tls_intermediate_user_ca }}'
+...

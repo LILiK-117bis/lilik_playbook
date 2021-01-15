@@ -1,19 +1,30 @@
-[icingaweb_ldap]
+[icingaweb2-users-ldap]
 type = "ldap"
-hostname = "ldap.dmz.lilik"
+hostname = "{{ ldap_server }}{% for s in ldap_backup_servers %} {{s}}{%endfor%}"
 port = "389"
-encryption = "none"
-root_dn = "dc=lilik,dc=it"
-bind_dn = ""
-bind_pw = ""
+encryption = "starttls"
+root_dn = "{{ ldap_basedn }}"
+bind_dn = "cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}"
+bind_pw = "{{ icingaweb2_ldap_passwd }}"
 
-[icinga_ido]
+[icingaweb2-ido-pgsql]
 type = "db"
 db = "pgsql"
-host = "localhost"
+host = "/var/run/postgresql"
 port = "5432"
 dbname = "icinga2"
-username = "icinga2"
-password = "{{ icinga2_password.stdout}}"
+username = "www-data"
+password = ""
+charset = ""
+persistent = "0"
+
+[icingaweb2-config-pgsql]
+type = "db"
+db = "pgsql"
+host = "/var/run/postgresql"
+port = "5432"
+dbname = "icingaweb2"
+username = "www-data"
+password = ""
 charset = ""
 persistent = "0"

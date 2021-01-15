@@ -1,0 +1,9 @@
+---
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
+etherpad_nginx_fqdn: 'pad.{{ domain }}'
+etherpad_version: 1.8.3
+ldap_server: 'ldap1.dmz.{{ domain }}'
+ldap_basedn: 'dc={{ domain.replace(".", ",dc=") }}'
+ldap_tls_enabled: true
+ldap_tls_server_ca: '{{ tls_root_ca }}'
+...

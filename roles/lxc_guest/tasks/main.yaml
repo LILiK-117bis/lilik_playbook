@@ -1,99 +1,14 @@
 ---
-- name: check for lxc container dir
-  stat:
-    path: '/var/lib/lxc/{{ vm_name }}'
-  register: lxc_existance
-
-- name: check for lxc container existance
-  container_exists:
-    name: "{{ vm_name }}"
-  register: container_exists
-
-- name: Check debian release
-  assert:
-    that: distro in [ 'stretch', 'sid', 'buster' ]
-    msg: "release {{ distro }} not supported by debian template"
-
 - block:
-    - name: create the lxc container
-      lxc_container:
-          name: "{{ vm_name }}"
-          backing_store: lvm
-          fs_size: "{{ vm_size }}"
-          vg_name: "{{ inventory_hostname }}vg"
-          lv_name: "vm_{{ vm_name }}"
-          fs_type: xfs
-          container_log: true
-          template: debian
-          template_options: --release {{ distro }} --packages=ssh,python
-          state: stopped
-      # suppress messages related to file descriptors
-      # leaking when lvm is invoked
-      environment:
-        LVM_SUPPRESS_FD_WARNINGS: 1
-
-    - name: deploy container config
-      template:
-        src: config.j2
-        dest: "/var/lib/lxc/{{ vm_name }}/config"
-
-    - name: start container
-      lxc_container:
-          name: "{{ vm_name }}"
-          state: started
-      when: auto_start|bool
-  when: not (container_exists.exists and lxc_existance.stat.isdir)
-
-- name: update container config
-  template:
-    src: config.j2
-    dest: "/var/lib/lxc/{{ vm_name }}/config"
-  register: container_config
-  notify: restart container
-
-- name: set container running state
-  lxc_container:
-      name: "{{ vm_name }}"
-      state: "{{ container_state }}"
-  register: container_running_state
-
-- name: Read container DNS configuration
-  container_file_read:
-    name: "{{ vm_name }}"
-    path: /etc/resolv.conf
-  register: vm_resolv_conf
-
-- debug:
-    var: vm_resolv_conf
-    verbosity: 2
-
-- name: update container DNS configuration
-  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -Pz1 'domain lilik.it\nnameserver {{ hostvars | ip_from_inventory('vm_gateway') }}' /etc/resolv.conf || echo -e 'domain lilik.it\nnameserver {{ hostvars | ip_from_inventory('vm_gateway') }}' > /etc/resolv.conf"
-  register: container_dns_configuration
-  changed_when: container_dns_configuration.stdout != "domain lilik.it\nnameserver {{ hostvars | ip_from_inventory('vm_gateway') }}\n\u0000"
-
-- name: update container network configuration
-  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "grep -F 'iface eth0 inet manual' /etc/network/interfaces || sed -i 's/iface eth0 inet dhcp/iface eth0 inet manual/' /etc/network/interfaces"
-  register: container_network
-  changed_when: "container_network.stdout != 'iface eth0 inet manual'"
-  notify: restart container
-
-- name: install packages
-  shell: lxc-attach -n {{ vm_name }} --clear-env -e -- bash -c "apt-get update && apt-get install python ssh -y"
-  register: install_packages
-  changed_when: "install_packages.stdout.find('0 newly installed') == -1"
-  notify: restart container
-
-  # Restart container when one in
-  # - container_dns_configuration
-  # - network conf has changed
-  # - install_packages
-  # - container_network
-  # is changed by executing handlers now
-- meta: flush_handlers
-
-- name: add monitoring facts
-  set_fact:
-    monitoring_host: "{{monitoring_host| default([]) }} + [ '{{ vm_name }}' ]"
-  delegate_facts: True
-  delegate_to: status
+    - import_tasks: '01-create.yaml'
+      tags:
+        - 'vm::create'
+    - import_tasks: '02-configure.yaml'
+      tags:
+        - 'vm::configure'
+    - import_tasks: '03-monitoring.yaml'
+      tags:
+        - 'monitoring'
+  tags:
+    - 'role::lxc_guest'
+...

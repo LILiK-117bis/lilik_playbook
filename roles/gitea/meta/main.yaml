@@ -1,0 +1,5 @@
+---
+dependencies:
+  - role: 'nginx'
+    nginx_site_fqdn: '{{ gitea_nginx_fqdn }}'
+...

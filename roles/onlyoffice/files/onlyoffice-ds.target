@@ -1,0 +1,6 @@
+[Unit]
+After=network.target
+Wants=onlyoffice-ds-spellchecker.service onlyoffice-ds-converter.service onlyoffice-ds-docservice.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,40 +1,164 @@
 ---
-- name: set synapse server name
+- name: 'install gnupg and ca-cert'
+  apt:
+    pkg:
+      - 'gnupg'
+      - 'ca-certificates'
+  tags:
+      - 'packages'
+
+- name: 'add matrix gnupg key to apt'
+  apt_key:
+    id: 'AAF9AE843A7584B5A3E4CD2BCF45A512DE2DA058'
+    url: 'https://packages.matrix.org/debian/matrix-org-archive-keyring.gpg'
+    state: 'present'
+  tags:
+    - 'packages'
+
+- name: 'add matrix apt repos'
+  apt_repository:
+    repo: '{{ item }}'
+    state: 'present'
+  loop:
+    - 'deb https://packages.matrix.org/debian/ bullseye main'
+    - 'deb-src https://packages.matrix.org/debian/ bullseye main'
+  tags:
+    - 'packages'
+
+- name: 'set synapse server name'
   debconf:
-    name: 'matrix-synapse'
+    name: 'matrix-synapse-py3'
     question: 'matrix-synapse/server-name'
     vtype: 'string'
-    value: '{{ ansible_hostname }}'
+    value: '{{ synapse_domain }}'
 
-- name: install synapse
-  include_role:
-    name: service
-  # static: yes # see static include issue: https://github.com/ansible/ansible/issues/13485
+- name: 'install synapse'
+  import_role: name='service'
   vars:
-    service_name: matrix-synapse
+    service_name: 'matrix-synapse'
     service_packages:
-      - matrix-synapse
+      - 'matrix-synapse-py3'
+      - 'postgresql'
+      - 'postgresql-contrib'
+      - 'python3-psycopg2'
 
-- name: fix synapse folders permissions
-  file:
-    path: "{{ item }}"
-    owner: matrix-synapse
-    group: nogroup
-    mode: 0750
-    state: directory
-  with_items:
-    - /etc/matrix-synapse
-    - /etc/matrix-synapse/conf.d
+- block:
+    - name: 'PGSQL | create synapse DB'
+      postgresql_db:
+        name: 'synapse'
+        encoding: 'UTF-8'
+        lc_collate: 'C'
+        lc_ctype: 'C'
+        template: 'template0'
+    - name: 'PGSQL | create synapse DB user'
+      postgresql_user:
+        name: 'matrix-synapse'
+        db: 'synapse'
+        priv: 'ALL'
+  become: true
+  become_method: 'su'
+  become_user: 'postgres'
 
-- name: upload synapse reverse proxy conf
+#- name: fix synapse folders permissions
+#  file:
+#    path: "{{ item }}"
+#    owner: matrix-synapse
+#    group: nogroup
+#    mode: 0750
+#    state: directory
+#  with_items:
+#    - /etc/matrix-synapse
+#    - /etc/matrix-synapse/conf.d
+
+- name: 'upload synapse reverse proxy conf'
   template:
-    src: synapse.conf
-    dest: "/etc/nginx/locations/{{ server_fqdn }}/synapse.conf"
-  notify:
-    - restart nginx
+    src: 'synapse.conf.j2'
+    dest: '/etc/nginx/locations/{{ synapse_nginx_fqdn }}/synapse.conf'
+  vars:
+    nginx_proxy_remote_host: '{{ synapse_nginx_proxy_remote_host }}'
+    nginx_proxy_location_path: '{{ synapse_nginx_proxy_location_path }}'
+  notify: 'restart nginx'
 
-- name: upload synapse conf
+- name: 'try to read LDAP service password'
+  command: 'sed -n "s/^\s\+bind_password: \"\(.\+\)\"$/\1/p" /etc/matrix-synapse/homeserver.yaml'
+  register: synapse_read_ldap_passwd
+  no_log: true
+  tags:
+    - 'service_password'
+
+- name: 'set LDAP service password'
+  set_fact:
+    synapse_ldap_passwd: '{{ synapse_read_ldap_passwd.stdout | d("") }}'
+  no_log: true
+  tags:
+    - 'service_password'
+
+- block:
+    - name: 'LDAP | generate client service password'
+      gen_passwd: 'length=32'
+      register: 'synapse_ldap_gen_passwd'
+      no_log: true
+      tags:
+        - 'service_password'
+    - name: 'LDAP | set client service password on server'
+      delegate_to: 'localhost'
+      ldap_passwd:
+        dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+        passwd: '{{ synapse_ldap_gen_passwd.passwd }}'
+        server_uri: 'ldap://{{ ldap_server }}'
+        start_tls: '{{ ldap_tls_enabled }}'
+        bind_dn: '{{ ldap_admin_dn }}'
+        bind_pw: '{{ ldap_admin_pw }}'
+    - name: 'LDAP | set client service password on client'
+      set_fact:
+        synapse_ldap_passwd: '{{ synapse_ldap_gen_passwd.passwd }}'
+      no_log: true
+  when: synapse_ldap_passwd == '' or ldap_renew_secret
+  tags:
+    - 'service_password'
+
+- name: 'LDAP | update client root ca'
+  copy:
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/ldap/server_ca.crt'
+
+- name: 'LDAP | configure client'
+  copy:
+    src: 'ldap.conf'
+    dest: '/etc/ldap/ldap.conf'
+
+- name: 'get turn shared secret'
+  slurp:
+    path: '/etc/coturn_rest.secret'
+  register: coturn_secret
+  when: synapse_coturn_integration
+  delegate_to: '{{ coturn_host }}'
+
+- name: 'upload synapse conf'
   template:
-    src: homeserver.yaml.j2
-    dest: /etc/matrix-synapse/homeserver.yaml
-  notify: "restart matrix-synapse"
+    src: 'homeserver.yaml.j2'
+    dest: '/etc/matrix-synapse/homeserver.yaml'
+  notify: 'reload matrix-synapse'
+  tags:
+    - 'service_password'
+
+- name: 'MONITORING | add HTTP service'
+  block:
+    - name: 'MONITORING | add service to monitoring entry'
+      set_fact:
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+             'address': ansible_host,
+             'vhosts_uri': { synapse_nginx_fqdn: {'/_matrix/client/versions': '{"versions":'} },
+             }, recursive=true) }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine({host_fqdn: monitoring_entry}) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
+...

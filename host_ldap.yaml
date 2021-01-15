@@ -1,0 +1,39 @@
+---
+- import_playbook: 'prepare_lxc_guest.yaml'
+  vars:
+    host: 'ldap'
+    vm_size: '1G'
+    unprivileged: true
+
+- hosts: 'ldap'
+  vars:
+    ca_cert_tls_key_algorithm: 'rsa'
+  roles:
+      - role: 'dns_record'
+      - role: 'ldap'
+        virtual_domains:
+          - '{{ domain }}'
+        ldap_syncrepl_is_provider: true
+        ldap_syncrepl_is_consumer: false
+        ldap_syncrepl_server_id: 1
+        # Default values:
+        #ldap_tls_enabled: true
+        #ldap_check_tree: true
+      - role: 'monitoring-agent'
+      - role: 'borgrepo'
+        tags: 'borg'
+        borgrepo_repos:
+          core:
+            folders:
+              slapd_log:
+                path: '/var/log/openldap'
+            ldap_dbs:
+              slapd_conf:
+                dbnum: 0
+              slapd_lilik:
+                dbnum: 1
+
+- hosts: 'monitoring_hosts'
+  roles:
+    - role: 'icinga2-monitoring'
+...

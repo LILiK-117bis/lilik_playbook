@@ -1,0 +1,28 @@
+---
+- hosts: '{{ host }}'
+  # Skip gather facts - host may not exist yet
+  gather_facts: false
+  tasks:
+    - name: 'lxc guest configuration'
+      import_role: name='lxc_guest'
+      vars:
+        vm_name: '{{ inventory_hostname }}'
+      delegate_to: '{{ ansible_lxc_host }}'
+
+    - name: 'CONNETION | use ssh_lxc'
+      set_fact: ansible_connection='ssh_lxc'
+
+    - name: 'gather facts - now the host must exist'
+      setup:
+      tags:
+        - 'always'
+
+    - block:
+        - name: 'ssh server offline configuration'
+          import_role: name='ssh_server'
+
+        - name: 'CONNECTION | use ssh [now host is online]'
+          set_fact: ansible_connection='ssh'
+
+      when: configure_ssh|d(true)
+...

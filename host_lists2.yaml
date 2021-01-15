@@ -1,0 +1,18 @@
+---
+- hosts: biff
+   roles:
+     - role: lxc_guest
+       vm_name: lists
+       distro: sid
+     - role: ssh_server
+       ansible_connection: ssh_lxc
+       ansible_ssh_lxc_name: lists
+- hosts: lists
+  roles:
+    - role: dns_record
+    - role: reverse_proxy
+      hostname: lists2
+    - role: mailman3
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

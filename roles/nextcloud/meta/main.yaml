@@ -1,0 +1,6 @@
+---
+dependencies:
+  - role: 'nginx'
+    nginx_site_fqdn: '{{ nextcloud_nginx_fqdn }}'
+    nginx_site_alternate_fqdns: '{{ nextcloud_nginx_alternate_fqdns }}'
+...

@@ -1,1 +1,5 @@
-hostname: "{{ ansible_hostname }}"
+---
+reverse_proxy_site_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+reverse_proxy_proxy_protocol: true
+reverse_proxy_www_redir: false
+...

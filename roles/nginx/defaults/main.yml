@@ -1,2 +1,8 @@
 ---
-server_fqdn: "{{ ansible_hostname }}.lilik.it"
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
+monitoring_vhosts: []
+nginx_site_fqdn: '{{ ansible_hostname }}.{{ domain }}'
+nginx_site_alternate_fqdns: []
+nginx_proxy_protocol: true
+nginx_tls_1_2: false
+...

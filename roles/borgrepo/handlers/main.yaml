@@ -1,0 +1,5 @@
+---
+- name: 'reload systemd'
+  debug:
+    msg: noop
+...

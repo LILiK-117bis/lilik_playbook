@@ -1,7 +1,13 @@
-# handlers are run in the order listed not in the order notified
 ---
-- name: restart container
+- name: 'restart container'
   lxc_container:
-      name: "{{ vm_name }}"
-      state: restarted
+      name: '{{ vm_name }}'
+      state: 'restarted'
   register: container_restart
+
+- name: 'systemd daemon-reload'
+  systemd:
+    daemon_reload: true
+  delegate_to: '{{ vm_name }}'
+  connection: 'ssh_lxc'
+...

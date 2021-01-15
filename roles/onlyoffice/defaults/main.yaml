@@ -1,0 +1,5 @@
+---
+nextcloud_host: 'nextcloud'
+onlyoffice_nginx_fqdn: 'docs.{{ domain }}'
+nginx_tls_1_2: true
+...

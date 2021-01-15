@@ -1,71 +1,110 @@
 ---
-- hosts: vm_hosts
+- hosts: 'vm_hosts'
   roles:
-    - role: ssh_server
+    - role: 'ssh_server'
+    - role: 'monitoring-agent'
   vars:
     management_vlan: 9
-    virtual_machine_vlan: 13
+    virtual_machine_vlan: 5
   tasks:
-    - name: install lxc related packages
+    - name: 'install lxc related packages'
       apt:
-        name: "{{ item }}"
-        state: present
-        update_cache: yes
+        pkg:
+          - 'lxc'
+          - 'python3'
+          - 'python3-lxc'
+        state: 'present'
+        update_cache: true
         cache_valid_time: 3600
-      with_items:
-        - lxc
-        - python
-        - python-lxc
+      tags:
+        - 'packages'
 
-    - name: install common lxc filesystem support
+    - name: 'install common lxc filesystem support'
       apt:
-        name: xfsprogs
-        state: present
+        name: 'xfsprogs'
+        state: 'present'
+      notify: 'load xfs module'
+      tags:
+        - 'packages'
 
-    - name: install network bridge utilities
+    - name: 'autoload xfs module'
+      copy:
+        content: 'xfs'
+        dest: '/etc/modules-load.d/xfs.conf'
+      notify: 'load xfs module'
+
+    - name: 'install network bridge utilities'
       apt:
-        name: "{{ item }}"
-        state: present
-        update_cache: yes
-        cache_valid_time: 3600
-      with_items:
-        - bridge-utils
-        - vlan
-      notify: restart networking
-    # We should fix this bug. We really should. It's a bug.
-    # Bridge-utils requires a complete system reboot to enable the new bridge.
-    - name: configure network bridge with vlans
+        pkg:
+          - 'bridge-utils'
+          - 'vlan'
+        state: 'present'
+        update_cache: true
+        cache_valid_time: '3600'
+      notify: 'restart networking'
+      tags:
+        - 'pacakges'
+
+    - name: 'configure network bridge with vlans'
       template:
-        src: templates/interfaces.j2
-        dest: /etc/network/interfaces
-      notify: restart networking
+        src: 'templates/interfaces.j2'
+        dest: '/etc/network/interfaces'
+      notify: 'restart networking'
 
-
-    - name: install utilities
+    - name: 'install utilities'
       apt:
-        name: "{{ item }}"
-        state: present
-        update_cache: yes
+        pkg:
+          - 'vim'
+          - 'htop'
+        state: 'present'
+        update_cache: true
         cache_valid_time: 3600
-      with_items:
-        - vim
-        - htop
+      tags:
+        - 'packages'
 
-    - name: enable lvm wipe signature
+    - name: 'enable lvm wipe signature'
       lineinfile:
-        dest: /etc/lvm/lvm.conf
-        state: present
-        line: "        wipe_signatures_when_zeroing_new_lvs = 0"
+        dest: '/etc/lvm/lvm.conf'
+        state: 'present'
+        line: '	wipe_signatures_when_zeroing_new_lvs = 0'
         regexp: '^\s*.+wipe_signatures_when_zeroing_new_lvs = '
-      notify: restart lvm
-  handlers:
-    - name: restart networking
-      service:
-        name: networking
-        state: restarted
-    - name: restart lvm
-      shell: /etc/init.d/lvm2 reload
+      notify: 'restart lvm'
 
-- hosts: status
+    - name: 'configure apt auto refresh'
+      lineinfile:
+        path: '/etc/apt/apt.conf.d/02periodic'
+        line: '{{ item.key }} "{{ item.value }}";'
+        regexp: '^{{ item.key }} '
+        create: true
+      loop:
+        - { key: 'APT::Periodic::Enable', value: '1' }
+        - { key: 'APT::Periodic::Update-Package-Lists', value: '1' }
+        - { key: 'APT::Periodic::Verbose', value: '2' }
+
+    - name: 'set monitoring max procs'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine({host_fqdn: { "vars": { "procs_warning": 2500,
+                                                 "procs_critical": 4000 } }
+                         }, recursive=true) }}
+      delegate_to: '{{ monitoring_host }}'
+      delegate_facts: true
+      tags:
+        - 'monitoring'
+  handlers:
+    - name: 'restart networking'
+      service:
+        name: 'networking'
+        state: 'restarted'
+    - name: 'restart lvm'
+      command: '/etc/init.d/lvm2 reload'
+    - name: 'load xfs module'
+      modprobe:
+        name: 'xfs'
+        state: 'present'
+
+- hosts: 'status'
   roles:
-    - role: icinga2-monitoring
+    - role: 'icinga2-monitoring'

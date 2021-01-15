@@ -1,15 +1,44 @@
+{% if unprivileged %}
+# Distribution configuration (unprivileged)
+lxc.include = /usr/share/lxc/config/common.conf
+lxc.include = /usr/share/lxc/config/userns.conf
+lxc.arch = linux64
+
+{%   if distro == 'debian' %}
+lxc.mount.entry = /sys/kernel/debug sys/kernel/debug none bind,optional 0 0
+lxc.mount.entry = /sys/kernel/security sys/kernel/security none bind,optional 0 0
+lxc.mount.entry = /sys/fs/pstore sys/fs/pstore none bind,optional 0 0
+lxc.mount.entry = mqueue dev/mqueue mqueue rw,relatime,create=dir,optional 0 0
+{%   endif %}
+
+lxc.apparmor.profile = generated
+lxc.apparmor.allow_nesting = 1
+
+# Container specific configuration
+lxc.idmap = u 0 {{ subuidmap }}
+lxc.idmap = g 0 {{ subgidmap }}
+
+{% else %}
+# Distribution configuration (privileged)
 lxc.include = /usr/share/lxc/config/debian.common.conf
 
-lxc.utsname = {{ vm_name }}
-lxc.rootfs = /dev/{{ inventory_hostname }}vg/vm_{{ vm_name }}
+lxc.apparmor.profile = generated
+lxc.apparmor.allow_nesting = 1
 
-lxc.tty = 4
+lxc.tty.max = 4
 lxc.arch = amd64
+lxc.pty.max = 1024
 
-lxc.network.type = veth
-lxc.network.flags = up
-lxc.network.link = br0
-lxc.network.name = eth0
-lxc.network.ipv4 = {{ hostvars | ip_from_inventory(vm_name) }}/24
-lxc.network.ipv4.gateway = {{ hostvars | ip_from_inventory('vm_gateway') }}
+# Container specific configuration
+{% endif %}
+lxc.uts.name = {{ vm_name }}
+lxc.rootfs.path = lvm:/dev/{{ vg_name }}/vm_{{ vm_name }}
+
+# Network configuration
+lxc.net.0.type = veth
+lxc.net.0.flags = up
+lxc.net.0.link = br0
+lxc.net.0.name = eth0
+lxc.net.0.ipv4.address = {{ hostvars | ip_from_inventory(vm_name) }}/24
+lxc.net.0.ipv4.gateway = {{ hostvars | ip_from_inventory('vm_gateway') }}
 lxc.start.auto = {% if auto_start %}1{% else %}0{% endif %}

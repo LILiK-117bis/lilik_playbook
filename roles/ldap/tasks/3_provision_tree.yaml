@@ -1,0 +1,118 @@
+---
+- name: 'populate tree - organization units'
+  ldap_entry:
+    dn: 'ou={{ item }},{{ ldap_basedn }}'
+    objectClass:
+      - 'organizationalUnit'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop:
+    - 'People'
+    - 'Group'
+    - 'Server'
+    - 'VirtualDomain'
+    - 'Kerberos'
+
+- name: 'populate tree - virtual domains'
+  ldap_entry:
+    dn: 'vd={{ item }},ou=VirtualDomain,{{ ldap_basedn }}'
+    objectClass:
+      - 'VirtualDomain'
+    attributes:
+      postfixTransport: 'maildrop:'
+      delete: 'FALSE'
+      accountActive: 'TRUE'
+      lastChange: '{{ ansible_date_time.epoch }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ virtual_domains }}'
+
+- name: 'popoulate tree - virtual domain postmasters'
+  ldap_entry:
+    dn: 'cn=postmaster,vd={{ item }},ou=VirtualDomain,{{ ldap_basedn }}'
+    objectClass:
+      - 'VirtualMailAlias'
+    attributes:
+      mail: 'postmaster@{{ item }}'
+      editAccounts: 'TRUE'
+      accountActive: 'TRUE'
+      lastChange: '{{ ansible_date_time.epoch }}'
+      maildrop: 'postmaster'
+      sn: 'postmaster'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ virtual_domains }}'
+
+- name: 'populate tree - posix groups'
+  ldap_entry:
+    dn: 'cn={{ item.key }},ou=Group,{{ ldap_basedn }}'
+    objectClass:
+      - 'posixGroup'
+    attributes:
+      gidNumber: '{{ item.value }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ ldap_groups_posix|dict2items }}'
+
+- name: 'populate tree - name groups'
+  ldap_entry:
+    dn: 'cn={{ item }},ou=Group,{{ ldap_basedn }}'
+    objectClass:
+      - 'groupOfNames'
+    attributes:
+      member: 'cn=admin,{{ ldap_basedn }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ ldap_groups_name }}'
+
+- name: 'provisioning tree - test users'
+  ldap_entry:
+    dn: 'uid={{ item.key }},ou=People,{{ ldap_basedn }}'
+    objectClass:
+      - 'inetOrgPerson'
+      - 'authorizedServiceObject'
+    attributes:
+      sn: '{{ item.value.sn }}'
+      mail: '{{ item.value.mail }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ ldap_users_common|dict2items + ldap_users_admin|dict2items }}'
+
+- name: 'provisioning tree - test users passwd'
+  ldap_passwd:
+    dn: 'uid={{ item.key }},ou=People,{{ ldap_basedn }}'
+    passwd: '{{ item.value.password }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ ldap_users_common|dict2items + ldap_users_admin|dict2items }}'
+
+- name: 'provisioning tree - authorizedService'
+  ldap_attr:
+    dn: 'uid={{ item.key }},ou=People,{{ ldap_basedn }}'
+    name: 'authorizedService'
+    values: '{{ item.value.authorizedServices }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  when: item.value.authorizedServices is defined
+  loop: '{{ ldap_users_common|dict2items + ldap_users_admin|dict2items }}'
+
+- name: 'provisioning tree - admin group members'
+  ldap_attr:
+    dn: 'cn=admin,ou=Group,{{ ldap_basedn }}'
+    name: 'member'
+    values: 'uid={{ item.key }},ou=People,{{ ldap_basedn }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ ldap_users_admin|dict2items }}'
+
+- name: 'provisioning tree - servers'
+  ldap_entry:
+    dn: 'cn={{ item }},ou=Server,{{ ldap_basedn }}'
+    objectClass:
+      - 'person'
+    attributes:
+      sn: '{{ item }}'
+    bind_dn: 'cn=admin,{{ ldap_basedn }}'
+    bind_pw: '{{ ldap_passwd }}'
+  loop: '{{ ldap_server_accounts }}'
+...

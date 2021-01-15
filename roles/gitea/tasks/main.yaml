@@ -1,0 +1,13 @@
+---
+- block:
+    - import_tasks: '01-install.yaml'
+      tags:
+        - 'install'
+        - 'role::gitea::install'
+    - import_tasks: '02-configure.yaml'
+      tags:
+        - 'configure'
+        - 'role::gitea::configure'
+  tags:
+    - 'role::gitea'
+...

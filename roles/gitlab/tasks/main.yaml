@@ -1,37 +1,131 @@
 # see /usr/share/doc/gitlab/README.Debian.gz
 # for instruction on how to migrate and reset root password
 
-- name: configure gitlab (fqdn)
-  debconf:
-      name: 'gitlab'
-      question: 'gitlab/fqdn'
-      vtype: 'string'
-      value: '{{ fqdn }}'
+- name: 'install gnupg and ca-cert'
+  apt:
+    pkg:
+      - 'gnupg'
+      - 'ca-certificates'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
 
-- include_role:
-    name: service
-  vars:
-    service_name: gitlab
-    service_packages:
-      - gitlab
+- name: 'add gitlab gnupg key to apt'
+  apt_key:
+    id: 'F6403F6544A38863DAA0B6E03F01618A51312F3F'
+    url: 'https://packages.gitlab.com/gpg.key'
+    state: 'present'
+  tags:
+    - 'packages'
 
-- name: remove debian nginx configuration
-  file:
-    path: '/etc/nginx/sites-enabled/{{ fqdn }}'
-    state: absent
+- name: 'add gitlab apt repos'
+  apt_repository:
+    repo: '{{ item }}'
+    state: 'present'
+    update_cache: true
+  loop:
+    - 'deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ buster main'
+    - 'deb-src https://packages.gitlab.com/gitlab/gitlab-ce/debian/ buster main'
+  tags:
+    - 'packages'
 
-- name: copy my-gitlab.yml
+- name: 'install gitlab'
+  apt:
+    pkg: 'gitlab-ce'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
+
+- name: 'load ldap server ca'
+  copy:
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/gitlab/ldap_server_ca.crt'
+  tags:
+    - 'tls_int'
+
+- name: 'generate gitlab ldap password'
+  gen_passwd: 'length=32'
+  register: 'gitlab_ldap_passwd'
+  no_log: true
+  tags:
+    - 'tls_int'
+    - 'service_password'
+
+- name: 'set gitlab ldap password'
+  delegate_to: 'localhost'
+  ldap_passwd:
+    dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ gitlab_ldap_passwd.passwd }}'
+    server_uri: 'ldap://{{ ldap_server }}'
+    start_tls: true
+    bind_dn: '{{ ldap_admin_dn }}'
+    bind_pw: '{{ ldap_admin_pw }}'
+  no_log: true
+  tags:
+    - 'tls_int'
+    - 'service_password'
+
+- name: 'update gitlab configuration'
   template:
-      src: "gitlab.yml.j2"
-      dest: "/etc/gitlab/gitlab.yml"
-  notify: restart gitlab
+      src: 'gitlab.rb.j2'
+      dest: '/etc/gitlab/gitlab.rb'
+  notify: 'reconfigure gitlab'
+  tags:
+    - 'tls_int'
+    - 'service_password'
 
-- name: patch gitlab source to add domain to email ldap field
-  blockinfile:
-    block: |
-        if key.to_s == "email"
-          value = value.nil? ? value : value + "@lilik.it"
-        end
-    dest: /usr/share/gitlab/lib/gitlab/ldap/auth_hash.rb
-    insertbefore: "return super unless value"
-  notify: restart gitlab
+- name: 'upload letsencrypt ca for ocsp stapling verification'
+  get_url:
+    url: 'https://letsencrypt.org/certs/lets-encrypt-x3-cross-signed.pem.txt'
+    dest: '/etc/gitlab/ssl/chain.crt'
+
+- name: 'patch gitlab to run in lxc'
+  lineinfile:
+    path: '/opt/gitlab/embedded/cookbooks/package/resources/gitlab_sysctl.rb'
+    insertafter: '^    command "sysctl -e --system"\n'
+    line: '    ignore_failure true'
+  notify: 'reconfigure gitlab'
+
+
+- name: 'MONITORING | add HTTP services'
+  block:
+    - name: 'MONITORING | add HTTP/gitlab to monitored service'
+      set_fact:
+        monitoring_vhosts: '{{ monitoring_vhosts + [gitlab_nginx_main_fqdn] }}'
+      when: gitlab_enable_https
+    - name: 'MONITORING | add HTTP/mattermost to monitored service'
+      set_fact:
+        monitoring_vhosts: '{{ monitoring_vhosts + [gitlab_nginx_mattermost_fqdn] }}'
+        when: gitlab_enable_mattermost
+    - name: 'MONITORING | add vhosts to host monitoring entry'
+      set_fact:
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+               'address': ansible_host,
+               'vhosts': monitoring_vhosts,
+               }) }}
+    - name: 'MONITORING | add vhosts_uri to host monitoring entry'
+      set_fact:
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+               'address': ansible_host,
+               'vhosts_uri': { gitlab_nginx_main_fqdn: {'/': { 'content': 'Sign in · GitLab'} },
+                               gitlab_nginx_mattermost_fqdn: { '/': { 'content': '<title>Mattermost</title>' } } },
+               }, recursive=true) }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine({host_fqdn: monitoring_entry}) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
+...
+
+

@@ -1,0 +1,66 @@
+APP_NAME = Gitea: Git with a cup of tea
+RUN_USER = git
+RUN_MODE = prod
+
+[repository]
+ROOT = 
+
+[server]
+PROTOCOL = fcgi+unix
+DOMAIN = {{ gitea_nginx_fqdn }}
+ROOT_URL = https://%(DOMAIN)s/
+HTTP_ADDR = /run/gitea/gitea.sock
+UNIX_SOCKET_PERMISSION = 660
+SSH_DOMAIN = %(DOMAIN)s
+SSH_PORT = {{ gitea_ssh_port }}
+SSH_CREATE_AUTHORIZED_KEYS_FILE = true
+SSH_BACKUP_AUTHORIZED_KEYS = true
+APP_DATA_PATH = data
+LANDING_PAGE = explore
+LFS_START_SERVER = true
+LFS_CONTENT_PATH = /var/lib/gitea/data/lfs
+LFS_JWT_SECRET = {{ gitea_LFS_JWT_SECRET }}
+
+[database]
+DB_TYPE = postgres
+HOST = /var/run/postgresql
+NAME = gitea
+USER = git
+;PASSWD =
+;SCHEMA =
+SSL_MODE = disable
+DB_RETRIES = 10
+DB_RETRY_BACKOFF = 3s
+MAX_IDLE_CONNS = 2
+CONN_MAX_LIFETIME = 3s
+MAX_OPEN_CONNS = 0
+
+[security]
+INSTALL_LOCK = true
+SECRET_KEY = {{ gitea_SECRET_KEY }}
+INTERNAL_TOKEN = {{ gitea_INTERNAL_TOKEN }}
+
+[openid]
+ENABLE_OPENID_SIGNIN = false
+
+[service]
+DISABLE_REGISTRATION = true
+
+[mailer]
+ENABLED = false
+SEND_BUFFER_LEN = 100
+SUBJECT_PREFIX =
+HOST =
+IS_TLS_ENABLED = false
+FROM =
+USER =
+SEND_AS_PLAIN_TEXT = false
+MAILER_TYPE = smtp
+
+[oauth2]
+ENABLE = true
+ACCESS_TOKEN_EXPIRATION_TIME=3600
+REFRESH_TOKEN_EXPIRATION_TIME=730
+INVALIDATE_REFRESH_TOKENS=false
+JWT_SECRET={{ gitea_JWT_SECRET }}
+MAX_TOKEN_LENGTH=32767

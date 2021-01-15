@@ -1,0 +1,82 @@
+---
+- import_role: name='service'
+  vars:
+    service_name: 'ssh'
+    service_packages:
+      - 'openssh-server'
+      - 'openssh-sftp-server'
+  tags:
+    - 'ssh'
+
+- name: 'upload user and server ca'
+  copy:
+    content: |
+      {% for ca in item.1 %}
+      {{ ca }}
+      {% endfor %}
+    dest: '/etc/ssh/{{ item.0 }}_ca.pub'
+  vars:
+    cas: '{{ item.1 }}'
+  notify: 'restart ssh'
+  loop:
+    - [ 'user', '{{ ssh_user_ca }}' ]
+    - [ 'server', '{{ ssh_server_ca }}' ]
+  tags:
+    - 'ssh'
+    - 'pki'
+    - 'pki::ssh'
+
+- name: 'generate and sign host certificate'
+  import_role: name='ca_cert'
+  vars:
+    ca_cert_common_name: '{{ host_fqdn }}'
+    ca_cert_proto: 'ssh'
+    ca_cert_ssh_ca_path: '/etc/ssh/server_ca.pub'
+    ca_cert_ssh_key_path: '/etc/ssh/ssh_host_ed25519_key'
+  tags:
+    - 'ssh'
+    - 'pki'
+    - 'pki::ssh'
+
+- name: 'add host certificate to sshd config'
+  lineinfile:
+    line: 'HostCertificate /etc/ssh/ssh_host_ed25519_key-cert.pub'
+    dest: '/etc/ssh/sshd_config'
+    regexp: '^HostCertificate *'
+  notify: 'restart ssh'
+  tags:
+    - 'ssh'
+    - 'pki'
+    - 'pki::ssh'
+
+- name: 'add user ca to sshd config'
+  lineinfile:
+    line: 'TrustedUserCAKeys /etc/ssh/user_ca.pub'
+    dest: '/etc/ssh/sshd_config'
+    regexp: '^TrustedUserCAKeys *'
+  notify: 'restart ssh'
+  tags:
+    - 'ssh'
+    - 'pki'
+    - 'pki::ssh'
+
+- name: 'permit root login only with certificate'
+  lineinfile:
+    line: 'PermitRootLogin without-password'
+    dest: '/etc/ssh/sshd_config'
+    regexp: '^PermitRootLogin *'
+  notify: 'restart ssh'
+  tags:
+    - 'ssh'
+
+- meta: 'flush_handlers'
+
+- name: 'waiting for ssh on {{ inventory_hostname }} to start'
+  wait_for:
+    host: '{{ hostvars | ip_from_inventory(inventory_hostname) }}'
+    port: 22
+    timeout: 30
+  delegate_to: 'localhost'
+  delegate_facts: true
+  tags:
+    - 'ssh'

@@ -1,0 +1,89 @@
+---
+- name: 'check | container unprivileged?'
+  command: >-
+    grep -e '^lxc.idmap = ' /var/lib/lxc/{{ vm_name }}/config
+  register: unpriv_status
+  changed_when: false
+  failed_when: unpriv_status.rc > 1
+  check_mode: false
+
+- name: 'configure | Unprivileged Container | Subxid mappings'
+  set_fact:
+    unprivileged: true
+    subuidmap: '{{ unpriv_status.stdout_lines[0] | replace("lxc.idmap = u 0 ", "") }}'
+    subgidmap: '{{ unpriv_status.stdout_lines[1] | replace("lxc.idmap = g 0 ", "") }}'
+  when: unpriv_status.rc == 0
+
+
+- name: 'configure | LXC Container Config file'
+  template:
+    src: 'config.j2'
+    dest: '/var/lib/lxc/{{ vm_name }}/config'
+  register: container_config
+  notify: 'restart container'
+
+- name: 'configure | Container Running State'
+  lxc_container:
+      name: '{{ vm_name }}'
+      state: '{{ container_state }}'
+  register: container_running_state
+
+- name: 'configure | Container /etc/resolv.conf'
+  template:
+    src: 'resolv.conf.j2'
+    dest: '/etc/resolv.conf'
+  delegate_to: '{{ vm_name }}'
+  connection: 'ssh_lxc'
+
+- name: 'configure | Container /etc/network/interfaces'
+  copy:
+    src: 'interfaces'
+    dest: '/etc/network/interfaces'
+  delegate_to: '{{ vm_name }}'
+  connection: 'ssh_lxc'
+  notify: 'restart container'
+
+- name: 'configure | Debian | APT Unattended Upgrades'
+  apt:
+    pkg:
+      - 'unattended-upgrades'
+      - 'apt-listchanges'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  delegate_to: '{{ vm_name }}'
+  when: distro == 'debian'
+  connection: 'ssh_lxc'
+
+- name: 'configure | Debian | APT Periodic'
+  lineinfile:
+    path: '/etc/apt/apt.conf.d/02periodic'
+    line: '{{ item.key }} "{{ item.value }}";'
+    regexp: '^{{ item.key }} '
+    create: true
+  loop:
+    - { key: 'APT::Periodic::Enable', value: '1' }
+    - { key: 'APT::Periodic::Update-Package-Lists', value: '1' }
+    - { key: 'APT::Periodic::Download-Upgradeable-Packages', value: '1' }
+    - { key: 'APT::Periodic::Unattended-Upgrade', value: '1' }
+    - { key: 'APT::Periodic::AutocleanInterval', value: '21' }
+    - { key: 'APT::Periodic::Verbose', value: '2' }
+  delegate_to: '{{ vm_name }}'
+  when: distro == 'debian'
+  connection: 'ssh_lxc'
+
+- name: 'configure | Debian | APT Periodic | Upgrade immediately after download'
+  blockinfile:
+    path: '/lib/systemd/system/apt-daily.service'
+    insertafter: '^After='
+    marker: '# {mark} LILiK-FIX [AnsibleManaged]: Install updates immediately after download'
+    block: |
+        Before=apt-daily-upgrade.service
+        Wants=apt-daily-upgrade.service
+  delegate_to: '{{ vm_name }}'
+  when: distro == 'debian'
+  connection: 'ssh_lxc'
+  notify: 'systemd daemon-reload'
+
+- meta: 'flush_handlers'
+...

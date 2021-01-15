@@ -1,0 +1,36 @@
+#!/bin/bash
+# wrapper for conditional setting of nextcloud occ variables
+# derived from ansible-openwrt
+
+# parameters are command, key, value
+source ${1}
+logger occ $(cat ${1})
+
+unquoted_key="$(echo $key | sed -e s/\'//g)"
+unquoted_value="$(echo $value | sed -e s/\'//g)"
+
+# Hardcoded
+cd /opt/nextcloud
+
+# test if we need to apply a change
+case "$command" in
+    'config:app:set')
+        [ "$(sudo -u www-data php occ config:app:get $unquoted_key)" = "$unquoted_value" ]
+        changed=$?
+        ;;
+    'config:system:set')
+        [ "$(sudo -u www-data php occ config:system:get $unquoted_key)" = "$unquoted_value" ]
+        changed=$?
+        ;;
+esac
+
+if [ $changed -eq 0 ]
+then
+    echo -n '{"changed": false}'
+else
+    if [ -z "${_ansible_check_mode}" -o "${_ansible_check_mode}" = "False" ]
+    then
+        logger occ $(sudo -u www-data php occ "${command}" ${unquoted_key} --value="${unquoted_value}")
+    fi
+    echo -n '{"changed": true, "msg": "executed sudo -u www:data php occ '${command}' '${unquoted_key}' --value='${value}'"}'
+fi

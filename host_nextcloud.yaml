@@ -1,0 +1,50 @@
+---
+- import_playbook: 'prepare_lxc_guest.yaml'
+  vars:
+    host: 'nextcloud'
+    vm_size: '20G'
+    unprivileged: true
+
+- hosts: 'nextcloud'
+  vars:
+    reverse_proxy_proxy_protocol: true
+    nginx_proxy_protocol: true
+    nginx_tls_1_2: true
+  roles:
+    - role: 'dns_record'
+    - role: 'reverse_proxy'
+      reverse_proxy_www_redir: false
+      reverse_proxy_site_fqdn:
+        - 'cloud.lilik.it'
+        - 'cloud.sestograd.org'
+        - 'docs.sestograd.org'
+    - role: 'nextcloud'
+      nextcloud_nginx_fqdn: 'cloud.lilik.it'
+      nextcloud_nginx_alternate_fqdns:
+        - 'cloud.sestograd.org'
+    - role: 'onlyoffice'
+      onlyoffice_nginx_fqdn: 'docs.sestograd.org'
+      tags: onlyoffice
+    - role: 'monitoring-agent'
+    - role: 'borgrepo'
+      borgrepo_repos:
+        core:
+          folders:
+            nextcloud_data:
+              path: '/opt/nextcloud_data'
+          pgsql_dbs:
+            nextcloud_db:
+              dbname: 'nextcloud'
+        extras:
+          folders:
+            onlyoffice_data:
+              path: '/var/lib/onlyoffice/documentserver'
+          pgsql_dbs:
+            onlyoffice_db:
+              dbname: 'onlyoffice'
+      tags: borg
+
+- hosts: 'monitoring_hosts'
+  roles:
+    - role: 'icinga2-monitoring'
+...

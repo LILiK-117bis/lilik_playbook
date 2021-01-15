@@ -1,0 +1,14 @@
+[Unit]
+Description=BorgBackup script for Repository %I
+After=network.target
+
+[Service]
+Type=oneshot
+Nice=19
+IOSchedulingClass=2
+IOSchedulingPriority=7
+Environment=BORG_RSH="ssh -i /root/.ssh/id_ed25519_BORG"
+ExecStart=/etc/backup/%i.sh
+PIDFile=/tmp/borg_backup_%i.pid
+User=root
+Group=root

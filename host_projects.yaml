@@ -1,0 +1,39 @@
+---
+- import_playbook: 'prepare_lxc_guest.yaml'
+  vars:
+    host: 'projects'
+    vm_size: '20G'
+    unprivileged: true
+
+- hosts: 'projects'
+  vars:
+     reverse_proxy_proxy_protocol: false
+     nginx_proxy_protocol: false
+  roles:
+    - role: 'dns_record'
+    - role: 'reverse_proxy'
+      reverse_proxy_site_fqdn:
+        - 'projects.{{ domain }}'
+    - role: 'gitea'
+    - role: 'monitoring-agent'
+    - role: 'borgrepo'
+      borgrepo_repos:
+        core:
+          folders:
+            gitea_conf:
+              path: '/etc/gitea'
+            gitea_repositories:
+              path: '/home/git/gitea-repositories'
+            gitea_data:
+              path: '/var/lib/gitea/data'
+              excludes:
+                - '/var/lib/gitea/data/tmp'
+          pgsql_dbs:
+            gitea_db:
+              dbname: 'gitea'
+      tags: borg
+
+- hosts: 'monitoring_hosts'
+  roles:
+    - role: 'icinga2-monitoring'
+...

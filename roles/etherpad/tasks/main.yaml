@@ -1,0 +1,169 @@
+---
+- name: 'install requirements'
+  apt:
+    pkg:
+      - 'postgresql'
+      - 'postgresql-contrib'
+      - 'python3-psycopg2'
+      - 'ca-certificates'
+      - 'gnupg'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
+
+- name: 'nodejs | trust apt repo'
+  apt_key:
+    id: '9FD3B784BC1C6FC31A8A0A1C1655A0AB68576280'
+    url: 'https://deb.nodesource.com/gpgkey/nodesource.gpg.key'
+    state: 'present'
+  tags:
+    - 'packages'
+
+- name: 'nodejs | add apt repo'
+  apt_repository:
+    repo: '{{ item }}'
+    state: 'present'
+    update_cache: true
+  loop:
+    - 'deb https://deb.nodesource.com/node_12.x {{ ansible_distribution_release }} main'
+    - 'deb-src https://deb.nodesource.com/node_12.x {{ ansible_distribution_release }} main'
+  tags:
+    - 'packages'
+
+- name: 'nodejs | install'
+  apt:
+    pkg: 'nodejs'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
+
+- name: 'create etherpad system user'
+  user:
+    name: 'etherpad'
+    state: 'present'
+
+- block:
+   - name: 'create etherpad DB'
+     postgresql_db:
+       name: 'etherpad'
+   - name: 'create etherpad DB user'
+     postgresql_user:
+       name: 'etherpad'
+       db: 'etherpad'
+       priv: 'ALL'
+  become: true
+  become_method: 'su'
+  become_user: 'postgres'
+
+- name: 'create etherpad directory'
+  file:
+    path: '/home/etherpad/etherpad'
+    state: 'directory'
+    owner: 'etherpad'
+    group: 'etherpad'
+
+- name: 'update tls ldap server ca'
+  copy:
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/ldap/server_ca.crt'
+  tags:
+    - 'tls_int'
+
+- name: 'configure ldap client'
+  copy:
+    src: 'ldap.conf'
+    dest: '/etc/ldap/ldap.conf'
+
+- name: 'generate etherpad ldap password'
+  gen_passwd: length=32
+  register: etherpad_ldap_passwd
+  no_log: true
+
+- name: 'set etherpad ldap password in ldap'
+  delegate_to: 'localhost'
+  ldap_passwd:
+    dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+    passwd: '{{ etherpad_ldap_passwd.passwd }}'
+    server_uri: 'ldap://{{ ldap_server }}'
+    start_tls: '{{ ldap_tls_enabled }}'
+    bind_dn: '{{ ldap_admin_dn }}'
+    bind_pw: '{{ ldap_admin_pw }}'
+
+- block:
+    - name: 'download and unpack etherpad'
+      unarchive:
+        remote_src: true
+        src: 'https://github.com/ether/etherpad-lite/archive/{{ etherpad_version }}.tar.gz'
+        dest: '/home/etherpad/etherpad'
+        extra_opts:
+          - '--strip-components=1'
+      tags:
+        - 'packages'
+
+    - name: 'create node_modules dir'
+      file:
+        path: '/home/etherpad/etherpad/node_modules'
+        state: 'directory'
+
+    - name: 'create ep_etherpad-lite symlink'
+      file:
+        src: '../src'
+        path: '/home/etherpad/etherpad/node_modules/ep_etherpad-lite'
+        state: 'link'
+
+    - name: 'install npm dependencies'
+      npm:
+        path: '/home/etherpad/etherpad/node_modules/ep_etherpad-lite'
+        state: 'latest'
+        production: true
+      tags:
+        - 'packages'
+
+    - name: 'install ldap driver'
+      npm:
+        path: '/home/etherpad/etherpad'
+        name: 'ep_ldapauth'
+        state: 'latest'
+        production: true
+      tags:
+        - 'packages'
+
+    - name: 'install plugins'
+      npm:
+        path: '/home/etherpad/etherpad'
+        name: '{{ item }}'
+        state: 'latest'
+        production: true
+      loop:
+        - 'ep_markdown'
+
+    - name: 'configure etherpad'
+      template:
+        src: 'settings.json.j2'
+        dest: '/home/etherpad/etherpad/settings.json'
+      notify: 'restart etherpad-lite'
+  become: true
+  become_user: 'etherpad'
+  become_method: 'su'
+
+- name: 'create etherpad service'
+  copy:
+    src: 'etherpad.service'
+    dest: '/etc/systemd/system/etherpad-lite.service'
+
+- import_role: name='service'
+  vars:
+    service_name: 'etherpad-lite'
+
+- name: 'create nginx configuration'
+  template:
+    src: 'etherpad.conf.j2'
+    dest: '/etc/nginx/locations/{{ etherpad_nginx_fqdn }}/etherpad.conf'
+  vars:
+    nginx_proxy_remote_host: 'http://127.0.0.1:9001'
+  notify: 'reload nginx'
+...

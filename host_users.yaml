@@ -1,0 +1,19 @@
+---
+- hosts: biff
+  roles:
+    - role: lxc_guest
+      vm_name: users
+    - role: ssh_server
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: users
+- hosts: users
+  roles:
+      - role: dns_record
+      - role: fail2ban
+      - role: pam-ldap
+        ldap_server: "ldap.dmz.lilik"
+      - role: apache2
+        user_dir: true
+- hosts: status
+  roles:
+    - role: icinga2-monitoring
