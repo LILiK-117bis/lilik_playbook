@@ -5,6 +5,7 @@
   register: unpriv_status
   changed_when: false
   failed_when: unpriv_status.rc > 1
+  check_mode: false
 
 - name: 'configure | Unprivileged Container | Subxid mappings'
   set_fact:
