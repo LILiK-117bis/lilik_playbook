@@ -1,6 +1,6 @@
 #!/bin/bash
 
-REPO="backup@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}"
+REPO="borg@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}"
 
 export BORG_RSH="ssh -i /root/.ssh/id_ed25519_BORG"
 export BORG_PASSPHRASE="{{ item[1].encryption_passphrase | d('') }}"
@@ -10,7 +10,7 @@ export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK="no"
 
 borg --version
 
-borg break-lock backup@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}
+borg break-lock borg@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}
 
 
 {% for folder in item[0].value.folders|d({})|dict2items %}

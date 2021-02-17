@@ -8,39 +8,39 @@
 
 - name: 'create backup group'
   group:
-    name: 'backup'
+    name: 'borg'
     state: 'present'
 
 - name: 'create backup user'
   user:
-    name: 'backup'
+    name: 'borg'
     shell: '/bin/bash'
-    home: '/home/backup'
+    home: '/home/borg'
     createhome: true
-    group: 'backup'
+    group: 'borg'
     state: 'present'
 
 - name: 'create home folder'
   file:
-    path: '/home/backup/repos'
-    owner: 'backup'
-    group: 'backup'
+    path: '/home/borg/repos'
+    owner: 'borg'
+    group: 'borg'
     mode: '0700'
     state: 'directory'
 
 - name: 'create .ssh folder'
   file:
-    path: '/home/backup/repos'
-    owner: 'backup'
-    group: 'backup'
+    path: '/home/borg/repos'
+    owner: 'borg'
+    group: 'borg'
     mode: '0700'
     state: 'directory'
 
 - name: 'create repos folder'
   file:
-    path: '/home/backup/repos'
-    owner: 'backup'
-    group: 'backup'
+    path: '/home/borg/repos'
+    owner: 'borg'
+    group: 'borg'
     mode: '0700'
     state: 'directory'
 ...
