@@ -1,0 +1,7 @@
+- name: 'update trusted ca'
+  shell: '/usr/sbin/update-ca-certificates'
+
+- name: 'restart gitea'
+  systemd:
+    name: 'gitea'
+    state: 'restarted'

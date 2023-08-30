@@ -1,110 +1,312 @@
 ---
-- name: configure icinga2-ido-pgsql (host)
+# ***** Icinga2 *****
+- name: 'PGSQL | preseed IDO debconf variables'
+  # When icinga2-ido-pgsql is installed for the first time:
+  #  - db `icinga2` is automatically created as `postgres` user
+  #  - user `nagios` for socket authentication is created
+  #  - user `nagios` is granted privilegies on db `icinga2`
+  #  - db `icinga2` is populated with DB IDO schema
+  #  - pgsql is enabled as default DB IDO
   debconf:
       name: 'icinga2-ido-pgsql'
-      question: 'icinga2-ido-pgsql/remote/host'
-      vtype: 'string'
-      value: 'localhost'
+      question: 'icinga2-ido-pgsql/{{ item[0] }}'
+      vtype: '{{ item[1] }}'
+      value: '{{ item[2] }}'
+  loop:
+    - [ 'dbconfig-install', 'boolean', 'true' ]
+    - [ 'enable', 'boolean', 'true' ]
+    - [ 'pgsql/authmethod-user', 'string', 'ident' ]
+    - [ 'pgsql/authmethod-admin', 'string', 'ident' ]
+    - [ 'pgsql/method', 'string', 'Unix socket' ]
+    - [ 'db/dbname', 'string', 'icinga2' ]
+    - [ 'db/app-user', 'string', 'nagios' ]
+    - [ 'dbconfig-reinstall', 'boolean', 'true' ]
 
-- name: configure icinga2-ido-pgsql (enable)
-  debconf:
-      name: 'icinga2-ido-pgsql'
-      question: 'icinga2-ido-pgsql/enable'
-      vtype: 'boolean'
-      value: true
-
-- name: configure icinga2-ido-pgsql (dbconfig-install)
-  debconf:
-      name: 'icinga2-ido-pgsql'
-      question: 'icinga2-ido-pgsql/dbconfig-install'
-      vtype: 'boolean'
-      value: true
-
-- name: configure icinga2-ido-pgsql (dbconfig-reinstall)
-  debconf:
-      name: 'icinga2-ido-pgsql'
-      question: 'icinga2-ido-pgsql/dbconfig-reinstall'
-      vtype: 'boolean'
-      value: true
-
-
-# - name: nasty dpkg-reconfigure
-#   command: "dpkg-reconfigure --frontend noninteractive icinga2-ido-pgsql"
-#
-# - name: configure icinga2-ido-pgsql (dbconfig-reinstall)
-#   debconf:
-#       name: 'icinga2-ido-pgsql'
-#       question: 'icinga2-ido-pgsql/dbconfig-reinstall'
-#       vtype: 'boolean'
-#       value: false
-
-
-- include_role:
-    name: service
+- name: 'create icinga2 service role'
+  include_role: name='service'
   vars:
-    service_name: icinga2
+    service_name: 'icinga2'
     service_packages:
-      - icinga2-ido-pgsql
-      - monitoring-plugins
-      - nagios-plugins-contrib
-      - icinga2
-      - icingacli
-      - php-ldap
-      - php-pgsql
-      - php-intl
-      - php-imagick
-      - icingaweb2-module-monitoring
-      - icingaweb2
-      # TODO: log, add a centralized log server
-      - rsyslog
-      - rsync
+      - 'icinga2'
+      - 'icingacli'
+      - 'icinga2-ido-pgsql'
+      - 'monitoring-plugins'
+      - 'libnet-ldap-perl'
+#      - 'nagios-plugins-contrib'
 
-- name: enable ido-pgsql and command features
-  command: "icinga2 feature enable ido-pgsql command"
-  register: icinga2_features
-  changed_when: "'Enabling' in icinga2_features.stdout"
-  notify: restart icinga2
+- name: 'install extra monitoring plugins'
+  copy:
+    src: '{{ item }}'
+    dest: '/usr/lib/nagios/plugins/{{ item }}'
+    mode: '0755'
+    owner: 'nagios'
+    group: 'nagios'
+  loop:
+    - 'check_ldap_syncrepl_status.pl'
+    - 'check_backup.sh'
 
-- name: copy icingaweb2 configuration
+- name: 'create directory for hosts configuration'
+  file:
+    path: '/etc/icinga2/conf.d/hosts/'
+    state: 'directory'
+    owner: 'nagios'
+    group: 'nagios'
+    mode: '0770'
+
+- name: 'customize icinga2 host conf.d'
+  copy:
+    src: 'icinga2/{{ item }}'
+    dest: '/etc/icinga2/conf.d/{{ item }}'
+  notify: 'reload icinga2'
+  loop:
+    - 'templates.conf'
+    - 'services.conf'
+    - 'apt.conf'
+    - 'command-ldapsync.conf'
+    - 'command-backup.conf'
+- name: 'disable local host conf.d'
+  file:
+    path: '/etc/icinga2/conf.d/hosts.conf'
+    state: 'absent'
+  notify: 'reload icinga2'
+
+- name: 'create icinga2 ssh config dir'
+  file:
+    path: '/var/lib/nagios/.ssh'
+    owner: 'nagios'
+    group: 'nagios'
+    mode: '0700'
+    state: 'directory'
+  tags:
+    - 'ssh_certs'
+
+- name: 'upload user ssh ca'
+  copy:
+    content: |
+      {% for ca in ssh_user_ca %}
+      {{ ca }}
+      {% endfor %}
+    dest: '/var/lib/nagios/.ssh/user_ca.pub'
+  tags:
+    - 'ssh_certs'
+
+- name: 'upload host ssh ca'
+  copy:
+    content: |
+      {% for ca in ssh_server_ca %}
+      @cert-authority *.dmz.{{ domain }} {{ ca }}
+      {% endfor %}
+    dest: '/var/lib/nagios/.ssh/known_hosts'
+    owner: 'nagios'
+    group: 'nagios'
+  tags:
+    - 'ssh_certs'
+
+- name: 'generate and sign ssh user cert for icinga'
+  import_role: name='ca_cert'
+  vars:
+    ca_cert_common_name: 'icinga'
+    ca_cert_proto: 'ssh'
+    ca_cert_client: true
+    ca_cert_ssh_ca_path: '/var/lib/nagios/.ssh/user_ca.pub'
+    ca_cert_ssh_key_path: '/var/lib/nagios/.ssh/id_ed25519'
+  tags:
+    - 'ssh_certs'
+
+- name: 'set private key ownership'
+  file:
+    path: '/var/lib/nagios/.ssh/id_ed25519'
+    owner: 'nagios'
+    group: 'nagios'
+  tags:
+    - 'ssh_certs'
+
+# ***** IcingaWeb2 *****
+- name: 'PGSQL | IcingaWeb2 tunings'
+  block:
+    - name: 'PGSQL | create IcingaWeb2 user preference DB'
+      postgresql_db:
+        name: 'icingaweb2'
+      register: icingaweb2_db
+    - name: 'PGSQL | create IcingaWeb2 socket authentication user'
+      postgresql_user:
+        db: 'icingaweb2'
+        name: 'www-data'
+        priv: 'ALL'
+    - name: 'PGSQL | GRANT CONNECT to IDO'
+      postgresql_privs:
+        db: 'icinga2'
+        privs: 'CONNECT'
+        type: 'database'
+        role: 'www-data'
+    - name: 'PGSQL | GRANT SCHEMA USAGE on IDO'
+      postgresql_privs:
+        db: 'icinga2'
+        privs: 'USAGE'
+        type: 'schema'
+        objs: 'public'
+        role: 'www-data'
+    - name: 'PGSQL | GRANT SELECT on all IDO tables (existing)'
+      postgresql_privs:
+        db: 'icinga2'
+        privs: 'SELECT'
+        type: 'table'
+        schema: 'public'
+        objs: 'ALL_IN_SCHEMA'
+        role: 'www-data'
+    - name: 'PGSQL | GRANT SELECT on all IDO tables (default privilege)'
+      postgresql_privs:
+        db: 'icinga2'
+        privs: 'SELECT'
+        type: 'default_privs'
+        schema: 'public'
+        objs: 'TABLES'
+        role: 'www-data'
+        target_roles: 'nagios'
+  become: true
+  become_method: 'su'
+  become_user: 'postgres'
+
+
+- name: 'install IcingaWeb2 packages'
+  apt:
+    pkg:
+      - 'icingaweb2'
+      - 'icingaweb2-module-monitoring'
+      - 'php-ldap'
+      - 'php-pgsql'
+      - 'php-intl'
+      - 'php-imagick'
+      - 'php-fpm'
+      - 'rsync'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
+
+- name: 'PGSQL | populate IcingaWeb2 user preference DB'
+  shell: 'cat /usr/share/icingaweb2/etc/schema/pgsql.schema.sql | psql -d icingaweb2'
+  become: true
+  become_method: 'su'
+  become_flags: '-p'
+  become_user: 'www-data'
+  when: icingaweb2_db.changed
+
+- name: 'LDAP | upload client root ca'
+  copy:
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/etc/ldap/server_ca.crt'
+  tags:
+    - 'tls_int'
+
+- name: 'LDAP | configure client'
+  copy:
+    src: 'ldap.conf'
+    dest: '/etc/ldap/ldap.conf'
+  when: ldap_tls_enabled
+
+- name: 'try to read LDAP service password'
+  command: 'sed -n "s/^bind_pw\s\?=\s\?\"\(.\+\)\"$/\1/p" /etc/icingaweb2/resources.ini'
+  register: icingaweb2_read_ldap_passwd
+  failed_when: icingaweb2_read_ldap_passwd.rc > 2
+  no_log: true
+  tags:
+    - 'service_password'
+
+- name: 'set LDAP service password'
+  set_fact:
+    icingaweb2_ldap_passwd: '{{ icingaweb2_read_ldap_passwd.stdout | d("") }}'
+  no_log: true
+  tags:
+    - 'service_password'
+
+- block:
+    - name: 'LDAP | generate client service password'
+      gen_passwd: 'length=32'
+      register: 'icingaweb2_ldap_gen_passwd'
+      no_log: true
+      tags:
+        - 'service_password'
+    - name: 'LDAP | set client service password on server'
+      delegate_to: 'localhost'
+      ldap_passwd:
+        dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+        passwd: '{{ icingaweb2_ldap_gen_passwd.passwd }}'
+        server_uri: 'ldap://{{ ldap_server }}'
+        start_tls: '{{ ldap_tls_enabled }}'
+        bind_dn: '{{ ldap_admin_dn }}'
+        bind_pw: '{{ ldap_admin_pw }}'
+      no_log: true
+    - name: 'LDAP | set client service password on client'
+      set_fact:
+        icingaweb2_ldap_passwd: '{{ icingaweb2_ldap_gen_passwd.passwd }}'
+      no_log: true
+  when: icingaweb2_ldap_passwd == '' or ldap_renew_secret
+  tags:
+    - 'service_password'
+
+- name: 'configure IcingaWeb2 (static files)'
   synchronize:
-    src: icingaweb2
-    dest: /etc
+    src: 'icingaweb2'
+    dest: '/etc'
     rsync_opts:
-        - "--chmod Du=rwx,Dg=rwx,Do=,Fu=rw,Fg=rw,Fo= "
-        - "--chown root:icingaweb2"
+        - "--chmod=Du+rwx,Dg+rwx,Do-rwx,Fu+rw,Fg+rw,Fo-rwx"
+        - "--chown=root:icingaweb2"
 
-- name: enable icingaweb2 monitoring plugin
+- name: 'create enabledModules folder'
+  file:
+    path: '/etc/icingaweb2/enabledModules/'
+    state: 'directory'
+    owner: 'root'
+    group: 'icingaweb2'
+    mode: '0770'
+
+- name: 'enable IcingaWeb2 monitoring plugin'
   file:
     src: '/usr/share/icingaweb2/modules/monitoring'
     dest: '/etc/icingaweb2/enabledModules/monitoring'
-    state: link
+    state: 'link'
 
-- name:
-  command: grep -Po 'password = "\K.*?(?=")' /etc/icinga2/features-available/ido-pgsql.conf
-  register: icinga2_password
-  changed_when: false
-
-- name: configure icingaweb2 resources
+- name: 'configure IcingaWeb2 (templates)'
   template:
-    src: icingaweb2/resources.ini.j2
-    dest: /etc/icingaweb2/resources.ini
-    owner: root
-    group: icingaweb2
-    mode: 0640
+    src: 'icingaweb2/{{ item }}.j2'
+    dest: '/etc/icingaweb2/{{ item }}'
+    owner: 'root'
+    group: 'icingaweb2'
+    mode: '0660'
+  loop:
+    - 'resources.ini'
+    - 'authentication.ini'
+    - 'groups.ini'
+  tags:
+    - 'service_password'
 
-- name: create icinga2 hosts directory
-  file:
-    path: "{{ item }}"
-    state: directory
-    owner: icinga2
-    group: icinga2
-    mode: 0770
-  with_items:
-    - /etc/icinga2/conf.d/hosts/
-
-- name: add nginx configurations
+- name: 'NGINX | configure IcingaWeb2 locations'
   template:
-    src: icinga.conf
-    dest: "/etc/nginx/locations/{{ server_fqdn }}/service.conf"
+    src: 'icinga.conf'
+    dest: "/etc/nginx/locations/{{ icingaweb2_nginx_fqdn }}/service.conf"
   notify:
-    - restart nginx
+    - 'reload nginx'
+
+- name: 'MONITORING | add HTTP service'
+  block:
+    - name: 'MONITORING | add service to monitoring entry'
+      set_fact:
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+             'address': ansible_host,
+             'vhosts_uri': { icingaweb2_nginx_fqdn: {'/icingaweb2': { 'onredirect': 'ok' }} },
+             }, recursive=true) }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine({host_fqdn: monitoring_entry}) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
+
+...

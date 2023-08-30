@@ -1,0 +1,134 @@
+---
+- name: 'check | container folder exists'
+  stat:
+    path: '/var/lib/lxc/{{ vm_name }}'
+  register: container_dir
+
+- name: 'check | container exists'
+  container_exists:
+    name: '{{ vm_name }}'
+  register: container_exists
+
+- name: 'check | distro is supported'
+  assert:
+    that: distro in [ 'debian', 'alpine' ]
+
+- name: 'check | Debian | release is supported'
+  assert:
+    that: release in [ 'bullseye', 'sid', 'buster' ]
+    msg: 'release {{ release }} not supported by debian template'
+  when: distro == 'debian'
+
+- block:
+    - name: 'create | Debian | Privileged Container'
+      lxc_container:
+        name: '{{ vm_name }}'
+        backing_store: 'lvm'
+        fs_size: '{{ vm_size }}'
+        vg_name: '{{ vg_name }}'
+        lv_name: 'vm_{{ vm_name }}'
+        fs_type: 'xfs'
+        container_log: true
+        template: 'debian'
+        template_options: '--release {{ distro }} --packages=ssh,python3,python3-apt'
+        state: 'stopped'
+      # suppress messages related to file descriptors
+      # leaking when lvm is invoked
+      environment:
+        LVM_SUPPRESS_FD_WARNINGS: 1
+      when: (not unprivileged) and distro == 'debian'
+
+    - name: 'pre-create | Unprivileged Container | Subxid Script'
+      copy:
+        src: 'find_subxid.sh'
+        dest: 'find_subxid.sh'
+      when: unprivileged
+
+    - name: 'pre-create | Unprivileged Container | Find Subxid'
+      command: 'bash find_subxid.sh'
+      register: avail_subxid
+      when: unprivileged
+
+    - name: 'pre-create | Unprivileged Container | Set Subxid'
+      set_fact:
+        subuidmap: '{{ avail_subxid.stdout_lines[0] }}'
+        subgidmap: '{{ avail_subxid.stdout_lines[1] }}'
+      when: unprivileged
+
+    - name: 'pre-create | Unprivileged Container | Allocate Subxid'
+      command: >-
+        usermod
+        -v {{ '{}-{}'.format(subuidmap.split(' ')[0],
+                             subuidmap.split(' ')[0]|int+subuidmap.split(' ')[1]|int-1) }}
+        -w {{ '{}-{}'.format(subgidmap.split(' ')[0],
+                             subgidmap.split(' ')[0]|int+subgidmap.split(' ')[1]|int-1) }}
+        root
+
+    - name: 'pre-create | Unprivileged Container | Create config stub'
+      copy:
+        content: |
+          lxc.idmap = u 0 {{ subuidmap }}
+          lxc.idmap = g 0 {{ subgidmap }}
+        dest: '/tmp/lxc_unpriv_config'
+      when: unprivileged
+
+    - name: 'create | Unprivileged Container'
+      lxc_container:
+        name: '{{ vm_name }}'
+        backing_store: 'lvm'
+        fs_type: 'xfs'
+        fs_size: '{{ vm_size }}'
+        vg_name: '{{ vg_name }}'
+        lv_name: 'vm_{{ vm_name }}'
+        container_log: true
+        template: 'download'
+        template_options: '-d {{ distro }} -r {{ release }} -a amd64'
+        config: '/tmp/lxc_unpriv_config'
+        state: 'stopped'
+      when: unprivileged
+
+    - name: 'post-create | LXC Container Configuration'
+      template:
+        src: 'config.j2'
+        dest: '/var/lib/lxc/{{ vm_name }}/config'
+
+    - block:
+        - name: 'post-create | Alpine | Force restart'
+          lxc_container:
+            name: '{{ vm_name }}'
+            state: 'restarted'
+        - name: 'post-create | Alpine | Guest Network Configuration'
+          raw: |
+            rm /etc/network/interfaces
+            echo 'nameserver {{ hostvars | ip_from_inventory('vm_gateway') }}' > /etc/resolv.conf
+          delegate_to: '{{ vm_name }}'
+          connection: 'ssh_lxc'
+        - name: 'post-create | Alpine | Force restart'
+          lxc_container:
+            name: '{{ vm_name }}'
+            state: 'restarted'
+        - name: 'post-create | Alpine | Install Python'
+          raw: |
+            apk update
+            apk upgrade
+            apk add python3
+          delegate_to: '{{ vm_name }}'
+          connection: 'ssh_lxc'
+      when: distro == 'alpine'
+
+    - name: 'post-create | Debian | Guest Initial Configuration'
+      lxc_container:
+        name: '{{ vm_name }}'
+        container_command: |
+          echo 'nameserver {{ hostvars | ip_from_inventory('vm_gateway') }}' > /etc/resolv.conf
+          apt update
+          apt install -y python3 python3-apt
+          systemctl mask systemd-journald-audit.socket
+        state: 'stopped'
+
+    - name: 'post-create | Start container'
+      lxc_container:
+          name: '{{ vm_name }}'
+          state: 'started'
+      when: auto_start|bool
+  when: not (container_exists.exists and container_dir.stat.isdir)

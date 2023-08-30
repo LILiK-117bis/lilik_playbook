@@ -1,0 +1,4 @@
+---
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
+monitoring_agent_ssh_mode: true
+...

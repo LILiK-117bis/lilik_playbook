@@ -1,0 +1,127 @@
+---
+- name: 'SYNC | create replication consumer certificate'
+  import_role: name='ca_cert'
+  vars:
+    ca_cert_common_name: '{{ host_fqdn }}'
+    ca_cert_proto: 'tls'
+    ca_cert_client: true
+    ca_cert_tls_subj: '{{ openssl_x509_prefix }}/OU=LDAP/CN={{ ca_cert_common_name }}'
+    ca_cert_tls_ca_path: '/etc/ldap/user_ca.crt'
+    ca_cert_tls_key_path: '/etc/ldap/syncrepl.key'
+    ca_cert_tls_csr_path: '/etc/ldap/syncrepl.csr'
+    ca_cert_tls_cert_path: '/etc/ldap/syncrepl.crt'
+  when: ldap_syncrepl_is_consumer
+  tags:
+    - 'pki'
+    - 'pki::tls'
+
+- name: 'SYNC | set key ownership'
+  file:
+    path: '/etc/ldap/syncrepl.key'
+    owner: 'openldap'
+    group: 'openldap'
+  when: ldap_syncrepl_is_consumer
+  tags:
+    - 'pki'
+    - 'pki::tls'
+
+- name: 'SYNC | activate syncprov module'
+  ldap_attr:
+    dn: 'cn=module{0},cn=config'
+    name: 'olcModuleLoad'
+    values: '{4}syncprov'
+    state: 'present'
+  when: ldap_syncrepl_is_provider
+
+- name: 'SYNC | activate overlay'
+  ldap_entry:
+    dn: 'olcOverlay={2}syncprov,olcDatabase={1}mdb,cn=config'
+    objectClass:
+      - 'olcOverlayConfig'
+      - 'olcSyncProvConfig'
+  when: ldap_syncrepl_is_provider
+
+- name: 'SYNC | disable limits for consumer'
+  ldap_attr:
+    dn: 'olcDatabase={1}mdb,cn=config'
+    name: 'olcLimits'
+    state: 'exact'
+    values:
+      - >-
+        {0} dn.children=ou=LDAP,{{ ldap_basedn }}
+        time.soft=unlimited
+        time.hard=unlimited
+        size.soft=unlimited
+        size.hard=unlimited
+  when: ldap_syncrepl_is_provider
+
+- name: 'SYNC | set serverID'
+  ldap_attr:
+    dn: 'cn=config'
+    name: 'olcServerID'
+    values: '{{ ldap_syncrepl_server_id }}'
+    state: 'exact'
+
+- name: 'SYNC | build SyncRepl configuration'
+  set_fact:
+    syncrepls: |
+      {{ syncrepls|d([])
+         + [
+             '{'+idx|string+'}'
+             + ' rid='+item.rid|string
+             + ' provider='+item.url
+             + ' searchbase='+ldap_basedn
+             + ' type=refreshAndPersist'
+             + ' interval=00:01:00:00'
+             + ' retry="5 5 300 5"'
+             + ' timeout=1'
+             + ' bindmethod=sasl'
+             + ' saslmech=EXTERNAL'
+             + ' starttls=critical'
+             + ' tls_cert="/etc/ldap/syncrepl.crt"'
+             + ' tls_key="/etc/ldap/syncrepl.key"'
+             + ' tls_cacert="/etc/ldap/server_ca.crt"'
+           ] }}
+  loop: '{{ ldap_syncrepl_target_providers }}'
+  loop_control:
+    index_var: idx
+  when: ldap_syncrepl_is_consumer
+
+- debug:
+    msg: syncrepls
+
+- name: 'SYNC | apply SyncRepl configuration'
+  ldap_attr:
+    dn: 'olcDatabase={1}mdb,cn=config'
+    name: 'olcSyncRepl'
+    values: '{{ syncrepls }}'
+    state: 'exact'
+  ignore_errors: true
+  when: ldap_syncrepl_is_consumer
+
+- name: 'SYNC | enable MirrorMode'
+  ldap_attr:
+    dn: 'olcDatabase={1}mdb,cn=config'
+    name: 'olcMirrorMode'
+    values: 'TRUE'
+    state: 'exact'
+  when:
+    - ldap_syncrepl_is_consumer
+    - ldap_syncrepl_is_provider
+
+- name: 'MONITORING | add ldap_master'
+  set_fact:
+    monitoring_facts: >
+      {{ hostvars[monitoring_host]['monitoring_facts']
+          | default({})
+          | combine({
+                      host_fqdn: {
+                        "vars": { "ldap_master": ldap_syncrepl_target_providers[0].url }
+                      }
+                    }, recursive=True) }}
+  delegate_to: '{{ monitoring_host }}'
+  delegate_facts: true
+  when: ldap_syncrepl_is_consumer
+  tags:
+    - 'monitoring'
+...

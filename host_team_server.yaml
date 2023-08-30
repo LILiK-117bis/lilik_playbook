@@ -1,0 +1,18 @@
+---
+- hosts: lilikhost
+  roles:
+    - role: lxc_guest
+      vm_name: team
+    - role: ssh_server
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: team
+- hosts: team
+  roles:
+      - role: mattermost
+      - role: nginx
+        server_name: "team.lilik.it"
+        config_name: "mattermost"
+        remote_host: "http://127.0.0.1:8065"
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

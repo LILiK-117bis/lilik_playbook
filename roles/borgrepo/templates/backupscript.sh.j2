@@ -1,0 +1,161 @@
+#!/bin/bash
+
+REPO="borg@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}"
+
+export BORG_RSH="ssh -i /root/.ssh/id_ed25519_BORG"
+export BORG_PASSPHRASE="{{ item[1].encryption_passphrase | d('') }}"
+
+export BORG_RELOCATED_REPO_ACCESS_IS_OK="no"
+export BORG_UNKNOWN_UNENCRYPTED_REPO_ACCESS_IS_OK="no"
+
+borg --version
+
+borg break-lock borg@{{ item[1].ansible_host }}.dmz.{{ domain }}:{{ item[0].key }}
+
+
+{% for folder in item[0].value.folders|d({})|dict2items %}
+##### Folder {{ folder.key }}
+BEGIN_EPOCH=$(date +%s)
+DATE="folder-{{ folder.key }}-$(date --iso-8601)-$(hostname)"
+echo "Starting backup for $DATE"
+borg create \
+     --verbose \
+     --filter AME \
+     --list \
+     --stats \
+     --show-rc \
+     --compression lz4 \
+     --exclude-caches \
+{%   for exclude in folder.value.excludes|d([]) %}
+     --exclude '{{ exclude }}' \
+{%   endfor %}
+     \
+     ${REPO}::'folder-{{ folder.key }}-{hostname}-{now:%Y-%m-%d@%H:%M}' \
+     {{ folder.value.path }}
+
+backup_rc=$?
+prune_rc=99
+
+if [ "${backup_rc}" = "2" ]; then
+    echo "Failed backup for $DATE"
+else
+    echo "Completed backup for $DATE"
+
+    echo "Pruning archives for $DATE"
+    borg prune \
+	 --list \
+	 --prefix 'folder-{{ folder.key }}-{hostname}-' \
+	 --show-rc \
+	 --keep-daily {{ folder.value.daily|d(7) }} \
+	 --keep-weekly {{ folder.value.weekly|d(4) }} \
+	 --keep-monthly {{ folder.value.monthly|d(6) }} \
+	 ${REPO}
+
+    prune_rc=$?
+
+    if [ "${prune_rc}" = "2" ]; then
+	echo "Failed pruning for $DATE"
+    else
+	echo "Completed pruning for $DATE"
+    fi
+fi
+
+echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item[0].key }}.{{ item[1].ansible_host }}/folder-{{ folder.key }}
+
+{% endfor %}
+#####
+
+{% for db in item[0].value.pgsql_dbs|d({})|dict2items %}
+##### pgSQL DB {{ db.key }}
+DATE="pgsqldb-{{ db.key }}-$(date --iso-8601)-$(hostname)"
+echo "Starting backup for $DATE"
+su postgres -c 'pg_dump -d {{ db.value.dbname }}' | borg create \
+			    --verbose \
+			    --filter AME \
+			    --list \
+			    --stats \
+			    --show-rc \
+			    --compression lz4 \
+			    --stdin-name "{{ db.value.dbname }}.sql" \
+			    \
+			    ${REPO}::'pgsqldb-{{ db.key }}-{hostname}-{now:%Y-%m-%d@%H:%M}' \
+			    -
+
+backup_rc=$?
+prune_rc=99
+
+if [ "${backup_rc}" = "2" ]; then
+    echo "Failed backup for $DATE"
+else
+    echo "Completed backup for $DATE"
+
+    echo "Pruning archives for $DATE"
+    borg prune \
+	 --list \
+	 --prefix 'pgsqldb-{{ db.key }}-{hostname}-' \
+	 --show-rc \
+	 --keep-daily {{ db.value.daily|d(7) }} \
+	 --keep-weekly {{ db.value.weekly|d(4) }} \
+	 --keep-monthly {{ db.value.monthly|d(6) }} \
+	 ${REPO}
+
+    prune_rc=$?
+
+    if [ "${prune_rc}" = "2" ]; then
+	echo "Failed pruning for $DATE"
+    else
+	echo "Completed pruning for $DATE"
+    fi
+fi
+
+echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item[0].key }}.{{ item[1].ansible_host }}/pgsqldb-{{ db.key }}
+
+{% endfor %}
+
+
+{% for db in item[0].value.ldap_dbs|d({})|dict2items %}
+##### LDAP DB {{ db.key }}
+DATE="ldapdb-{{ db.key }}-$(date --iso-8601)-$(hostname)"
+echo "Starting backup for $DATE"
+slapcat -n {{ db.value.dbnum }} | borg create \
+			    --verbose \
+			    --filter AME \
+			    --list \
+			    --stats \
+			    --show-rc \
+			    --compression lz4 \
+			    --stdin-name "slapcat.db{{ db.value.dbnum }}.ldif" \
+			    \
+			    ${REPO}::'ldapdb-{{ db.key }}-{hostname}-{now:%Y-%m-%d@%H:%M}' \
+			    -
+
+backup_rc=$?
+prune_rc=99
+
+if [ "${backup_rc}" = "2" ]; then
+    echo "Failed backup for $DATE"
+else
+    echo "Completed backup for $DATE"
+
+    echo "Pruning archives for $DATE"
+    borg prune \
+	 --list \
+	 --prefix 'ldapdb-{{ db.key }}-{hostname}-' \
+	 --show-rc \
+	 --keep-daily {{ db.value.daily|d(7) }} \
+	 --keep-weekly {{ db.value.weekly|d(4) }} \
+	 --keep-monthly {{ db.value.monthly|d(6) }} \
+	 ${REPO}
+
+    prune_rc=$?
+
+    if [ "${prune_rc}" = "2" ]; then
+	echo "Failed pruning for $DATE"
+    else
+	echo "Completed pruning for $DATE"
+    fi
+fi
+
+echo "$(date +%s)|${BEGIN_EPOCH}|${backup_rc}|${prune_rc}" > /var/log/backup-status/{{ item[0].key }}.{{ item[1].ansible_host }}/ldapdb-{{ db.key }}
+
+{% endfor %}

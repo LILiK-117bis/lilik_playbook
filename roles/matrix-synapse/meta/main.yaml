@@ -1,4 +1,5 @@
 ---
 dependencies:
-  - role: nginx
-    server_fqdn: "matrix.lilik.it"
+  - role: 'nginx'
+    nginx_site_fqdn: '{{ synapse_nginx_fqdn }}'
+...

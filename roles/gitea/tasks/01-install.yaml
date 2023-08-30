@@ -1,0 +1,86 @@
+---
+- name: 'install requirements'
+  apt:
+    pkg:
+      - 'git'
+      - 'postgresql'
+      - 'postgresql-contrib'
+      - 'python3-psycopg2'
+      - 'gnupg2'
+      - 'ca-certificates'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: 'create git system user'
+  user:
+    name: 'git'
+    state: 'present'
+    home: '/home/git'
+    shell: '/bin/bash'
+    comment: 'Git Version Control'
+    system: true
+
+- name: 'add www-data to git group'
+  user:
+    append: true
+    name: 'www-data'
+    groups: 'git'
+
+- name: 'create gitea var directories'
+  file: 
+    state: 'directory'
+    path: '{{ item }}'
+    owner: 'git'
+    group: 'git'
+    mode: 0750
+  loop:
+    - '/var/lib/gitea'
+    - '/var/lib/gitea/custom'
+    - '/var/lib/gitea/data'
+    - '/var/lib/gitea/data/lfs'
+    - '/var/lib/gitea/log'
+
+- name: 'create gitea config directory'
+  file:
+    state: 'directory'
+    path: '/etc/gitea'
+    owner: 'root'
+    group: 'git'
+    mode: 0750
+
+- name: 'download gitea'
+  get_url:
+    url: 'https://dl.gitea.io/gitea/{{ gitea_version }}/gitea-{{ gitea_version }}-linux-amd64'
+    dest: '/usr/local/bin/gitea'
+    mode: '750'
+    owner: 'root'
+    group: 'git'
+  notify:
+    - 'restart gitea'
+
+- block:
+   - name: 'create gitea DB'
+     postgresql_db:
+       name: 'gitea'
+   - name: 'create gitea DB user'
+     postgresql_user:
+       name: 'git'
+       db: 'gitea'
+       priv: 'ALL'
+  become: true
+  become_method: 'su'
+  become_user: 'postgres'
+  tags: psql
+
+- name: 'create systemd unit'
+  copy:
+    src: 'gitea.service'
+    dest: '/etc/systemd/system/gitea.service'
+
+- name: 'enable systemd unit'
+  systemd:
+    daemon_reload: true
+    enabled: true
+    name: 'gitea'
+...

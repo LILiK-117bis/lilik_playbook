@@ -1,0 +1,172 @@
+---
+- name: 'check if config file exists'
+  stat:
+    path: '/etc/gitea/app.ini'
+  register: gitea_config_file
+
+- block:
+    - name: 'generate instance secrets'
+      command: '/usr/local/bin/gitea generate secret {{ item }}'
+      loop: [ 'INTERNAL_TOKEN', 'JWT_SECRET', 'LFS_JWT_SECRET', 'SECRET_KEY' ]
+      register: gitea_instance_secrets_out
+      no_log: true
+    - set_fact:
+        gitea_INTERNAL_TOKEN: '{{ gitea_instance_secrets_out.results[0].stdout }}'
+        gitea_JWT_SECRET: '{{ gitea_instance_secrets_out.results[1].stdout }}'
+        gitea_LFS_JWT_SECRET: '{{ gitea_instance_secrets_out.results[2].stdout }}'
+        gitea_SECRET_KEY: '{{ gitea_instance_secrets_out.results[3].stdout }}'
+      no_log: true
+  when: not gitea_config_file.stat.exists
+
+- block:
+    - name: 'read instance secrets'
+      command: 'sed -n "s/^{{ item }}\s\?=\s\?\(.\+\)$/\1/p" /etc/gitea/app.ini'
+      loop: [ 'INTERNAL_TOKEN', 'JWT_SECRET', 'LFS_JWT_SECRET', 'SECRET_KEY' ]
+      register: gitea_instance_secrets_out
+      no_log: true
+    - set_fact:
+        gitea_INTERNAL_TOKEN: '{{ gitea_instance_secrets_out.results[0].stdout }}'
+        gitea_JWT_SECRET: '{{ gitea_instance_secrets_out.results[1].stdout }}'
+        gitea_LFS_JWT_SECRET: '{{ gitea_instance_secrets_out.results[2].stdout }}'
+        gitea_SECRET_KEY: '{{ gitea_instance_secrets_out.results[3].stdout }}'
+      no_log: true
+  when: gitea_config_file.stat.exists
+
+- name: 'create config file'
+  template:
+    src: 'app.ini.j2'
+    dest: '/etc/gitea/app.ini'
+    mode: '0640'
+    group: 'git'
+    owner: 'root'
+
+- name: 'start gitea'
+  systemd:
+    enabled: true
+    state: 'restarted'
+    name: 'gitea'
+
+- name: 'wait for gitea to build the database'
+  pause:
+    seconds: 20
+
+- name: 'try to read ldap configuration from sql'
+  postgresql_query:
+    login_user: 'git'
+    db: 'gitea'
+    query: 'SELECT cfg FROM login_source WHERE id = 1 LIMIT 1'
+  register: gitea_psql_auth_query
+  become: true
+  become_method: su
+  become_user: git
+  tags:
+   - 'role::gitea::ldap_integration'
+   - 'ldap::integration'
+
+- name: 'try to parse gitea ldap config'
+  set_fact:
+    gitea_ldap_config: '{{ gitea_psql_auth_query.query_result.0.cfg | d("{}") | from_json }}'
+  tags:
+   - 'role::gitea::ldap_integration'
+   - 'ldap::integration'
+
+- name: 'configure ldap'
+  set_fact:
+    gitea_ldap_config: '{{ gitea_ldap_config | combine({item.key: item.value}) }}'
+  loop: '{{ gitea_ldap_vars | dict2items }}'
+  loop_control:
+    label: '{{ item.key }}'
+  vars:
+    gitea_ldap_vars:
+      AdminFilter: "(&(authorizedService=gitea)(memberOf=cn=admin,ou=Group,{{ ldap_basedn }}))"
+      AllowDeactivateAll: false
+      AttributeMail: "mail"
+      AttributeName: "cn"
+      AttributeSSHPublicKey: ""
+      AttributeSurname: ""
+      AttributeUsername: "uid"
+      AttributesInBind: false
+      BindDN: "cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}"
+      Enabled: true
+      Filter: "(&(authorizedService=gitea)(uid=%s))"
+      Host: "{{ ldap_server }}"
+      Name: "ldap"
+      Port: 389
+      SearchPageSize: 0
+      SecurityProtocol: 2
+      SkipVerify: false
+      UserBase: "ou=People,{{ ldap_basedn }}"
+      UserDN: ""
+  tags:
+   - 'role::gitea::ldap_integration'
+   - 'ldap::integration'
+
+- name: 'update tls ldap server ca'
+  copy:
+    content: '{{ ldap_tls_server_ca }}'
+    dest: '/usr/local/share/ca-certificates/lilik_server_ca.crt'
+    owner: 'root'
+    group: 'root'
+    mode: 0644
+  notify: 'update trusted ca'
+  tags:
+   - 'role::gitea::ldap_integration'
+   - 'ldap::integration'
+   - 'pki'
+   - 'pki::tls'
+
+- name: 'configure ldap client'
+  copy:
+    src: 'ldap.conf'
+    dest: '/etc/ldap/ldap.conf'
+  tags:
+   - 'role::gitea::ldap_integration'
+   - 'ldap::integration'
+
+- block:
+    - name: 'generate gitea ldap password'
+      gen_passwd: length=32
+      register: gitea_ldap_passwd
+      no_log: true
+    - name: 'set gitea ldap password in ldap'
+      delegate_to: 'localhost'
+      ldap_passwd:
+        dn: 'cn={{ host_fqdn }},ou=Server,{{ ldap_basedn }}'
+        passwd: '{{ gitea_ldap_passwd.passwd }}'
+        server_uri: 'ldap://{{ ldap_server }}'
+        start_tls: '{{ ldap_tls_enabled }}'
+        bind_dn: '{{ ldap_admin_dn }}'
+        bind_pw: '{{ ldap_admin_pw }}'
+    - name: 'set gitea ldap password in gitea'
+      set_fact:
+        gitea_ldap_config: '{{ gitea_ldap_config | combine({ "BindPassword": gitea_ldap_passwd.passwd }) }}'
+  when: gitea_ldap_config["BindPassword"] | d("") == "" or gitea_renew_secrets
+  tags:
+   - 'role::gitea::ldap_integration'
+   - 'ldap::integration'
+
+
+- name: 'write ldap configuration'
+  postgresql_query:
+    login_user: 'git'
+    db: 'gitea'
+    query: |
+      INSERT INTO login_source (id, type, name, is_actived, is_sync_enabled, cfg)
+      VALUES (1, 2, 'ldap', 't', 't', %(cfg)s)
+      ON CONFLICT (id) DO UPDATE
+      SET type = excluded.type, name = excluded.name, is_actived = excluded.is_actived, is_sync_enabled = excluded.is_sync_enabled, cfg = excluded.cfg
+    named_args:
+      cfg: '{{ gitea_ldap_config | to_json }}'
+  become: true
+  become_method: su
+  become_user: git
+  tags:
+   - 'role::gitea::ldap_integration'
+   - 'ldap::integration'
+
+- name: 'create nginx configuration'
+  template:
+    src: 'nginx_gitea.conf.j2'
+    dest: '/etc/nginx/locations/{{ gitea_nginx_fqdn }}/gitea.conf'
+  notify: 'reload nginx'
+...

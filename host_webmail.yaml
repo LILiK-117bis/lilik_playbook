@@ -1,0 +1,16 @@
+---
+- hosts: biff
+  roles:
+    - role: lxc_guest
+      vm_name: webmail
+    - role: ssh_server
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: webmail
+- hosts: webmail
+  roles:
+      - role: dns_record
+      - role: roundcube
+        mail_server: "mail.dmz.lilik"
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

@@ -1,0 +1,314 @@
+---
+- import_role: name='service'
+  vars:
+    service_name: 'nscd'
+    service_packages: 'nscd'
+  tags:
+    - 'install'
+    - 'role::ldap::install'
+
+- name: 'set debconf values'
+  debconf:
+    name: 'slapd'
+    question: '{{ item.question }}'
+    vtype: 'string'
+    value: '{{ item.value }}'
+  register: debconfs
+  loop:
+    - { question: 'slapd/domain', value: '{{ ldap_domain }}' }
+    - { question: 'slapd/dump_database', value: 'when needed' }
+    - { question: 'shared/organization', value: '{{ ldap_organization }}' }
+  tags:
+    - 'install'
+    - 'role::ldap::install'
+
+- import_role: name='service'
+  vars:
+    service_name: 'slapd'
+    service_packages:
+        - 'slapd'
+        - 'ldap-utils'
+        - 'libpam-ldap'
+        - 'python3-ldap'
+        - 'sudo'
+  tags:
+    - 'install'
+    - 'role::ldap::install'
+
+- name: 'delete old backups'
+  file:
+    path: '{{ item }}'
+    state: 'absent'
+  with_fileglob: '/var/backups/*.ldapdb'
+  when: debconfs.results[0].changed
+  tags:
+    - 'install'
+    - 'role::ldap::install'
+
+- name: 'backup old database and re-create'
+  command: 'dpkg-reconfigure -p critical slapd'
+  when: debconfs.results[0].changed
+  tags:
+    - 'install'
+    - 'role::ldap::install'
+
+- name: 'start slapd service'
+  service:
+      name: 'slapd'
+      enabled: true
+      state: 'started'
+  tags:
+    - 'install'
+    - 'role::ldap::install'
+
+- name: 'copy schemas'
+  copy:
+    src: '{{ item }}'
+    dest: '/etc/ldap/schema/'
+  loop:
+    - 'ldapns.ldif'
+    - 'kerberos.ldif'
+    - 'phamm.ldif'
+    - 'phamm-vacation.ldif'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+    - 'role::ldap::schemas'
+
+- name: 'activate schemas'
+  command:
+    cmd: 'ldapadd -Y EXTERNAL -H ldapi:/// -f /etc/ldap/schema/{{ item }}'
+    creates: '/etc/ldap/slapd.d/cn=config/cn=schema/cn={*}{{ item }}'
+  loop:
+    - 'ldapns.ldif'
+    - 'kerberos.ldif'
+    - 'phamm.ldif'
+    - 'phamm-vacation.ldif'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+    - 'role::ldap::schemas'
+
+- name: 'activate modules'
+  ldap_attr:
+    dn: 'cn=module{0},cn=config'
+    name: 'olcModuleLoad'
+    values:
+      - '{0}back_mdb'
+      - '{1}pw-sha2'
+      - '{2}auditlog'
+      - '{3}memberof'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+
+- name: 'create log dir'
+  file:
+    path: '/var/log/openldap'
+    owner: 'openldap'
+    group: 'openldap'
+    state: 'directory'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+
+
+- name: 'set loglevel'
+  ldap_attr:
+    dn: 'cn=config'
+    name: 'olcLogLevel'
+    state: 'exact'
+    values: 'stats acl'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+
+- name: 'activate auditlog overlay'
+  ldap_entry:
+    dn: 'olcOverlay={0}auditlog,olcDatabase={{ item.db }},cn=config'
+    objectClass:
+      - 'olcOverlayConfig'
+      - 'olcAuditLogConfig'
+    attributes:
+      olcAuditlogFile: '/var/log/openldap/{{ item.logfile }}'
+  loop:
+    - { db: '{0}config', logfile: 'audit_config.ldif' }
+    - { db: '{1}mdb', logfile: 'audit_mdb.ldif' }
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+
+- name: 'activate memberof overlay'
+  ldap_entry:
+    dn: 'olcOverlay={1}memberof,olcDatabase={1}mdb,cn=config'
+    objectClass:
+      - 'olcOverlayConfig'
+      - 'olcMemberOf'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+
+- name: 'set default password hash'
+  ldap_attr:
+    dn: 'olcDatabase={-1}frontend,cn=config'
+    name: 'olcPasswordHash'
+    values: '{SSHA512}'
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+
+- name: 'configure TLS x509 <-> ldap dn translation'
+  ldap_attr:
+    dn: 'cn=config'
+    name: 'olcAuthzRegexp'
+    state: 'exact'
+    values:
+      - >-
+       {0} ^cn=([^,]+),ou=Server,{{ ldap_x509_suffix }}$
+       cn=$1,ou=Server,{{ ldap_basedn }}
+      - >-
+       {1} ^mail=[^,]+,cn=([^,]+),ou=People,{{ ldap_x509_suffix }}$
+       cn=$1,ou=People,{{ ldap_basedn }}
+      - >-
+       {2} ^cn=([^,]+),ou=LDAP,{{ ldap_x509_suffix }}$
+       cn=$1,ou=LDAP,{{ ldap_basedn }}
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+
+- name: 'configure main tree acls'
+  ldap_attr:
+    dn: 'olcDatabase={1}mdb,cn=config'
+    name: 'olcAccess'
+    state: 'exact'
+    values:
+      # TODO: Remove hardcoded IP
+      - >-
+        {0} to dn.exact={{ ldap_basedn }} attrs=entry,objectClass,contextCSN
+        by peername.regex=10\.150\.42\..* read
+        by * break
+      - >-
+        {1} to dn.subtree={{ ldap_basedn }}
+        {% if ldap_syncrepl_is_provider %}
+        by dn.children=ou=LDAP,{{ ldap_basedn }} tls_ssf=256 read
+        {% endif %}
+        by * break
+      # [0] -> Admins can proxy-auth to RootDN
+      # /proxy-auth is not required for routine user-management operations
+      - >-
+        {2} to dn.exact=cn=admin,{{ ldap_basedn }} attrs=authzFrom
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} auth
+        by * none
+      # [1] :: ou=People
+      # [1.0] -> Admins can reset People `userPassword`
+      #       -> Group admins can reset subordinate `userPassword`
+      #       -> People can edit their `userPassword`
+      #       -> Anyone can auth with `userPassword` if using strong TLS.
+      - >-
+        {3} to dn.one=ou=People,{{ ldap_basedn }} attrs=userPassword
+        by anonymous peername.regex=10\.150\.42\..* {{ 'tls_ssf=128 ' if ldap_tls_enabled }}auth
+        by anonymous {{ 'tls_ssf=256 ' if ldap_tls_enabled }}auth
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} =azd
+        by set="this/manager/owner & user" =azd
+        by self =azd
+        by * none
+      # [1.1] -> Admins can add/remove People entries
+      - >-
+        {4} to dn.exact=ou=People,{{ ldap_basedn }} attrs=children
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
+        by * none
+
+      # [1.2] -> Admins can list the full People tree
+      #       -> Servers can perform search on People tree
+      - >-
+        {5} to dn.exact=ou=People,{{ ldap_basedn }}
+        by dn.children=ou=Server,{{ ldap_basedn }} search
+        by dn.children=ou=People,{{ ldap_basedn }} search
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} read
+        by * none
+      # [1.3] -> Admins can edit all People attributes
+      #       -> Servers can read all People attributes (except userPassword)
+      #       -> People can read all their attributes
+      #       -> Break: over privileges may be accorded later (i.e.: servers)
+      - >-
+        {6} to dn.one=ou=People,{{ ldap_basedn }}
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
+        by dn.children=ou=Server,{{ ldap_basedn }} read
+        by set="this/manager/owner & user" read
+        by self read
+        by * break
+      # [1.5] -> No other access to People tree
+      - >-
+        {7} to dn.subtree=ou=People,{{ ldap_basedn }}
+        by * none
+      # [2] :: ou=Group
+      # [2.1] -> Admins can list groups
+      #       -> Servers can list groups
+      - >-
+        {8} to dn.exact=ou=Group,{{ ldap_basedn }} attrs=entry
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} read
+        by dn.children=ou=Server,{{ ldap_basedn }} read
+        by dn.children=ou=People,{{ ldap_basedn }} read
+        by * none
+      # [2.2] -> Admins can create/delete groups
+      - >-
+        {9} to dn.exact=ou=Group,{{ ldap_basedn }} attrs=children
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
+        by * none
+      # [2.3] -> Admins can edit group members
+      #       -> Server can list group members
+      - >-
+        {10} to dn.one=ou=Group,{{ ldap_basedn }}
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
+        by dn.children=ou=Server,{{ ldap_basedn }} read
+        by set="this/owner & user" write
+        by * none
+      # [2.2] -> No other access to Group tree
+      - >-
+        {11} to dn.children=ou=Group,{{ ldap_basedn }}
+        by * none
+      # [3] :: ou=Server
+      # [3.0] -> Local servers can simple-bind their entries if using TLS
+      # /Server using TLS-client Auth with OU=Server are automatically authenticated
+      ## TODO: Remove hardcoded ip
+      - >-
+        {12} to dn.children=ou=Server,{{ ldap_basedn }} attrs=userPassword
+        by anonymous peername.regex=10\.150\.42\..* {{ 'tls_ssf=128 ' if ldap_tls_enabled }}auth
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} =azd
+        by * none
+      # [3.1] -> No other access to Server tree
+      - >-
+        {13} to dn.subtree=ou=Server,{{ ldap_basedn }}
+        by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
+        by * none
+      # [4] :: ou=VirtualDomains - WiP
+      # [4.0] -> Admins can write whole subtree
+      # [4.1] -> Servers can read whole subtree
+#      - >-
+#        to dn.subtree=ou=VirtualDomains,{{ ldap_basedn }}
+#         by group.exact=cn=admin,ou=Group,{{ ldap_basedn }} write
+#         by dn.children=ou=Server,{{ ldap_basedn }} read
+      # [5] :: ou=Kerberos - Wi
+  tags:
+    - 'configure'
+    - 'role::ldap::configure'
+    - 'role::ldap::acls'
+
+
+- name: 'MONITORING | set ldap_server'
+  set_fact:
+    monitoring_facts: >
+      {{ hostvars[monitoring_host]["monitoring_facts"]
+          | default({})
+          | combine({
+                      host_fqdn: {
+                        "address": ansible_host,
+                        "vars": { "ldap_base": ldap_basedn }
+                      }
+                    }, recursive=True) }}
+  delegate_to: '{{ monitoring_host }}'
+  delegate_facts: true
+  tags:
+    - 'monitoring'
+...
+

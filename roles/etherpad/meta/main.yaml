@@ -1,0 +1,5 @@
+---
+dependencies:
+  - role: 'nginx'
+    nginx_site_fqdn: '{{ etherpad_nginx_fqdn }}'
+...

@@ -1,9 +1,0 @@
----
-- hosts: gandalf
-  roles:
-    - role: openvpn
-    - role: ssh_server
-      ansible_distribution: "openwrt"
-- hosts: status
-  roles:
-    - role: icinga2-monitoring

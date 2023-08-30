@@ -1,0 +1,20 @@
+- hosts: emmett
+  roles:
+    - role: lxc_guest
+      vm_name: media
+    - role: ssh_server
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: media
+- hosts: media
+  roles:
+      - role: dns_record
+      - role: reverse_proxy
+      - role: webdav
+        webdav_folders:
+          - Movies
+          - Series
+      - role: kodi-repository
+      - role: trakt
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

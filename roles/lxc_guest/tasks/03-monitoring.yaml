@@ -1,0 +1,16 @@
+---
+- name: 'MONITORING | Host type: lxc_vm'
+  set_fact:
+    monitoring_entry: >
+      {{ { 'address': ansible_host,
+           'host_type': 'lxc_vm' } }}
+
+- name: 'MONITORING | Append host'
+  set_fact:
+    monitoring_facts: >
+      {{ hostvars[monitoring_host]['monitoring_facts']
+          | default({})
+          | combine({host_fqdn: monitoring_entry}) }}
+  delegate_facts: true
+  delegate_to: '{{ monitoring_host }}'
+...

@@ -1,0 +1,7 @@
+---
+ca_cert_common_name: '{{ host_fqdn }}'
+ca_cert_client: false
+ca_cert_min_days_validity: 30
+ca_cert_renew_private_key: true
+ca_cert_tls_subj: '{{ openssl_x509_prefix }}/OU=Server/CN={{ ca_cert_common_name }}'
+...

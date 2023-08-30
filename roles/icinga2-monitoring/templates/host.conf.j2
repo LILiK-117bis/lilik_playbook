@@ -1,7 +1,65 @@
-object Host "{{ item }}" {
+object Host "{{ item.key }}" {
   import "generic-host"
 
+  address = "{{ item.value.address }}"
+
   vars.os = "Linux"
-  vars.address = "{{ hostvars | ip_from_inventory(item) }}"
   vars.sla = "24x7"
+
+{% if ('agent_type' in item.value) and (item.value.agent_type == 'ssh') %}
+  vars.agent_type = "ssh"
+{% endif %}
+
+  vars.host_type = "{{ item.value.host_type | d('physical') }}"
+
+{% for var in item.value.vars|d({})|dict2items %}
+  vars.{{ var.key }} = "{{ var.value }}"
+{% endfor %}
+
+
+{% for repo in item.value.borg_repos|d({})|dict2items %}
+  vars.backup_repos["{{ repo.key }}"] = {
+{%   for v in repo.value|dict2items %}
+     {{ v.key }} = "{{ v.value }}"
+{%   endfor %}
+  }
+{% endfor %}
 }
+
+{% for vhost in item.value.vhosts|d([]) %}
+object Host "{{ vhost }}" {
+  import "generic-host"
+
+  check_command = "dummy"
+  display_name = "www/{{ vhost }}"
+
+  vars.sla = "24x7"
+  vars.host_type = "web service"
+
+  vars.dns_a_record = "{{ public_ip }}"
+
+  vars.http_vhosts["https cert"] = {
+    http_address = "{{ item.value.address }}"
+    http_ssl = true
+    http_vhost = "{{ vhost }}"
+    http_onredirect = "sticky"
+    http_sni = true
+    /* Check remaining days before cert expiration */
+    http_certificate = "30,20"
+  }
+{%   for uri, prop in (item.value.vhosts_uri[vhost]|d({'/': {}})).items() %}
+  vars.http_vhosts["https service"] = {
+    http_address = "{{ item.value.address }}"
+    http_ssl = true
+    http_vhost = "{{ vhost }}"
+    http_onredirect = "{{ prop.onredirect|d('sticky') }}"
+    http_sni = true
+    http_uri = "{{ uri }}"
+    {% if prop.content|d('') != '' %}http_string = "{{ prop.content|replace('"','\\"') }}"{% endif %}
+  }
+{%   endfor %}
+}
+
+{% endfor %}
+
+

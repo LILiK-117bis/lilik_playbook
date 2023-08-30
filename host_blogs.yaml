@@ -1,0 +1,17 @@
+---
+- hosts: biff
+  roles:
+    - role: lxc_guest
+      vm_name: blogs
+    - role: ssh_server
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: blogs
+- hosts: blogs
+  roles:
+      - role: dns_record
+      - role: wordpress
+        site_names:
+          - kaos
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

@@ -1,4 +1,6 @@
-# Based on https://github.com/vector-im/riot-web/releases
+# Based on https://github.com/vector-im/element-web/releases
 ---
-riot_web_version: "v0.15.4"
-server_fqdn: "{{ ansible_hostname }}.lilik.it"
+riot_web_version: "v1.7.15"
+riot_web_nginx_fqdn: "riot.{{ domain }}"
+synapse_nginx_fqdn: "matrix.{{ domain }}"
+synapse_domain: "{{ domain }}"

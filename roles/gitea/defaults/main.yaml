@@ -1,0 +1,11 @@
+---
+host_fqdn: '{{ ansible_hostname }}.dmz.{{ domain }}'
+gitea_version: 1.13.1
+gitea_nginx_fqdn: 'projects.{{ domain }}'
+gitea_renew_secrets: false
+gitea_ssh_port: 22
+ldap_server: 'ldap1.dmz.{{ domain }}'
+ldap_basedn: 'dc={{ domain.replace(".", ",dc=") }}'
+ldap_tls_enabled: true
+ldap_tls_server_ca: '{{ tls_root_ca }}'
+...

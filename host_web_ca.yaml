@@ -1,0 +1,20 @@
+---
+- hosts: emmett
+  roles:
+    - role: lxc_guest
+      vm_name: ca
+      distro: sid
+    - role: ssh_server
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: ca
+
+- hosts: ca
+  roles:
+    - role: dns_record
+    - role: reverse_proxy
+    - role: nginx
+      config_name: "ca-webpage"
+      server_fqdn: "ca.lilik.it"
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

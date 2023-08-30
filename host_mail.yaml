@@ -1,0 +1,22 @@
+---
+- hosts: biff
+  roles:
+    - role: lxc_guest
+      vm_name: mail
+    - role: ssh_server
+      ansible_connection: ssh_lxc
+      ansible_ssh_lxc_name: mail
+- hosts: mail
+  roles:
+      - role: dns_record
+      - role: postfix
+        ldap_server: "ldap.dmz.lilik"
+        fqdn_domain: "mail.lilik.it"
+        lists_server: "list.dmz.lilik"
+      - role: dovecot
+        domain: "lilik.it"
+        fqdn_domain: "mail.lilik.it"
+        ldap_server: "ldap.dmz.lilik"
+- hosts: status
+  roles:
+    - role: icinga2-monitoring

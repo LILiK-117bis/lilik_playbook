@@ -1,54 +1,79 @@
 ---
-- name: install certbot
+- name: 'install certbot'
   apt:
-    name: "{{ item }}"
-    state: present
+    pkg:
+      - 'certbot'
+      - 'sendmail-bin'
+      - 'cron'
+    state: 'present'
     update_cache: true
     cache_valid_time: 3600
-  with_items:
-    - certbot
-    - sendmail-bin
-    - cron
+  tags:
+    - 'install'
+    - 'role::certbot'
+    - 'role::certbot::install'
 
-- name: Shutdown webservers
-  service:
-    name: "{{ webserver_name }}"
-    state: stopped
-  ignore_errors: yes
+# Standard nginx installation should not listen on port 80
+# -> This is probably not required.
+#- name: 'shutdown webservers'
+#  service:
+#    name: '{{ webserver_name }}'
+#    state: 'stopped'
+#  ignore_errors: true
 
-- name: request certificate
+- name: 'request certificate'
   command: >
     certbot
         certonly
         -a standalone
         --agree-tos
-        --email roots@lists.lilik.it
+        --email {{ letsencrypt_email }}
         --preferred-challenges http
-        -d {{ server_fqdn }}
-        -d www.{{ server_fqdn }}
+        -d {{ certbot_site_fqdn }}
+    {% for fqdn in certbot_site_alternate_fqdns %}
+        -d {{ fqdn }}
+    {% endfor %}
         -n
   args:
-    creates: /etc/letsencrypt/live/{{ server_fqdn }}/cert.pem
+    creates: '/etc/letsencrypt/live/{{ certbot_site_fqdn }}/cert.pem'
+  tags:
+    - 'configure'
+    - 'role::certbot::configure'
+    - 'pki'
+    - 'pki::acme'
 
-- name: Restart webservers
-  service:
-    name: "{{ webserver_name }}"
-    state: started
-  ignore_errors: yes
+#- name: 'restart webservers'
+#  service:
+#    name: '{{ webserver_name }}'
+#    state: 'started'
+#  ignore_errors: true
 
-- name: Add systemd timer for cert renewal
+- name: 'add systemd timer for cert renewal'
   template:
-    src: certbot.timer
-    dest: /etc/systemd/system/certbot.timer
+    src: 'certbot.timer'
+    dest: '/etc/systemd/system/certbot.timer'
+  tags:
+    - 'install'
+    - 'role::certbot'
+    - 'role::certbot::install'
 
-- name: Add systemd service for cert renewal
+- name: 'add systemd service for cert renewal'
   template:
-    src: certbot.service
-    dest: /etc/systemd/system/certbot.service
+    src: 'certbot.service'
+    dest: '/etc/systemd/system/certbot.service'
+  tags:
+    - 'install'
+    - 'role::certbot'
+    - 'role::certbot::install'
 
-- name: Enable timer
+- name: 'enable timer'
   systemd:
-    name: certbot.timer
-    state: started
+    name: 'certbot.timer'
+    state: 'started'
     enabled: true
     daemon_reload: true
+  tags:
+    - 'install'
+    - 'role::certbot'
+    - 'role::certbot::install'
+...

@@ -1,0 +1,51 @@
+---
+- name: 'install monitoring agent requirements'
+  apt:
+    pkg: 'monitoring-plugins-basic'
+    state: 'present'
+    update_cache: true
+    cache_valid_time: 3600
+  tags:
+    - 'packages'
+
+- name: 'add monitoring plugins'
+  copy:
+    src: '{{ item }}'
+    dest: '/usr/lib/nagios/plugins/{{ item }}'
+    mode: '0755'
+  loop:
+    - 'check_mem.pl'
+    - 'check_backup.sh'
+  tags:
+    - 'monitoring'
+
+- name: 'create monitoring user'
+  user:
+    name: 'icinga'
+    state: 'present'
+  tags:
+    - 'monitoring'
+
+- name: 'create monitoring entry'
+  set_fact:
+    agent_monitoring_entry: >
+      {{ {
+            host_fqdn: {
+                         'address': ansible_host,
+                         'agent_type': 'ssh',
+                       }
+         } }}
+  tags:
+    - 'monitoring'
+
+- name: 'update monitoring facts'
+  set_fact:
+    monitoring_facts: >
+      {{ hostvars[monitoring_host]['monitoring_facts']
+          | default({})
+          | combine(agent_monitoring_entry, recursive=true) }}
+  delegate_facts: true
+  delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'monitoring'
+...

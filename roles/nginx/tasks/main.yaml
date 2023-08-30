@@ -1,44 +1,84 @@
 ---
-- include_role:
-    name: service
+- import_role: name='service'
   vars:
-    service_name: nginx
+    service_name: 'nginx'
     service_packages:
-      - nginx
+      - 'nginx'
+  tags:
+    - 'install'
+    - 'role::nginx'
+    - 'role::nginx::install'
 
-- name: disable nginx default configuration
+- name: 'disable nginx default configuration'
   file:
-    path: /etc/nginx/sites-enabled/default
-    state: absent
-  notify: restart nginx
+    path: '/etc/nginx/sites-enabled/default'
+    state: 'absent'
+  notify: 'restart nginx'
+  tags:
+    - 'install'
+    - 'role::nginx'
+    - 'role::nginx::install'
 
-- name: create nginx location configuration directory
+- name: 'create nginx location configuration directory'
   file:
     path: '{{ item }}'
-    state: directory
-    mode: 0755
-    owner: www-data
-    group: www-data
-  with_items:
-    - /etc/nginx/locations/
-    - '/etc/nginx/locations/{{ server_fqdn }}/'
+    state: 'directory'
+    mode: '0755'
+    owner: 'www-data'
+    group: 'www-data'
+  loop:
+    - '/etc/nginx/locations/'
+    - '/etc/nginx/locations/{{ nginx_site_fqdn }}/'
+  tags:
+    - 'configure'
+    - 'role::nginx'
+    - 'role::nginx::configure'
 
-- name: upload nginx configuration
+
+- name: 'upload nginx configuration'
   template:
-    src: base.j2
-    dest: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
-  notify:
-    - restart nginx
+    src: 'base.j2'
+    dest: '/etc/nginx/sites-available/{{ nginx_site_fqdn }}.conf'
+  notify: 'restart nginx'
+  tags:
+    - 'configure'
+    - 'role::nginx'
+    - 'role::nginx::configure'
 
-- name: create Diffie Hellman exchange parameters
-  command: openssl dhparam -out /etc/nginx/dhparam.pem 2048
-  args:
-    creates: /etc/nginx/dhparam.pem
-  notify: restart nginx
 
-- name: enable nginx configurations
+- name: 'enable nginx configurations'
   file:
-    src: "/etc/nginx/sites-available/{{ server_fqdn }}.conf"
-    dest: "/etc/nginx/sites-enabled/{{ server_fqdn }}.conf"
-    state: link
-  notify: restart nginx
+    src: '/etc/nginx/sites-available/{{ nginx_site_fqdn }}.conf'
+    dest: '/etc/nginx/sites-enabled/{{ nginx_site_fqdn }}.conf'
+    state: 'link'
+  notify: 'restart nginx'
+  tags:
+    - 'configure'
+    - 'role::nginx'
+    - 'role::nginx::configure'
+
+
+- name: 'MONITORNIG | add HTTP vhost'
+  block:
+    - name: 'MONITORING | add host to monitored vhosts'
+      set_fact:
+        monitoring_vhosts: '{{ monitoring_vhosts + [nginx_site_fqdn] }}'
+    - name: 'MONITORING | update host monitoring entry'
+      set_fact:
+        monitoring_entry: >
+          {{ monitoring_entry | default({}) | combine({
+               'address': ansible_host,
+               'vhosts': monitoring_vhosts,
+               }) }}
+    - name: 'MONITORING | update monitoring facts'
+      set_fact:
+        monitoring_facts: >
+          {{ hostvars[monitoring_host]['monitoring_facts']
+               | default({})
+               | combine({host_fqdn: monitoring_entry}) }}
+      delegate_facts: true
+      delegate_to: '{{ monitoring_host }}'
+  tags:
+    - 'role::nginx'
+    - 'monitoring'
+...

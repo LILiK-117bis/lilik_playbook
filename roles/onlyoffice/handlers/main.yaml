@@ -1,0 +1,8 @@
+---
+- name: 'restart onlyoffice'
+  systemd:
+    daemon_reload: true
+    name: 'onlyoffice-ds.target'
+    enabled: true
+    state: 'restarted'
+...

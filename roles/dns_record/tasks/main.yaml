@@ -1,8 +1,8 @@
 - name:
   lineinfile:
     dest: '/etc/hosts'
-    line: '{{ ansible_default_ipv4.address }} {{ ansible_hostname }}'
-    regexp: '^\s*\S* {{ ansible_hostname }}'
+    line: '{{ ansible_default_ipv4.address }} {{ host_fqdn }}.'
+    regexp: '^\s*\S* {{ host_fqdn }}.'
   delegate_to: gandalf
   register: hosts
 

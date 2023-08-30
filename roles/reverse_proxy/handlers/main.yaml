@@ -1,3 +1,5 @@
-- name: reload nginx
+---
+- name: 'reload reverse proxy'
   command: '/usr/sbin/nginx -s reload'
-  delegate_to: reverse_proxy
+  delegate_to: 'reverse_proxy'
+...

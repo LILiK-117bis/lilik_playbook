@@ -1,0 +1,46 @@
+---
+- name: 'install borgbackup'
+  apt:
+    pkg: 'borgbackup'
+    state: 'latest'
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: 'create backup group'
+  group:
+    name: 'borg'
+    state: 'present'
+
+- name: 'create backup user'
+  user:
+    name: 'borg'
+    shell: '/bin/bash'
+    home: '/home/borg'
+    createhome: true
+    group: 'borg'
+    state: 'present'
+
+- name: 'create home folder'
+  file:
+    path: '/home/borg/repos'
+    owner: 'borg'
+    group: 'borg'
+    mode: '0700'
+    state: 'directory'
+
+- name: 'create .ssh folder'
+  file:
+    path: '/home/borg/repos'
+    owner: 'borg'
+    group: 'borg'
+    mode: '0700'
+    state: 'directory'
+
+- name: 'create repos folder'
+  file:
+    path: '/home/borg/repos'
+    owner: 'borg'
+    group: 'borg'
+    mode: '0700'
+    state: 'directory'
+...
